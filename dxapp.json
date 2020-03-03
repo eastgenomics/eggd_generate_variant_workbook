@@ -1,9 +1,9 @@
 {
-  "name": "vcf2xls_nirvana_v2.0.0",
-  "title": "vcf2xls_nirvana_v2.0.0",
+  "name": "vcf2xls_nirvana_v1.0.0",
+  "title": "vcf2xls_nirvana_v1.0.0",
   "summary": "vcf2xls_nirvana adapated for DNAnexus: no queries for Genetics Ark, uses Python STDOUT to remplace essential queries for creating QC sheets",
   "dxapi": "1.0.0",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "inputSpec": [
     {
       "name": "list_panels_genes",
