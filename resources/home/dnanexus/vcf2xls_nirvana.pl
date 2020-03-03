@@ -762,6 +762,7 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Transcript' }, $RefSeq, $format);
 
   my $position = "$$entry{'CHROM'}:$$entry{'POS'}";
+  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Position' }, "$position", $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Genomic Ref Allele' }, $$entry{'REF'}, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Genomic Alt Allele' }, $Allele, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AAF' }, $AAF, $format);
