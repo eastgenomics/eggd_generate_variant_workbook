@@ -4,8 +4,8 @@
 set -euxo pipefail
 
 main() {
-    if [ ! -z ${list_panels_genes+x} ]; then
-        echo "Value of list_panels_genes: '$list_panels_genes'"
+    if [ ! -z ${list_panel_names_genes+x} ]; then
+        echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
     fi
     echo "Value of annotated_vcfs: '$annotated_vcfs'"
     echo "Value of raw_vcfs: '$raw_vcfs'"
@@ -89,7 +89,7 @@ main() {
 
     # Download reference files
     dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X8704yBGYGJYp09xBqkK0" -o exons_nirvana203
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2g04yBGjBF83FX09jqBb" -o BioinformaticManifest
+    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-FkPp44j4yBGbVbPz1xFZ59PB" -o BioinformaticManifest
     dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2Q04yBGZvF276zYpbfK1" -o nirvana_genes2transcripts
     dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X7zj4yBGbVGkjK7j7Pkg5" -o genepanels
     dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X7Q04yBGVP2fx7967FgvK" -o gemini_freq.vcf.gz
@@ -109,12 +109,12 @@ main() {
         raw_vcf=inputs/${sample}.refseq_nirvana_203.vcf
         coverage_file=inputs/${sample}.nirvana_203_5bp.gz
 
-        if [ -z ${list_panels_genes+x} ]; then
+        if [ -z ${list_panel_names_genes+x} ]; then
             echo "Running: perl vcf2xls_nirvana.pl -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file" 
             perl vcf2xls_nirvana.pl -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file
         else
-            echo "Running: perl vcf2xls_nirvana.pl -p $list_panels_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file" 
-            perl vcf2xls_nirvana.pl -p $list_panels_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file
+            echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file" 
+            perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file
         fi
     done
 
