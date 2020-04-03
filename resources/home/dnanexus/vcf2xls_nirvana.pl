@@ -117,7 +117,6 @@ usage() if ( $opts{ 'h' });
 check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 
 my $sample = find_sample_name( $vcf_file );
-my $sample_longname = find_sample_longname( $vcf_file );
 
 my $ICE_SAMPLE = 0;
 
@@ -368,7 +367,7 @@ sub analyse_vcf_file {
     my @usable_CSQs;
 
     # Pull out the genotypes for the sample
-    my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample_longname }{ GT });
+    my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample }{ GT });
 
     # translate the csq-genotype to a base rather than a number
     if ( $gt1 == 0 ) {
@@ -648,13 +647,13 @@ sub write_variant {
   $change =~ s/.*://;
   $change =~ s/.*\d+(.*\>.*)/$1/;
 
-  my @depths = split(",", $$entry{gtypes}{$sample_longname}{AD});
+  my @depths = split(",", $$entry{gtypes}{$sample}{AD});
 
-  my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample_longname }{ GT });
+  my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample }{ GT });
   my $genotype = "HET";
   $genotype = "HOMO" if ($gt1 == $gt2);
 
-  my $depth = $$entry{ gtypes }{ $sample_longname }{ DP };
+  my $depth = $$entry{ gtypes }{ $sample }{ DP };
   my $AAF = -1;
 
   #calculate the AAF for the variant, and transclate csq-gt into the right gt

@@ -28,7 +28,7 @@
       "class": "file",
       "optional": false,
       "patterns": [
-        "*.vcf"
+        "*.vcf", "*.vcf.gz"
       ],
       "help": ""
     },
