@@ -7,12 +7,12 @@ main() {
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
     fi
-    echo "Value of annotated_vcfs: '$annotated_vcfs'"
-    echo "Value of raw_vcfs: '$raw_vcfs'"
+    echo "Value of raw_vcf: '$raw_vcf'"
+    echo "Value of annotated_vcf: '$annotated_vcf'"
     echo "Value of runfolder_coverage_file: '$runfolder_coverage_file'"
-    echo "Value of coverage_files: '$coverage_files'"
     echo "Value of runfolder_coverage_index: '$runfolder_coverage_index'"
-    echo "Value of coverage_indexes: '$coverage_indexes'"
+    echo "Value of sample_coverage_file: '$sample_coverage_file'"
+    echo "Value of sample_coverage_index: '$sample_coverage_index'"
 
     # Compile samtools and tabix for perl script
     cd packages
@@ -48,44 +48,23 @@ main() {
     # Download sample inputs
     mkdir inputs
 
-    for i in ${!annotated_vcfs[@]}; do
-        dx download "${annotated_vcfs[$i]}" -o inputs/.
-    done
+    sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
+    echo $sample_id
 
-    for i in ${!raw_vcfs[@]}; do
-        dx download "${raw_vcfs[$i]}" -o inputs/.
-    done
-
-    for i in ${!coverage_files[@]}; do
-        dx download "${coverage_files[$i]}" -o inputs/.
-    done
-
-    for i in ${!coverage_indexes[@]}; do
-        dx download "${coverage_indexes[$i]}" -o inputs/.
-    done
-
-    cd inputs
-
-    # Get unique sample names for use in the perl script
-    basenames=()
-
-    for file in $(ls); do
-        base=${file%%.*}
-
-        # bash < 4.4 doesn't like empty arrays with set -u
-        # thus the ugly thing
-        if [[ ! ${basenames[@]+"${basenames[@]}"} =~ ${base} ]] && [[ ${base} =~ ^[XG] ]]; then
-            basenames+=( "${base}" )
-        fi
-    done
-
-    cd ..
+    dx download "$annotated_vcf" -o inputs/
+    echo $annotated_vcf_name
+    dx download "$raw_vcf" -o inputs/
+    echo $raw_vcf_name
+    dx download "$sample_coverage_file" -o inputs/
+    echo $sample_coverage_file_name
+    dx download "$sample_coverage_index" -o inputs/
+    echo $sample_coverage_index_name
 
     # Download runfolder coverage file and assign to variable
-    dx download "$runfolder_coverage_file" -o inputs/.
-    dx download "$runfolder_coverage_index" -o inputs/.
-
-    runfolder_coverage_file=$(find inputs/ | grep -E '*refseq_nirvana_5bp.gz$')
+    dx download "$runfolder_coverage_file" -o inputs/
+    echo $runfolder_coverage_file_name
+    dx download "$runfolder_coverage_index" -o inputs/
+    echo $runfolder_coverage_index_name
 
     # Download reference files
     dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X8704yBGYGJYp09xBqkK0" -o exons_nirvana203
@@ -103,20 +82,20 @@ main() {
 
     mkdir -p /home/dnanexus/out/xls_reports
 
-    # Run vcf2xls for all samples
-    for sample in ${basenames[@]}; do
-        annotated_vcf=inputs/${sample}.refseq_nirvana_203.annotated.vcf
-        raw_vcf=inputs/${sample}.refseq_nirvana_203.vcf
-        coverage_file=inputs/${sample}.nirvana_203_5bp.gz
+    # Run vcf2xls
+ 
+    if [ -z ${list_panel_names_genes+x} ]; then
+        echo "Running: perl vcf2xls_nirvana.pl -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
+        perl vcf2xls_nirvana.pl -a inputs/$annotated_vcf_name -v inputs/$raw_vcf_name -R inputs/$runfolder_coverage_file_name -C inputs/$sample_coverage_file_name
+    else
+        echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
+        perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/$annotated_vcf_name -v inputs/$raw_vcf_name -R inputs/$runfolder_coverage_file_name -C inputs/$sample_coverage_file_name
+    fi
 
-        if [ -z ${list_panel_names_genes+x} ]; then
-            echo "Running: perl vcf2xls_nirvana.pl -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file" 
-            perl vcf2xls_nirvana.pl -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file
-        else
-            echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file" 
-            perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a $annotated_vcf -v $raw_vcf -R $runfolder_coverage_file -C $coverage_file
-        fi
-    done
+    cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/$sample_id.xls 
 
-    dx-upload-all-outputs
+    output_file=$(dx upload /home/dnanexus/out/xls_reports/$sample_id.xls --brief)
+
+    dx-jobutil-add-output xls_report "$output_file" --class=file
+
 }
