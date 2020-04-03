@@ -122,9 +122,6 @@ my $sample_longname = find_sample_longname( $vcf_file );
 my $ICE_SAMPLE = 0;
 
 $sample =~ s/_.*//;
-print "Sample is $sample";
-print "Long sample is $sample_longname";
-
 
 my %gene_list = readin_manifest( $manifest, $sample);
 my %hotspots;
@@ -210,21 +207,6 @@ sub find_sample_name {
 
   return $sample ;
 }
-
-sub find_sample_longname {
-  my ( $vcf_file ) = @_;
-
-  my $sample_longname = "$vcf_file";
-  $sample_longname = "$vcf_file";
-  $sample_longname =~ s/.*\///;
-  $sample_longname =~ s/\_markdup.*//;
-  #$sample =~ s/\..*//;
-  #$sample =~ s/\_mem.*//;
-  #$sample =~ s/U//;
-
-  return $sample_longname;
-}
-
 
 # Kim Brugger (20 May 2015)
 sub fill_QC_sheets {
@@ -375,10 +357,6 @@ sub analyse_vcf_file {
 
   while (my $entry = $vcf->next_data_hash()) {
     my $CSQ_line = $$entry{INFO}{'CSQ'};
-#    print "\n";
-#    print "$$entry{CHROM}\n";
-#    print "$$entry{POS}\n";
-#    print "CSQ $CSQ_line\n";
     next if ( ! $CSQ_line );
     my @CSQs;
     map {push @CSQs, [split(/\|/, $_)] } split(",", $CSQ_line);
@@ -390,10 +368,7 @@ sub analyse_vcf_file {
     my @usable_CSQs;
 
     # Pull out the genotypes for the sample
-#    print "GT: $$entry{ gtypes }{ $sample_longname }{ GT }\n";
     my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample_longname }{ GT });
-#    print "GT1 $gt1\n";
-#    print "GT2 $gt2\n";
 
     # translate the csq-genotype to a base rather than a number
     if ( $gt1 == 0 ) {
@@ -418,14 +393,13 @@ sub analyse_vcf_file {
 
     foreach my $CSQ ( @CSQs) {
       my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$effects,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$Distance) = @$CSQ;
-      print "P: $PolyPhen\n";
-      print "S: $SIFT\n";
+
       next if (!$effects || $effects eq "upstream_gene_variant" || $effects eq "downstream_gene_variant");
+
       # Neither of the genotypes matches with our sample
       next if $Allele ne $gt1 && $Allele ne $gt2;
 
       $HGNC = uc ( $HGNC );
-#      print "$HGNC\n";
 
       if ($ICE_SAMPLE && $hotspots{ $pos } ) {
         next;
@@ -561,20 +535,15 @@ sub setup_workbook {
 # Kim Brugger (18 Jan 2018)
 sub gemini_af {
   my ( $chrom, $pos, $ref, $alt) = @_;
-  print "Getting GAF\n";
-  print "$chrom $pos $ref $alt\n";
 
   if ( -e $gemini_freq ) {
     open(my $in, "$TABIX $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
     while (<$in>) {
       chomp;
       my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
-      print "$info\n";
 
       if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
         $info =~ /AF=(.*?);/;
-        print "$info\n";
-        print "$1\n";
         return $1;
       }
     }
@@ -714,7 +683,6 @@ sub write_variant {
 #  print "$AAF\n";
 
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
-  print "AF_GEMINI: $AF_GEMINI\n"; 
   my $external_AFs = external_af($$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
 
   foreach my $external_AF_source ( keys %$external_AFs  ) {
