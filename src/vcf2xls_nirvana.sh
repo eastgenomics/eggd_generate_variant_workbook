@@ -54,6 +54,7 @@ main() {
 
     job_id=$(dx describe --delimiter "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
     analysis_id=$(dx describe --delimiter "_" $job_id | grep Root | cut -d_ -f2)
+    workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
     analysis_name=$(dx describe --name $analysis_id)
 
     dx download "$annotated_vcf" -o inputs/
@@ -105,7 +106,8 @@ main() {
             -C inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
-            -w $analysis_name
+            -w $analysis_name \
+            -i $workflow_id
     else
         echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
         perl vcf2xls_nirvana.pl \
@@ -116,7 +118,8 @@ main() {
             -C inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
-            -w $analysis_name
+            -w $analysis_name \
+            -i $workflow_id
     fi
 
     cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/$sample_id.xls 
