@@ -13,6 +13,7 @@ main() {
     echo "Value of runfolder_coverage_index: '$runfolder_coverage_index'"
     echo "Value of sample_coverage_file: '$sample_coverage_file'"
     echo "Value of sample_coverage_index: '$sample_coverage_index'"
+    echo "Value of flagstat_file: '$flagstat_file'"
 
     # Compile samtools and tabix for perl script
     cd packages
@@ -51,6 +52,10 @@ main() {
     sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
     echo $sample_id
 
+    job_id=$(dx describe --delimiter "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    analysis_id=$(dx describe --delimiter "_" $job_id | grep Root | cut -d_ -f2)
+    analysis_name=$(dx describe --name $analysis_id)
+
     dx download "$annotated_vcf" -o inputs/
     echo $annotated_vcf_name
     dx download "$raw_vcf" -o inputs/
@@ -59,6 +64,13 @@ main() {
     echo $sample_coverage_file_name
     dx download "$sample_coverage_index" -o inputs/
     echo $sample_coverage_index_name
+    dx download "$flagstat_file" -o inputs/
+    echo $flagstat_file_name
+
+    total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
+    nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
+    nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
+    nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
 
     # Download runfolder coverage file and assign to variable
     dx download "$runfolder_coverage_file" -o inputs/
@@ -86,10 +98,25 @@ main() {
  
     if [ -z ${list_panel_names_genes+x} ]; then
         echo "Running: perl vcf2xls_nirvana.pl -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
-        perl vcf2xls_nirvana.pl -a inputs/$annotated_vcf_name -v inputs/$raw_vcf_name -R inputs/$runfolder_coverage_file_name -C inputs/$sample_coverage_file_name
+        perl vcf2xls_nirvana.pl \
+            -a inputs/$annotated_vcf_name \
+            -v inputs/$raw_vcf_name \
+            -R inputs/$runfolder_coverage_file_name \
+            -C inputs/$sample_coverage_file_name \
+            -u $nb_usable_reads \
+            -T $total_nb_reads \
+            -w $analysis_name
     else
         echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
-        perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/$annotated_vcf_name -v inputs/$raw_vcf_name -R inputs/$runfolder_coverage_file_name -C inputs/$sample_coverage_file_name
+        perl vcf2xls_nirvana.pl \
+            -p $list_panel_names_genes \
+            -a inputs/$annotated_vcf_name \
+            -v inputs/$raw_vcf_name \
+            -R inputs/$runfolder_coverage_file_name \
+            -C inputs/$sample_coverage_file_name \
+            -u $nb_usable_reads \
+            -T $total_nb_reads \
+            -w $analysis_name
     fi
 
     cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/$sample_id.xls 
@@ -97,5 +124,4 @@ main() {
     output_file=$(dx upload /home/dnanexus/out/xls_reports/$sample_id.xls --brief)
 
     dx-jobutil-add-output xls_report "$output_file" --class=file
-
 }
