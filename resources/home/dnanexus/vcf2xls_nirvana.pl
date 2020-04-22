@@ -29,7 +29,7 @@ my %gene_alias = ('PRKN'   => 'PARK2',
 		  'COQ8A' => 'ADCK3' );
 
 use Getopt::Std;
-my $opts = 'tv:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
+my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
 my %opts;
 getopts($opts, \%opts);
 
@@ -40,6 +40,7 @@ my $RARE_VARIANT_AF = $opts{A} || 0.02;
 my $nb_usable_reads = $opts{"u"};
 my $total_nb_reads = $opts{"T"};
 my $workflow = $opts{"w"};
+my $workflow_id = $opts{"i"};
 
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
@@ -1291,6 +1292,10 @@ sub add_worksheet {
 
     worksheet_write($sheet_name, $offset, 0, "Workflow", $$formatting{ 'bold' });
     worksheet_write($sheet_name, $offset, 1, $workflow, undef);
+    $offset += 1;
+
+    worksheet_write($sheet_name, $offset, 0, "Workflow id", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $workflow_id, undef);
     $offset += 1;
   }
   else {
