@@ -9,7 +9,7 @@
       "name": "list_panel_names_genes",
       "label": "List of comma-separated panels or comma-separated genes (prefixed with \"_\")",
       "class": "string",
-      "optional": false,
+      "optional": true,
       "help": ""
     },
     {
