@@ -71,6 +71,16 @@
         "*.gz.tbi"
       ],
       "help": ""
+    },
+    {
+      "name": "flagstat_file",
+      "label": "Flagstat file for displaying number of reads in the report",
+      "class": "file",
+      "optional": false,
+      "patterns": [
+        "*.flagstat"
+      ],
+      "help": ""
     }
   ],
   "outputSpec": [
