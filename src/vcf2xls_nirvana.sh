@@ -49,14 +49,6 @@ main() {
     # Download sample inputs
     mkdir inputs
 
-    sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
-    echo $sample_id
-
-    job_id=$(dx describe --delimiter "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
-    analysis_id=$(dx describe --delimiter "_" $job_id | grep Root | cut -d_ -f2)
-    workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
-    analysis_name=$(dx describe --name $analysis_id)
-
     dx download "$annotated_vcf" -o inputs/
     echo $annotated_vcf_name
     dx download "$raw_vcf" -o inputs/
@@ -68,6 +60,17 @@ main() {
     dx download "$flagstat_file" -o inputs/
     echo $flagstat_file_name
 
+    # get sample id from vcf file name
+    sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
+    echo $sample_id
+
+    # Get workflow name and id
+    job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    analysis_id=$(dx describe --delim "_" $job_id | grep Root | cut -d_ -f2)
+    workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
+    analysis_name=$(dx describe --name $analysis_id)
+
+    # get read stats from flagstat file
     total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
     nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
     nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
@@ -80,18 +83,20 @@ main() {
     echo $runfolder_coverage_index_name
 
     # Download reference files
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X8704yBGYGJYp09xBqkK0" -o exons_nirvana203
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-FkPp44j4yBGbVbPz1xFZ59PB" -o BioinformaticManifest
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2Q04yBGZvF276zYpbfK1" -o nirvana_genes2transcripts
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X7zj4yBGbVGkjK7j7Pkg5" -o genepanels
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X7Q04yBGVP2fx7967FgvK" -o gemini_freq.vcf.gz
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2p84yBGxbvYx5ZkQX0Kz" -o esp_vcf.tab.gz
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2Xj4yBGVQg5BJ1QjVBKY" -o kg_vcf.tab.gz
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk0X2y04yBGb2Jf851vvY3Bg" -o exac_vcf.sites.vep.vcf.gz
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk18f1j4yBGk4P8K6vPFgKYV" -o gemini_freq.vcf.gz.tbi
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk18f6Q4yBGbJ2BPJ5vGZ62x" -o esp_vcf.tab.gz.tbi
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk18by04yBGv3KfKPp0v19V7" -o kg_vcf.tab.gz.tbi
-    dx download "project-Fjj60Qj4yBGvQXbb5Z6FXkgF:file-Fk18bkQ4yBGb1VfQGxxVpjbY" -o exac_vcf.sites.vep.vcf.gz.tbi
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGq8433GZXPXgB34B3kz0" -o exons_nirvana203
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpG6j433Gyp0kF6F9F69qq" -o esp_vcf.tab.gz
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFpQ433Gv30GBPqz29V0k" -o kg_vcf.tab.gz
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpPkj433Gfpz8g0x2X64jQ" -o exac_vcf.sites.vep.vcf.gz
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGPj433GzPByY1Vpfz7bb" -o esp_vcf.tab.gz.tbi
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFyj433GQkkJzFzbFb48J" -o kg_vcf.tab.gz.tbi
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGgQ433GyvPj8Fq65F4qP" -o exac_vcf.sites.vep.vcf.gz.tbi
+
+    # Download dynamic reference files
+    dx download "$genepanels_file" -o genepanels
+    dx download "$bioinformatic_manifest" -o BioinformaticManifest
+    dx download "$nirvana_genes2transcripts" -o nirvana_genes2transcripts
 
     mkdir -p /home/dnanexus/out/xls_reports
 
