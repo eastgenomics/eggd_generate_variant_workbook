@@ -81,6 +81,27 @@
         "*.flagstat"
       ],
       "help": ""
+    },
+    {
+      "name": "genepanels_file",
+      "label": "Genepanels file",
+      "class": "file",
+      "optional": false,
+      "help": "File with all panels and their genes. Contains panel name, panel_id, gene_symbol tab-separated"
+    },
+    {
+      "name": "bioinformatic_manifest",
+      "label": "Bioinformatic manifest",
+      "class": "file",
+      "optional": false,
+      "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated"
+    },
+    {
+      "name": "nirvana_genes2transcripts",
+      "label": "Nirvana_genes2transcripts",
+      "class": "file",
+      "optional": false,
+      "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated"
     }
   ],
   "outputSpec": [
