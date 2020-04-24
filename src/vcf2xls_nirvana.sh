@@ -127,8 +127,8 @@ main() {
             -i $workflow_id
     fi
 
-    dx select
-    0
+    project_id=$(dx find projects | cut -d" " -f1)
+    dx select $project_id
     source ~/.dnanexus_config/unsetenv
 
     output_name=$sample_id.xls
