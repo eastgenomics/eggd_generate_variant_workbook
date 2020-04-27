@@ -29,7 +29,7 @@ my %gene_alias = ('PRKN'   => 'PARK2',
 		  'COQ8A' => 'ADCK3' );
 
 use Getopt::Std;
-my $opts = 'tv:a:R:g:e:o:m:p:MA:fHFNDC:I';
+my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
 my %opts;
 getopts($opts, \%opts);
 
@@ -37,6 +37,10 @@ my $samtools  = 'packages/samtools-1.7/samtools';
 my $FLANK     = 250;
 
 my $RARE_VARIANT_AF = $opts{A} || 0.02;
+my $nb_usable_reads = $opts{"u"};
+my $total_nb_reads = $opts{"T"};
+my $workflow = $opts{"w"};
+my $workflow_id = $opts{"i"};
 
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
@@ -678,8 +682,6 @@ sub write_variant {
     }
   }
 
-#  print "$Allele\n";
-#  print "$AAF\n";
 
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
   my $external_AFs = external_af($$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
@@ -1281,12 +1283,19 @@ sub add_worksheet {
     $offset += 1;
 
     worksheet_write($sheet_name,  $offset, 0, "Reads:", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $total_nb_reads, undef);
     $offset += 1;
 
     worksheet_write($sheet_name, $offset, 0, "Usable Reads", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $nb_usable_reads, undef);
     $offset += 2;
 
-    worksheet_write($sheet_name, $offset, 0, "Versions", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 0, "Workflow", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $workflow, undef);
+    $offset += 1;
+
+    worksheet_write($sheet_name, $offset, 0, "Workflow id", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $workflow_id, undef);
     $offset += 1;
   }
   else {
