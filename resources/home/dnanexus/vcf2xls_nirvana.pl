@@ -29,7 +29,7 @@ my %gene_alias = ('PRKN'   => 'PARK2',
 		  'COQ8A' => 'ADCK3' );
 
 use Getopt::Std;
-my $opts = 'tv:a:R:g:e:o:m:p:MA:fHFNDC:I';
+my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
 my %opts;
 getopts($opts, \%opts);
 
@@ -37,6 +37,10 @@ my $samtools  = 'packages/samtools-1.7/samtools';
 my $FLANK     = 250;
 
 my $RARE_VARIANT_AF = $opts{A} || 0.02;
+my $nb_usable_reads = $opts{"u"};
+my $total_nb_reads = $opts{"T"};
+my $workflow = $opts{"w"};
+my $workflow_id = $opts{"i"};
 
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
@@ -133,7 +137,7 @@ die "No genes for $sample\n" if ( keys %gene_list == 0 );
 my %transcript_list = gene_list_to_transcript_list( \%gene_list );
 print "Gene list: ", join(",", sort keys %gene_list) , "\n";
 
-my $excel_file = "/home/dnanexus/out/xls_reports/$sample.xls";
+my $excel_file = "/home/dnanexus/out/xls_reports/report.xls";
 
 $excel_file = File::Spec->rel2abs( $excel_file );
 print "Output excel file == $excel_file\n";
@@ -206,7 +210,6 @@ sub find_sample_name {
 
   return $sample ;
 }
-
 
 # Kim Brugger (20 May 2015)
 sub fill_QC_sheets {
@@ -395,6 +398,7 @@ sub analyse_vcf_file {
       my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$effects,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$Distance) = @$CSQ;
 
       next if (!$effects || $effects eq "upstream_gene_variant" || $effects eq "downstream_gene_variant");
+
       # Neither of the genotypes matches with our sample
       next if $Allele ne $gt1 && $Allele ne $gt2;
 
@@ -676,7 +680,8 @@ sub write_variant {
       $AAF = sprintf("%.4f", $depths[ $gt2 ]/($depth));    
       $Allele = $$entry{ ALT }[ $gt2 - 1];
     }
-  } 
+  }
+
 
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
   my $external_AFs = external_af($$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
@@ -782,6 +787,7 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'dbsnp' }, $$entry{ID}, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'PolyPhen' }, $PolyPhen, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
+  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_1KG_MAX' }, $$entry{INFO}{ 'AF_1KG_MAX' }||= 0, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ESP_MAX' }, $$entry{INFO}{ 'AF_ESP_MAX' }||= 0, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ExAC' }, $$entry{INFO}{ 'AF_ExAC'    }||= 0, $format);
@@ -1277,12 +1283,19 @@ sub add_worksheet {
     $offset += 1;
 
     worksheet_write($sheet_name,  $offset, 0, "Reads:", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $total_nb_reads, undef);
     $offset += 1;
 
     worksheet_write($sheet_name, $offset, 0, "Usable Reads", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $nb_usable_reads, undef);
     $offset += 2;
 
-    worksheet_write($sheet_name, $offset, 0, "Versions", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 0, "Workflow", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $workflow, undef);
+    $offset += 1;
+
+    worksheet_write($sheet_name, $offset, 0, "Workflow id", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, $offset, 1, $workflow_id, undef);
     $offset += 1;
   }
   else {
