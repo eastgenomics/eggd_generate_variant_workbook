@@ -1100,15 +1100,24 @@ sub setup_worksheets {
 # Kim Brugger (23 Aug 2013)
 sub usage {
   $0 =~ s/.*\///;
-  print STDERR "USAGE :: $0 is filtering an annotated vcf file into an xls file for interpretation \n";
-  print STDERR "USAGE :: $0  -p[anel name(s)] -v[cf file] -R[unfolder coverage] \n";
-  print STDERR "USAGE :: Additional (historical/advanced) options \n";
-  print STDERR "USAGE :: -e[xcel out put file] \n";
-  print STDERR "USAGE :: -t[ext output] \n";
-  print STDERR "USAGE :: -M[eta sheet only info]\n";
-  print STDERR "USAGE :: -F[ull exome report]\n";
+  print STDERR "USAGE :: $0 is filtering an annotated vcf file into an xls file for interpretation\n";
+  print STDERR "USAGE :: Example cmd line:\n";
+  print STDERR "USAGE :: $0 -a sample.annotated.vcf -v sample.vcf -R sample.refseq_5bp.gz -C runfolder.refseq_5bp.gz ";
+  print STDERR "-w workflow_name -i workflow_id -u 10000000 -T 10500000 \n";
+  print STDERR "USAGE :: $0 -p \"Demantia\" -a sample.annotated.vcf -v sample.vcf -R sample.refseq_5bp.gz -C runfolder.refseq_5bp.gz ";
+  print STDERR "-w workflow_name -i workflow_id -u 10000000 -T 10500000 \n";
+  print STDERR "USAGE :: Additional (historical/advanced) options:\n";
+  print STDERR "USAGE :: -t[ext output], default is 0\n";
+  print STDERR "USAGE :: -M[eta sheet only info], default is 0\n";
+  print STDERR "USAGE :: -F[ull exome report], defaut is 0\n";
   print STDERR "USAGE :: -N[o QC data in report]\n";
   print STDERR "USAGE :: -I[D QC only report]\n";
+  print STDERR "USAGE :: -H (homozygous_snps)\n";
+  print STDERR "USAGE :: -A (RARE_VARIANT_AF), default is 0.02\n";
+  print STDERR "USAGE :: -u (nb_usable_reads)\n";
+  print STDERR "USAGE :: -T (total_nb_reads)\n";
+  print STDERR "USAGE :: -w (workflow)\n";
+  print STDERR "USAGE :: -i (workflow_id)\n";
   exit 1;
 }
 
