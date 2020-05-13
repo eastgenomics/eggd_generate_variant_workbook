@@ -25,10 +25,8 @@ BEGIN {
 my $TABIX = "packages/htslib-1.7/tabix";
 
 use Vcf;
-my %gene_alias = ('PRKN'   => 'PARK2',
-		  'COQ8A' => 'ADCK3' );
-
 use Getopt::Std;
+
 my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
 my %opts;
 getopts($opts, \%opts);
@@ -1368,7 +1366,6 @@ sub readin_manifest {
     next if (/^\z/);
     my ( $gemini, $panel, $panel_id, $gene, $transcript ) = split("\t", $_);
     $gene =~ s/ //g;
-    $gene = $gene_alias{ $gene } if ( $gene_alias{ $gene } );
 
     next if ($panel eq "BLANK");
     next if ($gene  eq "BLANK");
