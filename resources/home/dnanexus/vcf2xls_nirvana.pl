@@ -878,7 +878,7 @@ sub region_coverage {
 # Kim Brugger (03 Apr 2018)
 sub fetch_expected_coverage {
   my ($chrom, $start, $end) = @_;
-  my $normalized_depth_factor = $nb_usable_reads/1000000;
+  my $normalized_depth_factor = $nb_usable_reads/100000000;
 
   $end  ||= $start;
 
