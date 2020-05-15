@@ -237,33 +237,22 @@ sub fill_QC_sheets {
   }
 
   my $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight One sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method) : \n\n";
-  worksheet_write('Summary', 6 ,  0 , $report_blurb);
 
-  my $transcript_blurb = join("; ", @gene_transcripts );
-  worksheet_write('Summary', 8 ,  0 , $transcript_blurb);
+  $report_blurb .= join("; ", @gene_transcripts ) . "\n\n";
 
   # Dementia needs different (additional) text:
   if (index($gene_list{ 'PANEL_IDS'}, "Dementia") != -1) {
-    $report_blurb .= "$avg_plus_20x of the target sequence within this panel was sequenced to a depth of 20 fold or more, with analytical sensitivity of 98.3% - 100% (95% Confidence Intervals). Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
+    $report_blurb .= "$avg_plus_20x % of the target sequence within this panel was sequenced to a depth of 20 fold or more, with analytical sensitivity of 98.3% - 100% (95% Confidence Intervals). Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
   }
   else {
-    $report_blurb = "$avg_plus_20x % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material).";
-    worksheet_write('Summary', 10,  0, $report_blurb);
-
-    $report_blurb = "The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. ";
-    worksheet_write('Summary', 11 ,  0 , $report_blurb);
-
-    $report_blurb = "Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported.";
-    worksheet_write('Summary', 12 ,  0 , $report_blurb);
-
-    $report_blurb = "Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
-    worksheet_write('Summary', 13 ,  0 , $report_blurb);
+    $report_blurb .= "$avg_plus_20x % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material). The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
   }
 
   if ( $gene_list{ 'PANEL_IDS'} ) {
     worksheet_write('Summary', 1 ,  6 , "Panel(s) w/ id's", $$formatting{ 'bold' });
     worksheet_write('Summary', 1 ,  7 , $gene_list{ 'PANEL_IDS'});
   }
+  worksheet_write('Summary', 6 ,  0 , $report_blurb);
 }
 
 
@@ -1189,7 +1178,7 @@ sub add_worksheet {
     worksheet_write($sheet_name,  2, 0, "Name:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  5, 0, "Report text:", $$formatting{ 'bold' });
 
-    my $offset = 15;
+    my $offset = 8;
 
     worksheet_cell_width( $sheet_name, 0, 0, 12);
     worksheet_cell_width( $sheet_name, 1, 7, 20);
