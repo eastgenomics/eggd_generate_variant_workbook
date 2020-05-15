@@ -97,6 +97,7 @@ main() {
     dx download "$genepanels_file" -o genepanels
     dx download "$bioinformatic_manifest" -o BioinformaticManifest
     dx download "$nirvana_genes2transcripts" -o nirvana_genes2transcripts
+    dx download "$exons_nirvana" -o exons_nirvana
 
     mkdir -p /home/dnanexus/out/xls_reports
 
