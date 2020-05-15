@@ -25,10 +25,8 @@ BEGIN {
 my $TABIX = "packages/htslib-1.7/tabix";
 
 use Vcf;
-my %gene_alias = ('PRKN'   => 'PARK2',
-		  'COQ8A' => 'ADCK3' );
-
 use Getopt::Std;
+
 my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
 my %opts;
 getopts($opts, \%opts);
@@ -105,8 +103,8 @@ my $text_only = $opts{t} || 0;
 my $homozygous_snps = $opts{ 'H' } || 0;
 my $full_exome_snps = $opts{ 'F' } || 0;
 
-my $coverage_file = $opts{ 'C' } || die "Coverage file missing";
-my $runfolder_coverage_file = $opts{ 'R'} || die "Runfolder coverage missing";
+my $coverage_file = $opts{ 'C' };
+my $runfolder_coverage_file = $opts{ 'R'};
 
 # Sometimes the sample is given before the parameters on the command
 # line, so check and fail if this is the case
@@ -121,8 +119,6 @@ usage() if ( $opts{ 'h' });
 check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 
 my $sample = find_sample_name( $vcf_file );
-
-my $ICE_SAMPLE = 0;
 
 $sample =~ s/_.*//;
 
@@ -205,8 +201,6 @@ sub find_sample_name {
   $sample = "$vcf_file";
   $sample =~ s/.*\///;
   $sample =~ s/\..*//;
-  $sample =~ s/\_mem.*//;
-  $sample =~ s/U//;
 
   return $sample ;
 }
@@ -242,10 +236,6 @@ sub fill_QC_sheets {
   }
 
   my $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight One sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method) : \n\n";
-
-    if ( $ICE_SAMPLE ) {
-      $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight Cancer sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method) : \n\n";
-    }
 
   $report_blurb .= join("; ", @gene_transcripts ) . "\n\n";
 
@@ -404,41 +394,35 @@ sub analyse_vcf_file {
 
       $HGNC = uc ( $HGNC );
 
-      if ($ICE_SAMPLE && $hotspots{ $pos } ) {
-        next;
-        $effects = 'hotspot';
+      next if ( ! $HGNC );
+
+      if ( $transcript2gene{ $RefSeq } && $HGNC ne $transcript2gene{ $RefSeq } ) {
+        $transcript2gene{ $RefSeq } = $HGNC;
       }
-      else {
-        next if ( ! $HGNC );
 
-        if ( $transcript2gene{ $RefSeq } && $HGNC ne $transcript2gene{ $RefSeq } ) {
-          $transcript2gene{ $RefSeq } = $HGNC;
-    	  }
-
-        if ( $homozygous_snps ) {
-          if ( $$entry{INFO}{AC} eq "2" ){
-            next if ( ! $genes2transcripts{ $HGNC } );
-            $gene_list{ $HGNC } = $genes2transcripts{ $HGNC };
-            $gene_list{ 'PANEL'} = 'Homozygous SNPs';
-          }
-          else {
-            next;
-          }
-        }
-        
-        elsif ( $full_exome_snps ) {
+      if ( $homozygous_snps ) {
+        if ( $$entry{INFO}{AC} eq "2" ){
+          next if ( ! $genes2transcripts{ $HGNC } );
           $gene_list{ $HGNC } = $genes2transcripts{ $HGNC };
-          $gene_list{ 'PANEL'} = 'Full Exome';
+          $gene_list{ 'PANEL'} = 'Homozygous SNPs';
         }
-        elsif ( ! $transcript_list{ $RefSeq } ) {
+        else {
           next;
         }
+      }
+      
+      elsif ( $full_exome_snps ) {
+        $gene_list{ $HGNC } = $genes2transcripts{ $HGNC };
+        $gene_list{ 'PANEL'} = 'Full Exome';
+      }
+      elsif ( ! $transcript_list{ $RefSeq } ) {
+        next;
+      }
 
-        if ($transcript_list{ uc ($RefSeq ) } && $transcript_list{ uc ($RefSeq ) } ne "" ) {
-          $gene_list{ uc ($HGNC ) } = $RefSeq;
-          $genes2transcripts{ $HGNC } = $RefSeq;
+      if ($transcript_list{ uc ($RefSeq ) } && $transcript_list{ uc ($RefSeq ) } ne "" ) {
+        $gene_list{ uc ($HGNC ) } = $RefSeq;
+        $genes2transcripts{ $HGNC } = $RefSeq;
 
-        }
       }
 
       $effects = 'frameshift_variant' if ( $effects =~ /inframe_insertion/ ||
@@ -1116,15 +1100,24 @@ sub setup_worksheets {
 # Kim Brugger (23 Aug 2013)
 sub usage {
   $0 =~ s/.*\///;
-  print STDERR "USAGE :: $0 is filtering an annotated vcf file into an xls file for interpretation \n";
-  print STDERR "USAGE :: $0  -p[anel name(s)] -v[cf file] -R[unfolder coverage] \n";
-  print STDERR "USAGE :: Additional (historical/advanced) options \n";
-  print STDERR "USAGE :: -e[xcel out put file] \n";
-  print STDERR "USAGE :: -t[ext output] \n";
-  print STDERR "USAGE :: -M[eta sheet only info]\n";
-  print STDERR "USAGE :: -F[ull exome report]\n";
+  print STDERR "USAGE :: $0 is filtering an annotated vcf file into an xls file for interpretation\n";
+  print STDERR "USAGE :: Example cmd line:\n";
+  print STDERR "USAGE :: $0 -a sample.annotated.vcf -v sample.vcf -R sample.refseq_5bp.gz -C runfolder.refseq_5bp.gz ";
+  print STDERR "-w workflow_name -i workflow_id -u 10000000 -T 10500000 \n";
+  print STDERR "USAGE :: $0 -p \"Demantia\" -a sample.annotated.vcf -v sample.vcf -R sample.refseq_5bp.gz -C runfolder.refseq_5bp.gz ";
+  print STDERR "-w workflow_name -i workflow_id -u 10000000 -T 10500000 \n";
+  print STDERR "USAGE :: Additional (historical/advanced) options:\n";
+  print STDERR "USAGE :: -t[ext output], default is 0\n";
+  print STDERR "USAGE :: -M[eta sheet only info], default is 0\n";
+  print STDERR "USAGE :: -F[ull exome report], defaut is 0\n";
   print STDERR "USAGE :: -N[o QC data in report]\n";
   print STDERR "USAGE :: -I[D QC only report]\n";
+  print STDERR "USAGE :: -H (homozygous_snps)\n";
+  print STDERR "USAGE :: -A (RARE_VARIANT_AF), default is 0.02\n";
+  print STDERR "USAGE :: -u (nb_usable_reads)\n";
+  print STDERR "USAGE :: -T (total_nb_reads)\n";
+  print STDERR "USAGE :: -w (workflow)\n";
+  print STDERR "USAGE :: -i (workflow_id)\n";
   exit 1;
 }
 
@@ -1148,19 +1141,6 @@ sub add_worksheet {
 		'AF_ExAC',
 		'Comment',
   );
-
-  if ( $ICE_SAMPLE ) {
-    @fields = ('Gene', 'Transcript', 
-	       'Chromosome','Start', 'Genomic Ref Allele', 'Genomic Alt Allele', 
-	       'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
-	       'dbsnp', 'PolyPhen', 'SIFT',
-	       'AF_GEMINI',
-	       'AF_1KG_MAX',
-	       'AF_ESP_MAX',
-	       'AF_ExAC',
-	       'Comment',
-	  );
-  }
 
   $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name ) if ( !$text_only && !$meta_only);
 
@@ -1189,11 +1169,6 @@ sub add_worksheet {
 
     my $SRY_RID = 199195;
     worksheet_write($sheet_name, 1, 3, 'No');
-
-    if ( $ICE_SAMPLE ) {
-      worksheet_write($sheet_name, 1, 3, 'Not captured');
-      worksheet_write($sheet_name, 0, 3, 'N/A');
-    }
 
     worksheet_write($sheet_name,  0, 4, "Panel coverage", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  0, 6, "Panel(s):", $$formatting{ 'bold' });
@@ -1368,7 +1343,6 @@ sub readin_manifest {
     next if (/^\z/);
     my ( $gemini, $panel, $panel_id, $gene, $transcript ) = split("\t", $_);
     $gene =~ s/ //g;
-    $gene = $gene_alias{ $gene } if ( $gene_alias{ $gene } );
 
     next if ($panel eq "BLANK");
     next if ($gene  eq "BLANK");
@@ -1797,26 +1771,6 @@ sub parameter_panels2genes {
   $gene_list{ 'PANEL' } = join(", ", sort keys %panels);
 
   return %gene_list;
-}
-
-
-# Kim Brugger (23 Apr 2015)
-sub ICE_hotspots {
-  my $ICE_HOTSPOTS_FILE = '/refs/human_1kg/ICE/ICE_HOTSPOT.bed';
-  my %hotspots;
-
-  if ( $ICE_SAMPLE ) {
-    open( my $in, $ICE_HOTSPOTS_FILE) || die "Could not open '$ICE_HOTSPOTS_FILE': $!\n";
-
-    while( <$in> ) {
-      chomp;
-      my @F = split(/\t/, $_); 
-      my $genomic_pos = "$F[0]:$F[1]";
-      $hotspots{ $genomic_pos } = $F[3];
-      $hotspots{ $F[3] } = $genomic_pos;
-    }
-    close($in);
-  }
 }
 
 
