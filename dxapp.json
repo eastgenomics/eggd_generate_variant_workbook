@@ -1,9 +1,9 @@
 {
-  "name": "vcf2xls_nirvana_v1.0.0",
-  "title": "vcf2xls_nirvana_v1.0.0",
+  "name": "vcf2xls_nirvana_v1.1.0",
+  "title": "vcf2xls_nirvana_v1.1.0",
   "summary": "vcf2xls_nirvana adapated for DNAnexus: no queries for Genetics Ark, uses Python STDOUT to replace essential queries for creating QC sheets",
   "dxapi": "1.0.0",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "properties": {
     "githubRelease": "v1.1.0"
   },
@@ -88,6 +88,12 @@
     {
       "name": "genepanels_file",
       "label": "Genepanels file",
+      "suggestions": [
+        {
+          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+          "path": "/annotation/b37/"
+        }
+      ],
       "class": "file",
       "optional": false,
       "help": "File with all panels and their genes. Contains panel name, panel_id, gene_symbol tab-separated"
@@ -95,13 +101,38 @@
     {
       "name": "bioinformatic_manifest",
       "label": "Bioinformatic manifest",
+      "suggestions": [
+        {
+          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+          "path": "/annotation/b37/"
+        }
+      ],
       "class": "file",
       "optional": false,
       "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated"
     },
     {
+      "name": "exons_nirvana",
+      "label": "Exons from Nirvana",
+      "suggestions": [
+        {
+          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+          "path": "/annotation/b37/"
+        }
+      ],
+      "class": "file",
+      "optional": false,
+      "help": "File with the exons covered by Nirvana"
+    },
+    {
       "name": "nirvana_genes2transcripts",
       "label": "Nirvana_genes2transcripts",
+      "suggestions": [
+        {
+          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+          "path": "/annotation/b37/"
+        }
+      ],
       "class": "file",
       "optional": false,
       "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated"
