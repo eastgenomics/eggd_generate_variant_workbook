@@ -27,7 +27,7 @@ def parse_exons(reg2transcript_file):
     with open(reg2transcript_file) as f:
         for line in f:
             chrom, start, end, gene_symbol, refseq, exon_nb = line.strip().split()
-            exons[refseq]["position"][chrom].append((start, end, exon_nb))
+            exons[refseq]["position"][chrom].append((int(start), int(end), int(exon_nb)))
 
     return exons
 
@@ -52,7 +52,7 @@ def parse_coverage_file(coverage_file):
 
             if not line.startswith("#"):
                 (chrom, start, end) = line.split("\t")[0:3]
-                cov_data.setdefault(chrom, []).append((start, end))
+                cov_data.setdefault(chrom, []).append((int(start), int(end)))
 
     return cov_data        
 
@@ -68,16 +68,22 @@ def main(transcripts, cov_file, exon_file):
     exons_data = parse_exons(exon_file)
     coverage_data = parse_coverage_file(cov_file)
 
+    # loop through transcripts
     for transcript in transcripts:
+        # check if the transcript is in the exon file
         if transcript in exons_data:
+            # loop through the chrom and its exons
             for chrom, exons in exons_data[transcript]["position"].items():
+                # loop through the exons
                 for exon in exons:
                     exon_start, exon_end, exon_nb = exon
-
+                    
+                    # loop through the regions of that chromosome
                     for region in coverage_data[chrom]:
                         region_start, region_end = region
 
-                        if (exon_start <= region_end and exon_end >= region_start):
+                        # if the exon intersects with the region
+                        if (exon_start == region_start and exon_end == region_end):
                             data = {
                                 "refseq": transcript,
                                 "region": {
