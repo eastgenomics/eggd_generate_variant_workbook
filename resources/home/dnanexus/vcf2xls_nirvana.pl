@@ -962,7 +962,7 @@ sub gene_performance {
     $worst_exon{ "$RefSeq" }{'1to5'}    += range2length($$coverage{'1to5'});
     $worst_exon{ "$RefSeq" }{'6to9'}    += range2length($$coverage{'6to9'});
     $worst_exon{ "$RefSeq" }{'10to19'}  += range2length($$coverage{'10to19'});
-    $worst_exon{ "$RefSeq" }{'transcript_length'}  += $$region{ 'end' }-$$region{ 'start' } + 1 + 10; # 5bp flank * 2 = 10
+    $worst_exon{ "$RefSeq" }{'transcript_length'}  += $$region{ 'end' }-$$region{ 'start' } + 1; # 0 vs 1 based coordinates
     
     $exons{ "$RefSeq" }{ $exon_name }{ 'coverage' } = $coverage;
     $exons{ "$RefSeq" }{ $exon_name }{ "$RefSeq" }{ 'region' }   = $region;
