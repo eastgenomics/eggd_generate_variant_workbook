@@ -912,8 +912,7 @@ sub gene_performance {
   my %exons;
   my %worst_exon;
   if ( ! @exons ) {
-    print STDERR "Unknown or non-captures gene: $gene_name/$refseq for sample: $sample\n";
-    return;
+    die "Unknown or non-captures gene: $gene_name/$refseq for sample: $sample\n";
   }
 
   my $exons_qced = 0;
