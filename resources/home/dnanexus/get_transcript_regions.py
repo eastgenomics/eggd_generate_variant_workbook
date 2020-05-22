@@ -27,7 +27,7 @@ def parse_exons(reg2transcript_file):
     with open(reg2transcript_file) as f:
         for line in f:
             chrom, start, end, gene_symbol, refseq, exon_nb = line.strip().split()
-            exons[refseq]["position"][chrom].append((int(start), int(end), int(exon_nb)))
+            exons[refseq]["position"][chrom].append((int(start)+1, int(end), int(exon_nb)))
 
     return exons
 
