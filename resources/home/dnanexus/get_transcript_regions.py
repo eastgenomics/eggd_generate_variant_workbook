@@ -82,7 +82,7 @@ def main(transcripts, cov_file, exon_file):
                     for region in coverage_data[chrom]:
                         region_start, region_end = region
 
-                        # if the exon intersects with the region
+                        # if the exon == the region
                         if (exon_start == region_start and exon_end == region_end):
                             data = {
                                 "refseq": transcript,
@@ -93,8 +93,10 @@ def main(transcripts, cov_file, exon_file):
                                 },
                                 "exon_nr": exon_nb
                             }
-                            exons_covered.append(data)
 
+                            if data not in exons_covered:
+                                exons_covered.append(data)
+                    
     print("(")
     for exon in exons_covered:
         print("\t{")
