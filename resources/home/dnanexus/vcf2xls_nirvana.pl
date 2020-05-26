@@ -223,12 +223,14 @@ sub fill_QC_sheets {
   @gene_transcripts = sort @gene_transcripts;
   
   my $avg_plus_20x = "0.0 %";
-  
+  my $panel_coverage = "0.0 %";
+
   if ( $total_length ) {
     worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Name' }, 'Total:', );
     worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Region length' },  $total_length);
     worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '20+x'  }, $total_plus20x);
-    $avg_plus_20x = POSIX::floor($total_plus20x/$total_length*100);
+    $avg_plus_20x = sprintf("%.2f %%", $total_plus20x/$total_length*100);
+    $panel_coverage = POSIX::floor($total_plus20x/$total_length*100);
     worksheet_write('QC', $worksheet_offset{ 'QC' },  $QCfield_index{ '20+x %'  }, $avg_plus_20x);
 
     worksheet_write('Summary', 0, 5, $avg_plus_20x);
@@ -242,10 +244,10 @@ sub fill_QC_sheets {
 
   # Dementia needs different (additional) text:
   if (index($gene_list{ 'PANEL_IDS'}, "Dementia") != -1) {
-    $report_blurb .= "$avg_plus_20x % of the target sequence within this panel was sequenced to a depth of 20 fold or more, with analytical sensitivity of 98.3% - 100% (95% Confidence Intervals). Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
+    $report_blurb .= "$panel_coverage % of the target sequence within this panel was sequenced to a depth of 20 fold or more, with analytical sensitivity of 98.3% - 100% (95% Confidence Intervals). Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
   }
   else {
-    $report_blurb .= "$avg_plus_20x % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material). The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
+    $report_blurb .= "$panel_coverage % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material). The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon.";
   }
 
   if ( $gene_list{ 'PANEL_IDS'} ) {
