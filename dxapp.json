@@ -1,11 +1,11 @@
 {
-  "name": "vcf2xls_nirvana_v1.1.0",
-  "title": "vcf2xls_nirvana_v1.1.0",
+  "name": "vcf2xls_nirvana_v1.1.1",
+  "title": "vcf2xls_nirvana_v1.1.1",
   "summary": "vcf2xls_nirvana adapated for DNAnexus: no queries for Genetics Ark, uses Python STDOUT to replace essential queries for creating QC sheets",
   "dxapi": "1.0.0",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "properties": {
-    "githubRelease": "v1.1.0"
+    "githubRelease": "v1.1.1"
   },
   "inputSpec": [
     {
@@ -91,7 +91,7 @@
       "suggestions": [
         {
           "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/annotation/b37/"
+          "path": "/dynamic_files/gene_panels/"
         }
       ],
       "class": "file",
@@ -104,7 +104,7 @@
       "suggestions": [
         {
           "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/annotation/b37/"
+          "path": "/dynamic_files/BioinformaticManifest/"
         }
       ],
       "class": "file",
@@ -130,7 +130,7 @@
       "suggestions": [
         {
           "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/annotation/b37/"
+          "path": "/dynamic_files/nirvana_genes2transcripts/"
         }
       ],
       "class": "file",

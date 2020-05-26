@@ -1338,6 +1338,8 @@ sub readin_manifest {
 
   open( my $in, $manifest ) || die "Could not open '$manifest': $!\n";
 
+  my $sample_in_manifest = 0;
+
   while(<$in>) {
     chomp;
     s/\r//g;
@@ -1350,6 +1352,8 @@ sub readin_manifest {
     next if ($gene  eq "");
     next if ( $gene eq "ALL:FULLCLINICALEXOME");
     next if ( $gemini ne $sample );
+
+    $sample_in_manifest = 1;
 
     $panel_id{ uc ( $panel ) } = $panel_id;
 
@@ -1365,6 +1369,10 @@ sub readin_manifest {
     
     $gene_list{ uc($gene) } = uc($transcript);
   }
+
+  if (! $sample_in_manifest) {
+    die "Sample name not found in the manifest";
+  } 
 
   $gene_list{ 'PANEL' } = join(", ", sort keys %panels );
   
