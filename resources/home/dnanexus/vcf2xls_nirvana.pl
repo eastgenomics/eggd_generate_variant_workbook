@@ -154,6 +154,9 @@ my @panels_w_ids = map { $_ =~ s/^\ +//;
 
 $gene_list{ 'PANEL_IDS'} = join(", ", @panels_w_ids );
 
+my $sry;
+$sry = check_sry($coverage_file);
+
 setup_worksheets();
 
 my %meta_stats = ();
@@ -171,6 +174,42 @@ fill_QC_sheets() if ( $IGNORE_QC == 0);
 $workbook->close() if ( ! $text_only || !$meta_only);
 
 print "SUCCESS\n";
+
+
+sub check_sry {
+  my ($coverage_file) = @_;
+  my $sry_outcome;
+  my $SRY_region = "Y:2655024-2655649";
+
+  open(my $in, "$TABIX $coverage_file $SRY_region |") || die "Could not open '$coverage_file': $!\n";
+
+  while ( my $line = <$in> ) {
+    chomp $line;
+    my @F = split("\t", $line);
+    
+    my ($region_chrom, $region_start, $region_end, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19);
+
+    if ( $F[ 4 ] && $F[ 4 ] =~ m/^\d+\z/) {
+      ($region_chrom, $region_start, $region_end, $min, $mean, $max, undef, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @F;
+    } else {
+      ($region_chrom, $region_start, $region_end, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @F;
+    }
+      
+    if ("Y" ne $region_chrom &&
+        "2655024" ne $region_start &&
+        "2655649" ne $region_end  ) {
+          die "SRY region not found";
+    } else {
+      if ($mean >= 25) {
+        $sry_outcome = 1
+      } else {
+        $sry_outcome = 0
+      }
+      return $sry_outcome;
+    }
+  }
+  die "Issue in getting the SRY region";
+}
 
 
 sub check_vcf_integrity_after_annotation {
@@ -1170,8 +1209,11 @@ sub add_worksheet {
     worksheet_write($sheet_name, 0, 2, "Inferred gender", $$formatting{ 'bold' });
     worksheet_write($sheet_name, 1, 2, "SRY present", $$formatting{ 'bold' });
 
-    my $SRY_RID = 199195;
-    worksheet_write($sheet_name, 1, 3, 'No');
+    if ($sry) {
+      worksheet_write($sheet_name, 1, 3, 'Yes');
+    } else {
+      worksheet_write($sheet_name, 1, 3, 'No');
+    }
 
     worksheet_write($sheet_name,  0, 4, "Panel coverage", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  0, 6, "Panel(s):", $$formatting{ 'bold' });
