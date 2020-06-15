@@ -1414,9 +1414,12 @@ sub readin_manifest {
     $gene_list{ uc($gene) } = uc($transcript);
   }
 
-  if (! $sample_in_manifest) {
-    die "Sample name not found in the manifest";
-  } 
+  # Require either sample is in manifest or panels are specified with -p
+  if (! $opts{ 'p' } ) {
+    if (! $sample_in_manifest) {
+      die "Sample name not found in the manifest";
+    } 
+  }
 
   $gene_list{ 'PANEL' } = join(", ", sort keys %panels );
   
