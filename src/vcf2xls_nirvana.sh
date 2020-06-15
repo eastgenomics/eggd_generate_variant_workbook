@@ -115,9 +115,9 @@ main() {
             -w $analysis_name \
             -i $workflow_id
     else
-        echo "Running: perl vcf2xls_nirvana.pl -p $list_panel_names_genes -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
+        echo "Running: perl vcf2xls_nirvana.pl -p \"$list_panel_names_genes\" -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
         perl vcf2xls_nirvana.pl \
-            -p $list_panel_names_genes \
+            -p "$list_panel_names_genes" \
             -a inputs/$annotated_vcf_name \
             -v inputs/$raw_vcf_name \
             -R inputs/$runfolder_coverage_file_name \
