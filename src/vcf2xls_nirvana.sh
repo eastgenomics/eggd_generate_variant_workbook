@@ -128,9 +128,21 @@ main() {
             -i $workflow_id
     fi
 
-    cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/$sample_id.xls 
+    project_id=$(dx find projects | cut -d" " -f1)
+    dx select $project_id
+    source ~/.dnanexus_config/unsetenv
 
-    output_file=$(dx upload /home/dnanexus/out/xls_reports/$sample_id.xls --brief)
+    output_name=$sample_id.xls
+    version=1
+
+    while $(dx find data | grep -q $output_name); do
+        version=$((version+1))
+        output_name=${sample_id}_${version}.xls
+    done
+
+    cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/${output_name}
+
+    output_file=$(dx upload /home/dnanexus/out/xls_reports/${output_name} --brief)
 
     dx-jobutil-add-output xls_report "$output_file" --class=file
 }
