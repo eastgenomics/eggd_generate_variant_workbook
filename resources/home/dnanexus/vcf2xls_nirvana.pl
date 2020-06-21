@@ -287,7 +287,7 @@ sub fill_QC_sheets {
     $report_blurb .= "Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed.";
   }
   
-  $report_blurb .= " \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon. Identification of variants present in NGS data was performed using the Dias pipeline."
+  $report_blurb .= " \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon. Identification of variants present in NGS data was performed using the Dias pipeline.";
 
   if ( $gene_list{ 'PANEL_IDS'} ) {
     worksheet_write('Summary', 1 ,  6 , "Panel(s) w/ id's", $$formatting{ 'bold' });
