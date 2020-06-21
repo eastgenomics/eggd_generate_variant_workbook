@@ -128,18 +128,23 @@ main() {
             -i $workflow_id
     fi
 
-    project_id=$(dx find projects | cut -d" " -f1)
-    dx select $project_id
-    source ~/.dnanexus_config/unsetenv
+    project_id=$DX_PROJECT_CONTEXT_ID
+    #dx select $project_id
+    #source ~/.dnanexus_config/unsetenv
 
-    output_name=$sample_id.xls
-    version=1
+    version=0
+    matching_files=1
+    output_name=${sample_id}_${version}.xls
 
-    while $(dx find data | grep -q $output_name); do
+    # Tiny chance of race conditions leading to two files with the same name here
+    while [ $matching_files -ne 0 ]; do 
         version=$((version+1))
-        output_name=${sample_id}_${version}.xls
-    done
-
+        output_name=${sample_id}_${version}.xls; 
+        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l); 
+    done;
+    
+    echo "Output name: $output_name"
+    
     cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/${output_name}
 
     output_file=$(dx upload /home/dnanexus/out/xls_reports/${output_name} --brief)

@@ -1206,7 +1206,6 @@ sub add_worksheet {
   elsif ( $sheet_name =~ /Summary/) {
     worksheet_write($sheet_name,  0, 0, "Gemini ID:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  0, 1, $sample);
-    worksheet_write($sheet_name, 0, 2, "Inferred gender", $$formatting{ 'bold' });
     worksheet_write($sheet_name, 1, 2, "SRY present", $$formatting{ 'bold' });
 
     if ($sry) {
