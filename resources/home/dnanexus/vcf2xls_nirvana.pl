@@ -277,17 +277,17 @@ sub fill_QC_sheets {
     $meta_stats{ 'AVG_coverage'} = $avg_plus_20x;
   }
 
-  my $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight One sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method) : \n\n";
+  my $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight One sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method):\n\n";
 
   $report_blurb .= join("; ", @gene_transcripts ) . "\n\n";
-  $report_blurb .= "$panel_coverage % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material).  ";
+  $report_blurb .= "$panel_coverage % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material). ";
 
   # Dementia needs different (additional) text:
   if (index($gene_list{ 'PANEL_IDS'}, "Dementia") != -1) {
-    $report_blurb .= "Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed.";
+    $report_blurb .= "Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. ";
   }
   
-  $report_blurb .= " \n\nThe presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon. Identification of variants present in NGS data was performed using the Dias pipeline.";
+  $report_blurb .= "The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon. Identification of variants present in NGS data was performed using the Dias pipeline.";
 
   if ( $gene_list{ 'PANEL_IDS'} ) {
     worksheet_write('Summary', 1 ,  6 , "Panel(s) w/ id's", $$formatting{ 'bold' });
