@@ -152,7 +152,7 @@
   "runSpec": {
     "timeoutPolicy": {
       "*": {
-        "hours": 24
+        "hours": 6
       }
     },
     "execDepends": [
