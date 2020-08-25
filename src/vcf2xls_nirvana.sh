@@ -64,8 +64,13 @@ main() {
     sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
     echo $sample_id
 
+    # Boolean to detect if workflow id has been found
+    found_workflow_id=false
+
+    # Placeholder text if the workflow id is not found
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
+
 
     # Get workflow name and id
     if dx describe --delim "_" $annotated_vcf_name | grep -q job- ; then
@@ -79,6 +84,7 @@ main() {
             if dx describe --delim "_" $analysis_id | grep -q Workflow ; then
                 workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
                 analysis_name=$(dx describe --name $analysis_id)
+                found_workflow_id=true
             fi
         fi
     fi
@@ -156,6 +162,13 @@ main() {
         matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l); 
     done;
     
+    # Add text to report name if workflow id hasn't been found
+    if [ $found_workflow_id = true ]; then
+        output_name="${sample_id}_${version}.xls"
+    else
+        output_name="${sample_id}_${version}_FOR_DEV_USE_ONLY.xls"
+    fi
+
     echo "Output name: $output_name"
     
     cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/${output_name}
