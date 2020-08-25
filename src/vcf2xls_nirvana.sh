@@ -64,11 +64,30 @@ main() {
     sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
     echo $sample_id
 
+    # Boolean to detect if workflow id has been found
+    found_workflow_id=false
+
+    # Placeholder text if the workflow id is not found
+    analysis_name="No workflow id found for this report."
+    workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
+
+
     # Get workflow name and id
-    job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
-    analysis_id=$(dx describe --delim "_" $job_id | grep Root | cut -d_ -f2)
-    workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
-    analysis_name=$(dx describe --name $analysis_id)
+    if dx describe --delim "_" $annotated_vcf_name | grep -q job- ; then
+        job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+        analysis=$(dx describe --delim "_" $job_id)
+
+        if dx describe --delim "_" $job_id | grep -q Root ; then
+            analysis_id=$(dx describe --delim "_" $job_id | grep Root | cut -d_ -f2)
+            workflow=$(dx describe --delim "_" $analysis_id)
+
+            if dx describe --delim "_" $analysis_id | grep -q Workflow ; then
+                workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
+                analysis_name=$(dx describe --name $analysis_id)
+                found_workflow_id=true
+            fi
+        fi
+    fi
 
     # get read stats from flagstat file
     total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
@@ -112,8 +131,8 @@ main() {
             -C inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
-            -w $analysis_name \
-            -i $workflow_id
+            -w "$analysis_name" \
+            -i "$workflow_id"
     else
         echo "Running: perl vcf2xls_nirvana.pl -p \"$list_panel_names_genes\" -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
         perl vcf2xls_nirvana.pl \
@@ -124,8 +143,8 @@ main() {
             -C inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
-            -w $analysis_name \
-            -i $workflow_id
+            -w "$analysis_name" \
+            -i "$workflow_id"
     fi
 
     project_id=$DX_PROJECT_CONTEXT_ID
@@ -143,6 +162,13 @@ main() {
         matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l); 
     done;
     
+    # Add text to report name if workflow id hasn't been found
+    if [ $found_workflow_id = true ]; then
+        output_name="${sample_id}_${version}.xls"
+    else
+        output_name="${sample_id}_${version}_FOR_DEV_USE_ONLY.xls"
+    fi
+
     echo "Output name: $output_name"
     
     cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/${output_name}
