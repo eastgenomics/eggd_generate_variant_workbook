@@ -402,8 +402,23 @@ sub analyse_vcf_file {
 
     my @usable_CSQs;
 
-    # Pull out the genotypes for the sample
-    my ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample }{ GT });
+    my $gt1;
+    my $gt2;
+
+    if ( $$entry{ gtypes }{ $sample }) {
+      # Pull out the genotypes for the sample
+      ($gt1, $gt2) = split("/",$$entry{ gtypes }{ $sample }{ GT });
+    }
+    else {
+      my $sample_in_vcf;
+
+      for my $sub_hash ( $$entry{gtypes} ) {
+        my %sample2alleles = %$sub_hash;
+        $sample_in_vcf = join "\n", keys %sample2alleles;
+      }
+
+      die "ERROR: \"$sample\" extracted from the file name is different than \"$sample_in_vcf\" found in the vcf file";
+    }
 
     # translate the csq-genotype to a base rather than a number
     if ( $gt1 == 0 ) {
@@ -1838,8 +1853,6 @@ sub find_closest_panel {
   $panel_name =~ s/^\s+//;
   $panel_name =~ s/\s+\z//;
 
-  use POSIX qw(ceil floor);
-
   my @panels;
 
   map { push @panels, $panel_names{ $_ }}  sort { $a cmp $b } keys %panel_names;
@@ -1848,7 +1861,7 @@ sub find_closest_panel {
   # set the start and end of the array and find the 
   # the middle of the array
   my ( $left, $right ) = (0, int(@panels) - 1);
-  my $middle = floor(($right - $left)/2);
+  my $middle = POSIX::floor(($right - $left)/2);
   
   # Flush the buffer constantly
   $| = 1;
@@ -1859,13 +1872,13 @@ sub find_closest_panel {
     # The new block is to the left of the middle.
     if ( uc($panel_name) lt uc($panels[ $middle ]) ) {
       $right = $middle;
-      $middle = $left + floor(($right - $left)/2);
+      $middle = $left + POSIX::floor(($right - $left)/2);
       last if ( $right <= $left || $middle == $left || $middle == $right);
     }
     # The new block is to the right of the middle.
     elsif ( uc($panel_name) gt uc($panels[ $middle ]) ) {
       $left = $middle;
-      $middle = $left + floor(($right - $left)/2);
+      $middle = $left + POSIX::floor(($right - $left)/2);
       last if ( $right <= $left || $middle == $left || $middle == $right);
     }
     
