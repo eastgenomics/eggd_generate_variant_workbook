@@ -123,11 +123,13 @@ my $sample = find_sample_name( $vcf_file );
 
 $sample =~ s/_.*//;
 
-my %gene_list = readin_manifest( $manifest, $sample);
+my %gene_list;
 my %hotspots;
 
 if ( $opts{ 'p' } ) {
   %gene_list = parameter_panels2genes($opts{ 'p' }, $sample);
+} else {
+  %gene_list = readin_manifest( $manifest, $sample);
 }
 
 die "No genes for $sample\n" if ( keys %gene_list == 0 );
