@@ -6,6 +6,8 @@ set -euxo pipefail
 main() {
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
+    else
+        echo "No panel/genes given"
     fi
     echo "Value of raw_vcf: '$raw_vcf'"
     echo "Value of annotated_vcf: '$annotated_vcf'"
@@ -102,7 +104,6 @@ main() {
     echo $runfolder_coverage_index_name
 
     # Download reference files
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGq8433GZXPXgB34B3kz0" -o exons_nirvana203
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpG6j433Gyp0kF6F9F69qq" -o esp_vcf.tab.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFpQ433Gv30GBPqz29V0k" -o kg_vcf.tab.gz
@@ -121,9 +122,7 @@ main() {
     mkdir -p /home/dnanexus/out/xls_reports
 
     # Run vcf2xls
- 
     if [ -z ${list_panel_names_genes+x} ]; then
-        echo "Running: perl vcf2xls_nirvana.pl -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
         perl vcf2xls_nirvana.pl \
             -a inputs/$annotated_vcf_name \
             -v inputs/$raw_vcf_name \
@@ -134,7 +133,6 @@ main() {
             -w "$analysis_name" \
             -i "$workflow_id"
     else
-        echo "Running: perl vcf2xls_nirvana.pl -p \"$list_panel_names_genes\" -a inputs/annotated.vcf -v inputs/raw.vcf -R inputs/runfolder_coverage.gz -C inputs/sample_coverage.gz" 
         perl vcf2xls_nirvana.pl \
             -p "$list_panel_names_genes" \
             -a inputs/$annotated_vcf_name \
