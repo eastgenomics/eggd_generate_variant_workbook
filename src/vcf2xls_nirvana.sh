@@ -1,5 +1,4 @@
 #!/bin/bash
-# vcf2xls_nirvana 2.0.0
 
 set -euxo pipefail
 
@@ -11,42 +10,9 @@ main() {
     fi
     echo "Value of raw_vcf: '$raw_vcf'"
     echo "Value of annotated_vcf: '$annotated_vcf'"
-    echo "Value of runfolder_coverage_file: '$runfolder_coverage_file'"
-    echo "Value of runfolder_coverage_index: '$runfolder_coverage_index'"
     echo "Value of sample_coverage_file: '$sample_coverage_file'"
     echo "Value of sample_coverage_index: '$sample_coverage_index'"
     echo "Value of flagstat_file: '$flagstat_file'"
-
-    # Compile samtools and tabix for perl script
-    cd packages
-
-    tar xjf htslib-1.7.tar.bz2
-    cd htslib-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
-
-    tar xjf samtools-1.7.tar.bz2
-    cd samtools-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
-
-    # Compile perl packages
-    for perl_package in $(ls *gz); do
-        base_name=${perl_package%.*.*}
-        echo "Installing: $base_name"
-        tar xzf $perl_package
-        cd $base_name
-        perl Makefile.PL
-        make
-        sudo make install
-        cd ..
-    done
-
-    cd /home/dnanexus
 
     # Download sample inputs
     mkdir inputs
@@ -65,6 +31,42 @@ main() {
     # get sample id from vcf file name
     sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
     echo $sample_id
+
+    # Download dynamic reference files
+    dx download "$genepanels_file" -o genepanels
+    dx download "$bioinformatic_manifest" -o BioinformaticManifest
+    dx download "$nirvana_genes2transcripts" -o nirvana_genes2transcripts
+    dx download "$exons_nirvana" -o exons_nirvana
+
+    mkdir -p /home/dnanexus/out/xls_reports
+
+    single_genes=""
+
+    # get single genes from manifest/given list
+    if [ ! -z ${list_panel_names_genes+x} ]; then
+        default_IFS=$IFS
+        IFS=","
+        single_genes=$(for ele in $list_panel_names_genes; do if [[ $ele =~ ^_ ]]; then echo $ele | sed s/_//; fi; done)
+        IFS=$default_IFS
+    else
+        # also check if sample is present in the bioinformatic manifest
+        sample_in_manifest=$(grep $sample_id BioinformaticManifest)
+        single_genes=$(awk -v id=$sample_id '{if(id == $1 && $2 ~ /^_/){print $4}}' BioinformaticManifest)
+
+        if [[ ! $sample_in_manifest ]]; then
+            echo "${sample_id} is not present in the bioinformatic manifest, exiting..."
+            exit
+        fi
+    fi
+
+    if [[ $single_genes ]]; then
+        for gene in $single_genes; do
+            if ! grep -q $gene nirvana_genes2transcripts; then
+                echo "${gene} not found in nirvana g2t"
+                exit
+            fi
+        done
+    fi
 
     # Boolean to detect if workflow id has been found
     found_workflow_id=false
@@ -97,12 +99,6 @@ main() {
     nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
     nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
 
-    # Download runfolder coverage file and assign to variable
-    dx download "$runfolder_coverage_file" -o inputs/
-    echo $runfolder_coverage_file_name
-    dx download "$runfolder_coverage_index" -o inputs/
-    echo $runfolder_coverage_index_name
-
     # Download reference files
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpG6j433Gyp0kF6F9F69qq" -o esp_vcf.tab.gz
@@ -113,21 +109,44 @@ main() {
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFyj433GQkkJzFzbFb48J" -o kg_vcf.tab.gz.tbi
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGgQ433GyvPj8Fq65F4qP" -o exac_vcf.sites.vep.vcf.gz.tbi
 
-    # Download dynamic reference files
-    dx download "$genepanels_file" -o genepanels
-    dx download "$bioinformatic_manifest" -o BioinformaticManifest
-    dx download "$nirvana_genes2transcripts" -o nirvana_genes2transcripts
-    dx download "$exons_nirvana" -o exons_nirvana
+    # Compile samtools and tabix for perl script
+    cd packages
 
-    mkdir -p /home/dnanexus/out/xls_reports
+    tar xjf htslib-1.7.tar.bz2
+    cd htslib-1.7
+    sudo ./configure --prefix=/usr/bin
+    sudo make
+    sudo make install
+    cd ..
+
+    tar xjf samtools-1.7.tar.bz2
+    cd samtools-1.7
+    sudo ./configure --prefix=/usr/bin
+    sudo make
+    sudo make install
+    cd ..
+
+    # Compile perl packages
+    for perl_package in $(ls *gz); do
+        base_name=${perl_package%.*.*}
+        echo "Installing: $base_name"
+        tar xzf $perl_package
+        cd $base_name
+        perl Makefile.PL
+        make
+        sudo make install
+        cd ..
+    done
+
+    cd /home/dnanexus
+
 
     # Run vcf2xls
     if [ -z ${list_panel_names_genes+x} ]; then
         perl vcf2xls_nirvana.pl \
             -a inputs/$annotated_vcf_name \
             -v inputs/$raw_vcf_name \
-            -R inputs/$runfolder_coverage_file_name \
-            -C inputs/$sample_coverage_file_name \
+            -c inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
             -w "$analysis_name" \
@@ -137,8 +156,7 @@ main() {
             -p "$list_panel_names_genes" \
             -a inputs/$annotated_vcf_name \
             -v inputs/$raw_vcf_name \
-            -R inputs/$runfolder_coverage_file_name \
-            -C inputs/$sample_coverage_file_name \
+            -c inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
             -w "$analysis_name" \
