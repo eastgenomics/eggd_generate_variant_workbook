@@ -79,7 +79,6 @@ my %effect_levels = (
     'other'              => 1
 );
 
-
 my %field_index = ();
 
 my $MIN_QUALITY_VAR  = 200;
@@ -131,8 +130,8 @@ my %csv_workbook = ();
 my @csv_order;
 
 my @panels_w_ids = map { $_ =~ s/^\ +//;
-			 my $v = $panel_id{ uc($_) } || "NA"; 
-			 $_ = "$_ ( $v )" }  split(",", $transcript_list{ 'PANEL'});
+my $v = $panel_id{ uc($_) } || "NA"; 
+$_ = "$_ ( $v )" }  split(",", $transcript_list{ 'PANEL'});
 
 $gene_list{ 'PANEL_IDS'} = join(", ", @panels_w_ids );
 
@@ -797,11 +796,10 @@ sub add_worksheet {
       worksheet_write($sheet_name, 1, 3, 'No');
     }
 
-    worksheet_write($sheet_name,  0, 6, "Panel(s):", $$formatting{ 'bold' });
-    worksheet_write($sheet_name, 0, 7, $gene_list{ 'PANEL'});
+    worksheet_write($sheet_name,  0, 4, "Panel(s):", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, 0, 5, $gene_list{ 'PANEL'});
     worksheet_write($sheet_name,  1, 0, "GM number:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  2, 0, "Name:", $$formatting{ 'bold' });
-    worksheet_write($sheet_name,  5, 0, "Report text:", $$formatting{ 'bold' });
 
     my $offset = 8;
 
