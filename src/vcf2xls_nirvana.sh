@@ -49,16 +49,17 @@ main() {
         single_genes=$(for ele in $list_panel_names_genes; do if [[ $ele =~ ^_ ]]; then echo $ele | sed s/_//; fi; done)
         IFS=$default_IFS
     else
-        # also check if sample is present in the bioinformatic manifest
         sample_in_manifest=$(grep $sample_id BioinformaticManifest)
         single_genes=$(awk -v id=$sample_id '{if(id == $1 && $2 ~ /^_/){print $4}}' BioinformaticManifest)
 
+        # also check if sample is present in the bioinformatic manifest
         if [[ ! $sample_in_manifest ]]; then
             echo "${sample_id} is not present in the bioinformatic manifest, exiting..."
             exit
         fi
     fi
 
+    # Check if single genes are present in g2t
     if [[ $single_genes ]]; then
         for gene in $single_genes; do
             if ! grep -q $gene nirvana_genes2transcripts; then
