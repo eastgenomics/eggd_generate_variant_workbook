@@ -92,19 +92,6 @@
       "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated"
     },
     {
-      "name": "exons_nirvana",
-      "label": "Exons from Nirvana",
-      "suggestions": [
-        {
-          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/annotation/b37/"
-        }
-      ],
-      "class": "file",
-      "optional": false,
-      "help": "File with the exons covered by Nirvana"
-    },
-    {
       "name": "nirvana_genes2transcripts",
       "label": "Nirvana_genes2transcripts",
       "suggestions": [

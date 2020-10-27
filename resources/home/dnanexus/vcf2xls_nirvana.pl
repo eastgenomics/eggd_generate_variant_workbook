@@ -46,7 +46,6 @@ my $gemini_freq            = "gemini_freq.vcf.gz";
 my $esp_vcf             = "esp_vcf.tab.gz";
 my $kg_vcf              = "kg_vcf.tab.gz";
 my $exac_vcf            = "exac_vcf.sites.vep.vcf.gz";
-my $exon_file           = "exons_nirvana";
 
 my %genes2transcripts;
 my %transcript2gene;
@@ -230,8 +229,8 @@ sub find_sample_name {
 # Kim Brugger (20 May 2015)
 sub fill_summary_sheet {
   if ( $gene_list{ 'PANEL_IDS'} ) {
-    worksheet_write('Summary', 1 ,  6 , "Panel(s) w/ id's", $$formatting{ 'bold' });
-    worksheet_write('Summary', 1 ,  7 , $gene_list{ 'PANEL_IDS'});
+    worksheet_write('Summary', 1 ,  4 , "Panel(s) w/ id's", $$formatting{ 'bold' });
+    worksheet_write('Summary', 1 ,  5 , $gene_list{ 'PANEL_IDS'});
   }
 }
 
