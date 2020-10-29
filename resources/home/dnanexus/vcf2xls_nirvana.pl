@@ -27,14 +27,13 @@ my $TABIX = "packages/htslib-1.7/tabix";
 use Vcf;
 use Getopt::Std;
 
-my $opts = 'ti:v:a:R:g:e:o:u:p:MA:T:w:fHFNDC:I';
+my $opts = 'p:a:v:u:T:w:i:c:h';
 my %opts;
 getopts($opts, \%opts);
 
 my $samtools  = 'packages/samtools-1.7/samtools';
-my $FLANK     = 250;
 
-my $RARE_VARIANT_AF = $opts{A} || 0.02;
+my $RARE_VARIANT_AF = 0.02;
 my $nb_usable_reads = $opts{"u"};
 my $total_nb_reads = $opts{"T"};
 my $workflow = $opts{"w"};
@@ -47,7 +46,6 @@ my $gemini_freq            = "gemini_freq.vcf.gz";
 my $esp_vcf             = "esp_vcf.tab.gz";
 my $kg_vcf              = "kg_vcf.tab.gz";
 my $exac_vcf            = "exac_vcf.sites.vep.vcf.gz";
-my $exon_file           = "exons_nirvana";
 
 my %genes2transcripts;
 my %transcript2gene;
@@ -58,14 +56,7 @@ my %panel_id;
 
 readin_panels_n_manifest();
 
-my $ID_QC_ONLY = $opts{ 'I' } || 0;
-my $IGNORE_QC = $opts{ 'N' } || 0;
-
-my @QC_sheets = (
-              'Summary',
-              'QC',  
-              'Gene QC',
-              );
+my @QC_sheets = ('Summary');
 
 my @variant_sheets = (
               'stop_gained',
@@ -77,35 +68,24 @@ my @variant_sheets = (
     );
 
 my @sheets;
-if ( $ID_QC_ONLY ) {
-    @sheets = (@QC_sheets);
-} else {
-    @sheets = (@QC_sheets, @variant_sheets);
-}
+@sheets = (@QC_sheets, @variant_sheets);
 
-my %effect_levels = ('stop_gained'        => 6,
-		     'frameshift_variant' => 5,
-		     'consensus splice'   => 4,
-		     'missense_variant'   => 3,
-		     'synonymous_variant' => 2,
-		     'other'              => 1);
-
+my %effect_levels = (
+    'stop_gained'        => 6,
+    'frameshift_variant' => 5,
+    'consensus splice'   => 4,
+    'missense_variant'   => 3,
+    'synonymous_variant' => 2,
+    'other'              => 1
+);
 
 my %field_index = ();
-my %QCfield_index = ();
-my %geneQCfield_index = ();
 
-my $PIPELINE_VERSION = '1.4';
 my $MIN_QUALITY_VAR  = 200;
 my $LOW_COVERAGE_VAR = 10;
-my $meta_only = $opts{'M'} || 0;
-my $text_only = $opts{t} || 0;
 
-my $homozygous_snps = $opts{ 'H' } || 0;
-my $full_exome_snps = $opts{ 'F' } || 0;
-
-my $coverage_file = $opts{ 'C' };
-my $runfolder_coverage_file = $opts{ 'R'};
+my $homozygous_snps = 0;
+my $full_exome_snps = 0;
 
 # Sometimes the sample is given before the parameters on the command
 # line, so check and fail if this is the case
@@ -149,12 +129,13 @@ my %worksheet_last_gene;
 my %csv_workbook = ();
 my @csv_order;
 
-
 my @panels_w_ids = map { $_ =~ s/^\ +//;
-			 my $v = $panel_id{ uc($_) } || "NA"; 
-			 $_ = "$_ ( $v )" }  split(",", $transcript_list{ 'PANEL'});
+my $v = $panel_id{ uc($_) } || "NA"; 
+$_ = "$_ ( $v )" }  split(",", $transcript_list{ 'PANEL'});
 
 $gene_list{ 'PANEL_IDS'} = join(", ", @panels_w_ids );
+
+my $coverage_file = $opts{c};
 
 my $sry;
 $sry = check_sry($coverage_file);
@@ -165,15 +146,12 @@ my %meta_stats = ();
 $meta_stats{ 'PANEL'} = $gene_list{ 'PANEL'};
 $meta_stats{ 'PANEL_IDS'} = $gene_list{ 'PANEL_IDS'};
 
-if ( ! $ID_QC_ONLY ) {
-  analyse_vcf_file( $vcf_file );
-}
+analyse_vcf_file( $vcf_file );
 
-my ( $total_length, $total_plus20x) = (0,0);
-print "Filling QC sheets\n";
-fill_QC_sheets() if ( $IGNORE_QC == 0);
+print "Filling summary sheet\n";
+fill_summary_sheet();
 
-$workbook->close() if ( ! $text_only || !$meta_only);
+$workbook->close();
 
 print "SUCCESS\n";
 
@@ -248,140 +226,11 @@ sub find_sample_name {
 }
 
 # Kim Brugger (20 May 2015)
-sub fill_QC_sheets {
-  my @gene_transcripts;
-
-  foreach my $transcript ( sort keys %transcript_list ) {
-    next if ( $transcript eq 'PANEL' );
-    next if ( $transcript eq 'PANEL_IDS' );
-
-    my $gene_name = $transcript_list{$transcript};
-
-    push @gene_transcripts, "$transcript_list{$transcript} ( $transcript )";
-    gene_performance( $gene_name, $transcript );
-  }
-
-  @gene_transcripts = sort @gene_transcripts;
-  
-  my $avg_plus_20x = "0.0 %";
-  my $panel_coverage = "0.0 %";
-
-  if ( $total_length ) {
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Name' }, 'Total:', );
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Region length' },  $total_length);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '20+x'  }, $total_plus20x);
-    $avg_plus_20x = sprintf("%.2f %%", $total_plus20x/$total_length*100);
-    $panel_coverage = POSIX::floor($total_plus20x/$total_length*100);
-    worksheet_write('QC', $worksheet_offset{ 'QC' },  $QCfield_index{ '20+x %'  }, $avg_plus_20x);
-
-    worksheet_write('Summary', 0, 5, $avg_plus_20x);
-
-    $meta_stats{ 'AVG_coverage'} = $avg_plus_20x;
-  }
-
-  my $report_blurb = "Next Generation Sequencing (NGS) of the coding region (+/-5 bp) of the following genes (reference sequences) using the Illumina TruSight One sequencing panel (NB. Whole exon deletions/duplications and other large rearrangements are not detected with this method):\n\n";
-
-  $report_blurb .= join("; ", @gene_transcripts ) . "\n\n";
-  $report_blurb .= "$panel_coverage % of this panel was sequenced to a depth of 20X or greater (this includes homologous regions where reads do not map uniquely), with analytical sensitivity of 99.5-99.9% (95% confidence interval from benchmarking against GIAB HG001 reference material). ";
-
-  # Dementia needs different (additional) text:
-  if (index($gene_list{ 'PANEL_IDS'}, "Dementia") != -1) {
-    $report_blurb .= "Targeted analysis of the exon/intron boundary of exon 9 of the MAPT gene (NM_005910.5), a known hot-spot for pathogenic variants, has been performed. ";
-  }
-  
-  $report_blurb .= "The presence of variants reported above, except for variants of unknown significance, has been confirmed by Sanger sequencing. Variants with a population frequency greater than 1 in 500 for dominant conditions, and 1 in 50 for recessive disorders have been deemed insignificant and are not reported. Variants are named using HGVS nomenclature, where nucleotide 1 is the A of the ATG-translation initiation codon. Identification of variants present in NGS data was performed using the Dias pipeline.";
-
+sub fill_summary_sheet {
   if ( $gene_list{ 'PANEL_IDS'} ) {
-    worksheet_write('Summary', 1 ,  6 , "Panel(s) w/ id's", $$formatting{ 'bold' });
-    worksheet_write('Summary', 1 ,  7 , $gene_list{ 'PANEL_IDS'});
+    worksheet_write('Summary', 1 ,  4 , "Panel(s) w/ id's", $$formatting{ 'bold' });
+    worksheet_write('Summary', 1 ,  5 , $gene_list{ 'PANEL_IDS'});
   }
-  worksheet_write('Summary', 6 ,  0 , $report_blurb);
-}
-
-
-# Kim Brugger (24 Jun 2015)
-sub find_runfolder {
-  my ( $in_file ) = @_;
-
-  my $abs_path = File::Spec->rel2abs( $in_file );
-  $abs_path =~ s/(.*\/).*/$1/;
-  $abs_path =~ s/vcfs//;
-  $abs_path =~ s/stats//;
-  $abs_path =~ s/bams//;
-  my @F = split("/", $abs_path);
-
-  return $F[-1];
-}
-
-
-# Kim Brugger (13 May 2015)
-sub print_meta_stats {
-  $meta_stats{ 'stop_gained' }{ 'rare' } ||= 0;
-  $meta_stats{ 'frameshift_variant' }{ 'rare' } ||= 0;
-  $meta_stats{ 'missense_variant' }{ 'rare' } ||= 0;
-  $meta_stats{ 'consensus splice' }{ 'rare' } ||= 0;
-  $meta_stats{ 'synonymous' }{ 'rare' } ||= 0;
-
-  print join(
-    "\t", "Sample", 'Panel',   
-    'AVG_coverage',
-    'stop_gained', 
-    'frameshift_variant',
-    'consensus splice', 
-    'missense_variant', 
-    'synonymous' , 
-    $excel_file || "N/A"
-  )."\n";
-
-  print join(
-    "\t", $sample, $meta_stats{ 'PANEL'},   
-    $meta_stats{ 'AVG_coverage'},
-    $meta_stats{ 'stop_gained' }{ 'rare' }, 
-    $meta_stats{  'frameshift_variant' }{ 'rare' },  
-    $meta_stats{ 'consensus splice' }{ 'rare' }, 
-    $meta_stats{ 'missense_variant' }{ 'rare' }, 
-    $meta_stats{ 'synonymous' }{ 'rare' }, 
-    $excel_file || "N/A"
-  )."\n";
-}
-
-
-sub alts2csqallele {
-  # Taken from Matts script and ported to perl.
-  # """Convert vcf alt field values into equivalent VEP csq allele values
-  
-  # Args:
-  #     vcf_record (_Record): a pyvcf _Record 
-  
-  # Returns:
-  #     TYPE: An ordered list containing one allele for each alt
-  # """
-
-  my ($entry ) = @_;
-  my @csq_alleles;
-  
-  for my $alt ( @{$$entry{ ALT }} ) {
-    if (length($$entry{REF}) == 1) {
-      if (length( $alt ) == 1) {
-	      push @csq_alleles, $alt;
-      }
-      else {
-	      # 1:many
-	      push @csq_alleles, substr($alt, 1);
-      }
-    }
-    else {
-      if (length($alt) == 1) {
-	      # many:1
-	      push @csq_alleles, "-";
-      }
-      else {
-	      # many:many
-	      push @csq_alleles, substr($alt, 1);
-      }
-    }
-  }
-  return @csq_alleles;
 }
 
 
@@ -533,8 +382,6 @@ sub setup_workbook {
 
   my $book;
   my %formats;
-  
-  return if ( $text_only || $meta_only);
   
   my $workbook = Spreadsheet::WriteExcel->new( $excel_file );
 
@@ -882,272 +729,6 @@ sub pure_cpos {
 }
 
 
-# Kim Brugger (17 Jan 2018)
-sub region_coverage {
-  my ($chrom, $start, $end) = @_;
-
-  $end  ||= $start;
-
-  my $region = "$chrom:$start-$end";
-
-  if ($coverage_file) {
-    open(my $in, "$TABIX $coverage_file $region |") || die "Could not open '$coverage_file': $!\n";
-
-    while ( my $line = <$in> ) {
-      chomp $line;
-      my @F = split("\t", $line);
-      
-      my ($region_chrom, $region_start, $region_end, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19);
-    
-      if ( $F[ 4 ] && $F[ 4 ] =~ m/^\d+\z/) {
-	      ($region_chrom, $region_start, $region_end, $min, $mean, $max, undef, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @F;
-      }
-      else {
-	      ($region_chrom, $region_start, $region_end, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @F;
-      }
-      
-      if ( $chrom ne $region_chrom ||
-           $start ne $region_start ||
-           $end   ne $region_end  ) {
-        next;
-      }
-
-      my %res;
-      $res{ 'min' } = $min; 
-      $res{ 'mean' } = $mean;  
-      $res{ 'max' } = $max; 
-      $res{ 'missing' } = $missing if $missing;
-      $res{ '1to5' } = $depth_1to5 if $depth_1to5;
-      $res{ '6to9' } = $depth_6to9 if $depth_6to9;
-      $res{ '10to19' } = $depth_10to19 if $depth_10to19;
-      
-      return \%res;
-    }
-
-    print "coverage for $region not found in $coverage_file \n";
-
-    return undef;
-  }
-  else {
-    die "No coverage file - using coverage database..";
-  }
-}
-
-
-# Kim Brugger (03 Apr 2018)
-sub fetch_expected_coverage {
-  my ($chrom, $start, $end) = @_;
-  my $normalized_depth_factor = $nb_usable_reads/100000000;
-
-  $end  ||= $start;
-
-  my $region = "$chrom:$start-$end";
-
-  open(my $in, "$TABIX $runfolder_coverage_file $region |") || die "Could not open '$runfolder_coverage_file': $!\n";
-  my $line = <$in>;
-
-  chomp $line;
-  my @F = split("\t", $line);
-  
-  my ($fchrom, $fstart, $fend, $mean, $sd) = @F;
-
-  my %res = ( mean => $mean*$normalized_depth_factor, 
-	      sd => $sd);
-  return \%res;
-}
-
-
-# Kim Brugger (09 Dec 2013)
-sub gene_performance {
-  my  ( $gene_name, $refseq ) = @_;
-
-  my $refseq_basename = $refseq;
-  $refseq_basename =~ s/\.\d+/./;
-
-  my $python_stdout = qx(python get_transcript_regions.py -c $coverage_file -t $refseq -e $exon_file);
-  my @exons = eval $python_stdout or warn "$@";
-  
-  my %exons;
-  my %worst_exon;
-  if ( ! @exons ) {
-    die "Unknown or non-captures gene: $gene_name/$refseq for sample: $sample\n";
-  }
-
-  my $exons_qced = 0;
-
-  foreach my $exon ( @exons ) {
-    if ( $exon == -1 ) {
-      print "Unknown gene: $gene_name/$refseq\n";
-      next;
-    }
-
-    next if ( $refseq && $$exon{ refseq } !~ /$refseq_basename/);
-
-    $exons_qced++;
-    
-    my $RefSeq = $$exon{ refseq } || "";
-    $RefSeq    = $refseq || "";
-    my $region = $$exon{ region };
-
-    if (!$RefSeq ) {
-      $RefSeq = $gene_name;
-    }
-
-    my $coverage = region_coverage($$region{ 'chrom' },$$region{ 'start' },$$region{ 'end' });
-
-    if ( ! $coverage ) {
-      $workbook->close() if ( ! $text_only && ! $meta_only);
-      system "rm -f $excel_file";
-      die "$gene_name exon:$$exon{ exon_nr } [$$region{ 'chrom' }:$$region{ 'start' }-$$region{ 'end' }] coverage information for $sample \"aid\" is not in the database!!! Bailing ...\n";
-    }
-
-    my $exon_name = $gene_name . "_Exon$$exon{ exon_nr }";
-
-    if ($$exon{ exon_nr } < 0) {
-      $exon_name = $gene_name . "_Intron". abs( $$exon{ exon_nr } );
-    }
-
-    if ( (! defined $worst_exon{ "$RefSeq" }{'min'}) || 
-         (  $$coverage{min} == 0 ) ||
-         ($worst_exon{ "$RefSeq" }{'min'} > $$coverage{min})) {
-
-      $worst_exon{ "$RefSeq" }{'min'} = $$coverage{min};
-      $worst_exon{ "$RefSeq" }{'position'} = "$$region{ 'chrom' }:$$region{ 'start' }-$$region{ 'end' }";
-    }
-
-    $worst_exon{ "$RefSeq" }{'missing'} += range2length($$coverage{'missing'});
-    $worst_exon{ "$RefSeq" }{'1to5'}    += range2length($$coverage{'1to5'});
-    $worst_exon{ "$RefSeq" }{'6to9'}    += range2length($$coverage{'6to9'});
-    $worst_exon{ "$RefSeq" }{'10to19'}  += range2length($$coverage{'10to19'});
-    $worst_exon{ "$RefSeq" }{'transcript_length'}  += $$region{ 'end' }-$$region{ 'start' } + 1; # 0 vs 1 based coordinates
-    
-    $exons{ "$RefSeq" }{ $exon_name }{ 'coverage' } = $coverage;
-    $exons{ "$RefSeq" }{ $exon_name }{ "$RefSeq" }{ 'region' }   = $region;
-    $exons{ "$RefSeq" }{ $exon_name }{ 'position' }   = "$$region{ 'chrom' }:$$region{ 'start' }-$$region{ 'end' }";
-  }
-
-  if ( !$exons_qced ) {
-    print STDERR "Likely wrong transcript ($refseq) for $gene_name, sample: $sample\n";
-    system "rm -f $excel_file";
-
-    exit -1;
-  }
-
-  foreach my $transcript ( sort keys %worst_exon ) {
-    my $plus20x = $worst_exon{$transcript}{'transcript_length'} -  $worst_exon{$transcript}{ 'missing'} - $worst_exon{$transcript}{ '1to5'} - $worst_exon{$transcript}{ '6to9'} - $worst_exon{$transcript}{ '10to19'};
-
-    $total_length  += $worst_exon{$transcript}{'transcript_length'};
-    $total_plus20x += $plus20x;
-
-    my $format = undef;
-
-    if ( $worst_exon{ $transcript }{'min'} && $worst_exon{ $transcript }{'min'} < 20  || $worst_exon{ $transcript }{'min'} == 0 ) {
-      $format = $$formatting{ 'red_cell' };
-    }
-
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Name' }, $gene_name, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Transcript' }, $transcript, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Min depth' },  $worst_exon{$transcript}{'min'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Region length' },  $worst_exon{$transcript}{'transcript_length'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ 'Missing'  }, $worst_exon{$transcript}{ 'missing'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '1-5x'  }, $worst_exon{$transcript}{ '1to5'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '6-9x'  }, $worst_exon{$transcript}{ '6to9'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '10-19x'  }, $worst_exon{$transcript}{ '10to19'}, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' }, $QCfield_index{ '20+x'  }, $plus20x, $format);
-    worksheet_write('QC', $worksheet_offset{ 'QC' },  $QCfield_index{ '20+x %'  }, sprintf("%.2f %%", $plus20x/$worst_exon{$transcript}{'transcript_length'}*100), $format);
-
-    $worksheet_offset{ 'QC' }++;
-  }
-
-  $worksheet_offset{ 'QC' }++;
-
-  foreach my $transcript ( sort keys %exons ) {
-    foreach my $exon ( sort {my $A = $a;
-			     my $B = $b;
-			     $A =~ s/.*exon//i;
-			     $B =~ s/.*exon//i;
-			     $A =~ s/.*intron//i;
-			     $B =~ s/.*intron//i;
-			     $A <=> $B } keys %{$exons{ $transcript }} ) {
-      
-      $exons{$transcript}{ $exon }{'coverage'}{'min'} ||= 0;
-      my $format = undef;
-
-      if ( $exons{$transcript}{ $exon }{'coverage'}{'min'} < 20 ) {
-	      $format = $$formatting{ 'red_cell' };
-      }
-      
-      my $region = $exons{$transcript}{$exon}{$transcript}{"region"};
-      my $expected_coverage_hash = fetch_expected_coverage( $$region{ 'chrom' }, $$region{ 'start' }, $$region{ 'end' } );
-	
-      my $expected_formatted = 'NA';
-
-      if ( $expected_coverage_hash ){
-        my $expected_coverage =$$expected_coverage_hash{'mean'};
-        my $expected_coverage_sd =$$expected_coverage_hash{'sd'};
-	      $expected_formatted = sprintf("%.2f +/- %.2f", $expected_coverage, $expected_coverage_sd);
-      }
-      else {
-	      die "no expected coverage for: $$region{ 'chrom' }, $$region{ 'start' }, $$region{ 'end' }\n";
-      }
-
-      # Disabled at scientists request
-      #if ( $expected_coverage - 2 * $expected_coverage_sd > $exons{$transcript}{ $exon }{'coverage'}{'mean'} || 
-        # $expected_coverage + 2 * $expected_coverage_sd < $exons{$transcript}{ $exon }{'coverage'}{'mean'} ) {
-        # $format = $$formatting{ 'orange_cell' };
-      #}
-
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Name' }, $exon, $format );
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Transcript' }, $transcript, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Min depth' },  $exons{$transcript}{ $exon }{'coverage'}{'min'}, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Mean depth' },  $exons{$transcript}{ $exon }{'coverage'}{'mean'}, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Max depth' }, $exons{$transcript}{ $exon }{'coverage'}{'max'}, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Position'  }, $exons{$transcript}{ $exon }{'position'}, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Exp mean depth'  }, $expected_formatted, $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ 'Missing'  }, 
-		      coverage2cell_data($exons{$transcript}{ $exon }{'coverage'}{'missing'}), $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ '1-5x'  }, coverage2cell_data($exons{$transcript}{ $exon }{'coverage'}{'1to5'}), $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ '6-9x'  }, coverage2cell_data($exons{$transcript}{ $exon }{'coverage'}{'6to9'}), $format);
-      worksheet_write('Gene QC', $worksheet_offset{ 'Gene QC' }, $geneQCfield_index{ '10-19x'  }, coverage2cell_data($exons{$transcript}{ $exon }{'coverage'}{'10to19'}), $format);
-
-      $worksheet_offset{ 'Gene QC' }++;
-    }
-    $worksheet_offset{ 'Gene QC' }++;
-  }
-  $worksheet_offset{ 'Gene QC' }++;
-}
-
-
-# Takes coverage data and append a length of the range if applicable
-# 
-# Kim Brugger (20 May 2015)
-sub coverage2cell_data {
-  my ( $coverage ) = @_;
-  my $length = range2length( $coverage );
-  return "" if ( ! $length );
-  return "$coverage/$length";
-  
-}
-
-
-# Kim Brugger (24 Mar 2014)
-sub range2length {
-  my ($ranges ) = @_;
-
-  return 0 if (! $ranges || $ranges eq "" || $ranges eq 'NULL');
-
-  my $length = 0;
-
-  foreach my $range (split(",", $ranges)) {
-    $range =~ s/.*?://;
-    my ( $start, $end) = split("-", $range);
-    $length += $end - $start + 1;
-  }
-
-  return $length;
-}
-
-
 # Kim Brugger (23 Aug 2013)
 sub setup_worksheets {
   foreach my $sheet ( @sheets ) {
@@ -1187,9 +768,6 @@ sub add_worksheet {
 
   return if ( $added_worksheets{ $sheet_name } );
 
-  my @QCfields = ('Name', 'Transcript', 'Region length', 'Min depth', 'Missing', '1-5x', '6-9x', '10-19x', '20+x', '20+x %');
-  my @geneQCfields = ('Name','Transcript', 'Position', 'Min depth', 'Max depth', 'Mean depth', 'Exp mean depth', 
-		      'Missing', '1-5x', '6-9x', '10-19x');
   my @fields = ('Gene', 'Transcript', 
 		'Position', 'Genomic Ref Allele', 'Genomic Alt Allele', 
 		'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
@@ -1201,26 +779,13 @@ sub add_worksheet {
 		'Comment',
   );
 
-  $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name ) if ( !$text_only && !$meta_only);
+  $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name );
 
   my $i = 0;
 
   # add some std cells to all work sheets.
 
-  if ( $sheet_name =~ /Gene QC/) {
-    foreach my $QCfield ( @geneQCfields ) {
-      $geneQCfield_index{ $QCfield } = $i;
-      worksheet_write($sheet_name, 0, $i++, $QCfield, $$formatting{ 'bold' });
-    }  
-  }
-  elsif ( $sheet_name =~ /QC/) {
-    foreach my $QCfield ( @QCfields ) {
-      $QCfield_index{ $QCfield } = $i;
-      worksheet_write($sheet_name, 0, $i++, $QCfield, $$formatting{ 'bold' });
-    }   
-    $worksheet_offset{ 'QC' } = 2;
-  }
-  elsif ( $sheet_name =~ /Summary/) {
+  if ( $sheet_name =~ /Summary/) {
     worksheet_write($sheet_name,  0, 0, "Gemini ID:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  0, 1, $sample);
     worksheet_write($sheet_name, 1, 2, "SRY present", $$formatting{ 'bold' });
@@ -1231,12 +796,10 @@ sub add_worksheet {
       worksheet_write($sheet_name, 1, 3, 'No');
     }
 
-    worksheet_write($sheet_name,  0, 4, "Panel coverage", $$formatting{ 'bold' });
-    worksheet_write($sheet_name,  0, 6, "Panel(s):", $$formatting{ 'bold' });
-    worksheet_write($sheet_name, 0, 7, $gene_list{ 'PANEL'});
+    worksheet_write($sheet_name,  0, 4, "Panel(s):", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, 0, 5, $gene_list{ 'PANEL'});
     worksheet_write($sheet_name,  1, 0, "GM number:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  2, 0, "Name:", $$formatting{ 'bold' });
-    worksheet_write($sheet_name,  5, 0, "Report text:", $$formatting{ 'bold' });
 
     my $offset = 8;
 
@@ -1344,39 +907,6 @@ sub add_worksheet {
   $worksheet_offset{ $sheet_name } = 1;
 }
 
-  
-# Kim Brugger (27 Aug 2013)
-sub readin_gene_list {
-  my ($gene_list) = @_;
-
-  my %gene_list = ();
-
-  open( my $in, $gene_list ) || die "Could not open '$gene_list': $!\n";
-
-  while(<$in>) {
-    chomp;
-    s/\ //g;
-    s/\r//g;
-    my ( $gene, $transcript) = split("\t");
-    next if ( /^\z/ );
-    next if ( $gene eq "ALL:FULLCLINICALEXOME");
-
-    $transcript ||= $genes2transcripts{uc($gene)};
-
-    if ( ! $transcript || $transcript eq "") {
-      print STDERR  "No transcript for $gene \n";
-      system "rm -f $excel_file";
-
-      die;
-      next;
-    }
-
-    $gene_list{ uc($gene) } = uc($transcript);
-  }
-
-  return %gene_list;
-}
-
 
 # Kim Brugger (08 Jan 2018)
 sub gene_list_to_transcript_list {
@@ -1456,23 +986,7 @@ sub worksheet_write {
 
   return if ( not defined $value );
 
-  $added_worksheets{ $id }->write($x, $y, $value, $formatting)  if ( !$text_only && !$meta_only);
-
-  if ( ! $csv_workbook{ $id } ) {
-    push @csv_order, $id;
-  }
-
-  $csv_workbook{ $id }[$x][$y]=$value;
-}
-
-
-# Kim Brugger (01 Jul 2013)
-sub worksheet_write_url {
-  my ( $id, $x, $y, $link, $value, $formatting ) = @_;
-
-  return if ( not defined $value );
-
-  $added_worksheets{ $id }->write_url($x, $y, $link, $value, $formatting)  if ( !$text_only && !$meta_only);
+  $added_worksheets{ $id }->write($x, $y, $value, $formatting);
 
   if ( ! $csv_workbook{ $id } ) {
     push @csv_order, $id;
@@ -1541,232 +1055,6 @@ sub one2three {
 }
 
 
-# Kim Brugger (01 Dec 2010)
-sub grantham_score {
-  my ($aa1, $aa2) = @_;
-
-  $aa1 = uc($aa1);
-  $aa2 = uc($aa2);
-
-  return 0 if ( $aa1 eq $aa2);
-  
-  ($aa1, $aa2) = ($aa2, $aa1) if ($aa1 gt $aa2);
-  
-  my %grantham;
-  $grantham{ALA}{ARG}=112; 
-  $grantham{ALA}{ASN}=111; 
-  $grantham{ALA}{ASP}=126; 
-  $grantham{ALA}{CYS}=195; 
-  $grantham{ALA}{GLN}=91; 
-  $grantham{ALA}{GLU}=107; 
-  $grantham{ALA}{GLY}=60; 
-  $grantham{ALA}{HIS}=86; 
-  $grantham{ALA}{ILE}=94; 
-  $grantham{ALA}{LEU}=96; 
-  $grantham{ALA}{LYS}=106; 
-  $grantham{ALA}{MET}=84; 
-  $grantham{ALA}{PHE}=113; 
-  $grantham{ALA}{PRO}=27; 
-  $grantham{ALA}{SER}=99; 
-  $grantham{ALA}{THR}=58; 
-  $grantham{ALA}{TRP}=148; 
-  $grantham{ALA}{TYR}=112; 
-  $grantham{ALA}{VAL}=64;
-
-  $grantham{ARG}{ASN}=86; 
-  $grantham{ARG}{ASP}=96; 
-  $grantham{ARG}{CYS}=180; 
-  $grantham{ARG}{GLN}=43; 
-  $grantham{ARG}{GLU}=54; 
-  $grantham{ARG}{GLY}=125; 
-  $grantham{ARG}{HIS}=29; 
-  $grantham{ARG}{ILE}=97; 
-  $grantham{ARG}{LEU}=102; 
-  $grantham{ARG}{LYS}=26; 
-  $grantham{ARG}{MET}=91; 
-  $grantham{ARG}{PHE}=97; 
-  $grantham{ARG}{PRO}=103; 
-  $grantham{ARG}{SER}=110; 
-  $grantham{ARG}{THR}=71; 
-  $grantham{ARG}{TRP}=101; 
-  $grantham{ARG}{TYR}=77; 
-  $grantham{ARG}{VAL}=96; 
-
-  $grantham{ASN}{ASP}=23; 
-  $grantham{ASN}{CYS}=139; 
-  $grantham{ASN}{GLN}=46; 
-  $grantham{ASN}{GLU}=42; 
-  $grantham{ASN}{GLY}=80; 
-  $grantham{ASN}{HIS}=68; 
-  $grantham{ASN}{ILE}=149; 
-  $grantham{ASN}{LEU}=153; 
-  $grantham{ASN}{LYS}=94; 
-  $grantham{ASN}{MET}=142; 
-  $grantham{ASN}{PHE}=158; 
-  $grantham{ASN}{PRO}=91; 
-  $grantham{ASN}{SER}=46; 
-  $grantham{ASN}{THR}=65;
-  $grantham{ASN}{TRP}=174;
-  $grantham{ASN}{TYR}=143;
-  $grantham{ASN}{VAL}=133;
-
-  $grantham{ASP}{CYS}=154; 
-  $grantham{ASP}{GLN}=61; 
-  $grantham{ASP}{GLU}=45; 
-  $grantham{ASP}{GLY}=94; 
-  $grantham{ASP}{HIS}=81; 
-  $grantham{ASP}{ILE}=168; 
-  $grantham{ASP}{LEU}=172; 
-  $grantham{ASP}{LYS}=101; 
-  $grantham{ASP}{MET}=160; 
-  $grantham{ASP}{PHE}=177; 
-  $grantham{ASP}{PRO}=108; 
-  $grantham{ASP}{SER}=65; 
-  $grantham{ASP}{THR}=85; 
-  $grantham{ASP}{TRP}=181; 
-  $grantham{ASP}{TYR}=160; 
-  $grantham{ASP}{VAL}=152;
-
-  $grantham{CYS}{GLN}=154; 
-  $grantham{CYS}{GLU}=170; 
-  $grantham{CYS}{GLY}=159; 
-  $grantham{CYS}{HIS}=174; 
-  $grantham{CYS}{ILE}=198; 
-  $grantham{CYS}{LEU}=198; 
-  $grantham{CYS}{LYS}=202; 
-  $grantham{CYS}{MET}=196; 
-  $grantham{CYS}{PHE}=205; 
-  $grantham{CYS}{PRO}=169; 
-  $grantham{CYS}{SER}=112; 
-  $grantham{CYS}{THR}=149; 
-  $grantham{CYS}{TRP}=215; 
-  $grantham{CYS}{TYR}=194; 
-  $grantham{CYS}{VAL}=192;
-
-  $grantham{GLN}{GLU}=29; 
-  $grantham{GLN}{GLY}=87; 
-  $grantham{GLN}{HIS}=24; 
-  $grantham{GLN}{ILE}=109; 
-  $grantham{GLN}{LEU}=113; 
-  $grantham{GLN}{LYS}=53; 
-  $grantham{GLN}{MET}=101; 
-  $grantham{GLN}{PHE}=116; 
-  $grantham{GLN}{PRO}=76;
-  $grantham{GLN}{SER}=68; 
-  $grantham{GLN}{THR}=42; 
-  $grantham{GLN}{TRP}=130; 
-  $grantham{GLN}{TYR}=99; 
-  $grantham{GLN}{VAL}=96;
-
-  $grantham{GLU}{GLY}=98; 
-  $grantham{GLU}{HIS}=40; 
-  $grantham{GLU}{ILE}=134; 
-  $grantham{GLU}{LEU}=138; 
-  $grantham{GLU}{LYS}=56; 
-  $grantham{GLU}{MET}=126; 
-  $grantham{GLU}{PHE}=140; 
-  $grantham{GLU}{PRO}=93; 
-  $grantham{GLU}{SER}=80; 
-  $grantham{GLU}{THR}=65; 
-  $grantham{GLU}{TRP}=152; 
-  $grantham{GLU}{TYR}=122; 
-  $grantham{GLU}{VAL}=121;
-
-  $grantham{GLY}{HIS}=89; 
-  $grantham{GLY}{ILE}=135; 
-  $grantham{GLY}{LEU}=138; 
-  $grantham{GLY}{LYS}=127; 
-  $grantham{GLY}{MET}=127; 
-  $grantham{GLY}{PHE}=153; 
-  $grantham{GLY}{PRO}=42; 
-  $grantham{GLY}{SER}=56; 
-  $grantham{GLY}{THR}=59; 
-  $grantham{GLY}{TRP}=184; 
-  $grantham{GLY}{TYR}=147; 
-  $grantham{GLY}{VAL}=109;
-  
-  $grantham{HIS}{ILE}=94; 
-  $grantham{HIS}{LEU}=99; 
-  $grantham{HIS}{LYS}=32; 
-  $grantham{HIS}{MET}=87; 
-  $grantham{HIS}{PHE}=100; 
-  $grantham{HIS}{PRO}=77; 
-  $grantham{HIS}{SER}=89; 
-  $grantham{HIS}{THR}=47; 
-  $grantham{HIS}{TRP}=115; 
-  $grantham{HIS}{TYR}=83; 
-  $grantham{HIS}{VAL}=84; 
-  
-  $grantham{ILE}{LEU}=5; 
-  $grantham{ILE}{LYS}=102; 
-  $grantham{ILE}{MET}=10; 
-  $grantham{ILE}{PHE}=21; 
-  $grantham{ILE}{PRO}=95; 
-  $grantham{ILE}{SER}=142; 
-  $grantham{ILE}{THR}=89; 
-  $grantham{ILE}{TRP}=61; 
-  $grantham{ILE}{TYR}=33; 
-  $grantham{ILE}{VAL}=29;
-  
-  $grantham{LEU}{LYS}=107; 
-  $grantham{LEU}{MET}=15; 
-  $grantham{LEU}{PHE}=22; 
-  $grantham{LEU}{PRO}=98; 
-  $grantham{LEU}{SER}=145; 
-  $grantham{LEU}{THR}=92; 
-  $grantham{LEU}{TRP}=61; 
-  $grantham{LEU}{TYR}=36; 
-  $grantham{LEU}{VAL}=32;
-  
-  $grantham{LYS}{MET}=95; 
-  $grantham{LYS}{PHE}=102; 
-  $grantham{LYS}{PRO}=103; 
-  $grantham{LYS}{SER}=121; 
-  $grantham{LYS}{THR}=78; 
-  $grantham{LYS}{TRP}=110; 
-  $grantham{LYS}{TYR}=85; 
-  $grantham{LYS}{VAL}=97;
-  
-  $grantham{MET}{PHE}=28; 
-  $grantham{MET}{PRO}=87; 
-  $grantham{MET}{SER}=135; 
-  $grantham{MET}{THR}=81; 
-  $grantham{MET}{TRP}=67; 
-  $grantham{MET}{TYR}=36; 
-  $grantham{MET}{VAL}=21;
-  
-  $grantham{PHE}{PRO}=114; 
-  $grantham{PHE}{SER}=155; 
-  $grantham{PHE}{THR}=103; 
-  $grantham{PHE}{TRP}=40; 
-  $grantham{PHE}{TYR}=22; 
-  $grantham{PHE}{VAL}=50;
-  
-  $grantham{PRO}{SER}=74; 
-  $grantham{PRO}{THR}=38; 
-  $grantham{PRO}{TRP}=147; 
-  $grantham{PRO}{TYR}=110; 
-  $grantham{PRO}{VAL}=68;
-  
-  $grantham{SER}{THR}=58; 
-  $grantham{SER}{TRP}=177; 
-  $grantham{SER}{TYR}=144; 
-  $grantham{SER}{VAL}=124;
-  
-  $grantham{THR}{TRP}=128; 
-  $grantham{THR}{TYR}=92; 
-  $grantham{THR}{VAL}=69;
-  
-  $grantham{TRP}{TYR}=37; 
-  $grantham{TRP}{VAL}=88;
-  
-  $grantham{TYR}{VAL}=55;
-
-  return $grantham{$aa1}{$aa2} if ($grantham{$aa1}{$aa2});
-  return "NA";
-}
-
-
 # Kim Brugger (23 Apr 2015)
 sub readin_panels_n_manifest {
   undef %genepanels;
@@ -1823,7 +1111,6 @@ sub parameter_panels2genes {
 
     if ( ! $genepanels{ uc( $panel )} ) {
       print STDERR  "Unknown panel requested: $panel\n";
-      find_closest_panel( $panel );
       exit -1;
     }
 
@@ -1844,74 +1131,3 @@ sub parameter_panels2genes {
 
   return %gene_list;
 }
-
-
-# If the panel name is not found, we do a binary search through the panel array to find the best candidates.
-# 
-# Kim Brugger (24 Apr 2015)
-sub find_closest_panel {
-  my ( $panel_name ) = @_;
-
-  $panel_name =~ s/^\s+//;
-  $panel_name =~ s/\s+\z//;
-
-  my @panels;
-
-  map { push @panels, $panel_names{ $_ }}  sort { $a cmp $b } keys %panel_names;
-
-  $| = 1;
-  # set the start and end of the array and find the 
-  # the middle of the array
-  my ( $left, $right ) = (0, int(@panels) - 1);
-  my $middle = POSIX::floor(($right - $left)/2);
-  
-  # Flush the buffer constantly
-  $| = 1;
-  
-  my $loop_counter = 0;
-
-  while (1) {
-    # The new block is to the left of the middle.
-    if ( uc($panel_name) lt uc($panels[ $middle ]) ) {
-      $right = $middle;
-      $middle = $left + POSIX::floor(($right - $left)/2);
-      last if ( $right <= $left || $middle == $left || $middle == $right);
-    }
-    # The new block is to the right of the middle.
-    elsif ( uc($panel_name) gt uc($panels[ $middle ]) ) {
-      $left = $middle;
-      $middle = $left + POSIX::floor(($right - $left)/2);
-      last if ( $right <= $left || $middle == $left || $middle == $right);
-    }
-    
-    # Now things gets interesting, we here start to calculate
-    # overlapping and contained panels.
-    #
-    # this is a contained snp, exactly what we want!!!!
-    elsif ( uc($panel_name) ge uc($panels[ $middle ])  &&
-            uc($panel_name) le uc($panels[ $middle ]) ) {
-      return 1;
-      last;
-    }
-    else {
-      last;
-    }
-  }
-
-  my @syndromes;
-
-  my $start = $middle - 2;
-  $start = 0 if ( $start < 0 );
-
-  for(my $i = $start; $i < $start + 5; $i++) {
-    push @syndromes, $panels[ $i ];
-  }
-
-  print "Closest syndromes matching :  \n";
-  print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n";
-
-  print join("\n", @syndromes ) . "\n";
-
-  return 0;
-}
-
