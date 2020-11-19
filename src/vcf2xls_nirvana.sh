@@ -77,15 +77,15 @@ main() {
 
 
     # Get workflow name and id
-    if dx describe --delim "_" $annotated_vcf_name | grep -q job- ; then
+    if dx describe --delim "_" $annotated_vcf_name | grep job- ; then
         job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
         analysis=$(dx describe --delim "_" $job_id)
 
-        if dx describe --delim "_" $job_id | grep -q Root ; then
+        if dx describe --delim "_" $job_id | grep Root ; then
             analysis_id=$(dx describe --delim "_" $job_id | grep Root | cut -d_ -f2)
             workflow=$(dx describe --delim "_" $analysis_id)
 
-            if dx describe --delim "_" $analysis_id | grep -q Workflow ; then
+            if dx describe --delim "_" $analysis_id | grep Workflow ; then
                 workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
                 analysis_name=$(dx describe --name $analysis_id)
                 found_workflow_id=true
