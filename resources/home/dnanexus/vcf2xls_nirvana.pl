@@ -1063,8 +1063,8 @@ sub readin_panels_n_manifest {
 
   map{ 
     my @F = split(/\s+/, $_); 
-    $genes2transcripts{ uc($F[0])} = uc($F[1]) if ( $F[1] );
-    $transcript2gene{uc($F[1])} = $F[0] if ( $F[1] );
+    $genes2transcripts{ uc($F[0])} = uc($F[1]) if ( $F[1] && $F[2] eq "clinical_transcript" );
+    $transcript2gene{uc($F[1])} = $F[0] if ( $F[1] && $F[2] eq "clinical_transcript" );
   } <$in>;
 
   close($in);
