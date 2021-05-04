@@ -51,6 +51,7 @@ my %genes2transcripts;
 my %transcript2gene;
 my %VEP_transcripts;
 my %genepanels;
+my %clinical_ind_panels;
 my %panel_names;
 my %panel_id;
 
@@ -128,12 +129,24 @@ my %worksheet_last_gene;
 
 my %csv_workbook = ();
 my @csv_order;
+my @clinical_inds = map {
+  $_ =~ s/^\ +//;
+  my $v = $panel_id{ uc($_) } || "NA"; 
+  $_ = "$_"
+}  split(",", $transcript_list{ 'PANEL'});
 
-my @panels_w_ids = map { $_ =~ s/^\ +//;
+my @panel_w_version = map {
+  $_ =~ s/^\ +//;
+  my $v = $panel_id{ uc($_) } || "NA"; 
 my $v = $panel_id{ uc($_) } || "NA"; 
-$_ = "$_ ( $v )" }  split(",", $transcript_list{ 'PANEL'});
+  my $v = $panel_id{ uc($_) } || "NA"; 
+my $v = $panel_id{ uc($_) } || "NA"; 
+  my $v = $panel_id{ uc($_) } || "NA"; 
+  $_ = "$v"
+}  split(",", $transcript_list{ 'PANEL'});
 
-$gene_list{ 'PANEL_IDS'} = join(", ", @panels_w_ids );
+$gene_list{ 'Clinical indication(s)'} = join(", ", @clinical_inds );
+$gene_list{ 'Panel id(s)'} = join(", ", @panel_w_version );
 
 my $coverage_file = $opts{c};
 
@@ -227,9 +240,9 @@ sub find_sample_name {
 
 # Kim Brugger (20 May 2015)
 sub fill_summary_sheet {
-  if ( $gene_list{ 'PANEL_IDS'} ) {
-    worksheet_write('Summary', 1 ,  4 , "Panel(s) w/ id's", $$formatting{ 'bold' });
-    worksheet_write('Summary', 1 ,  5 , $gene_list{ 'PANEL_IDS'});
+  if ( $gene_list{ 'Panel id(s)'} ) {
+    worksheet_write('Summary', 1 ,  4 , "Panel(s)", $$formatting{ 'bold' });
+    worksheet_write('Summary', 1 ,  5 , $gene_list{ 'Panel id(s)'});
   }
 }
 
@@ -796,8 +809,8 @@ sub add_worksheet {
       worksheet_write($sheet_name, 1, 3, 'No');
     }
 
-    worksheet_write($sheet_name,  0, 4, "Panel(s):", $$formatting{ 'bold' });
-    worksheet_write($sheet_name, 0, 5, $gene_list{ 'PANEL'});
+    worksheet_write($sheet_name,  0, 4, "Clinical indication(s):", $$formatting{ 'bold' });
+    worksheet_write($sheet_name, 0, 5, $gene_list{ 'Clinical indication(s)'});
     worksheet_write($sheet_name,  1, 0, "GM number:", $$formatting{ 'bold' });
     worksheet_write($sheet_name,  2, 0, "Name:", $$formatting{ 'bold' });
 
@@ -924,7 +937,7 @@ sub gene_list_to_transcript_list {
 sub readin_manifest {
   my ($manifest, $sample) = @_;
   my %gene_list = ();
-  my %panels;
+  my %clinical_inds;
 
   open( my $in, $manifest ) || die "Could not open '$manifest': $!\n";
 
@@ -934,10 +947,10 @@ sub readin_manifest {
     chomp;
     s/\r//g;
     next if (/^\z/);
-    my ( $gemini, $panel, $panel_id, $gene, $transcript ) = split("\t", $_);
+    my ( $gemini, $clinical_ind, $panel_id, $gene, $transcript) = split("\t", $_);
     $gene =~ s/ //g;
 
-    next if ($panel eq "BLANK");
+    next if ($clinical_ind eq "BLANK");
     next if ($gene  eq "BLANK");
     next if ($gene  eq "");
     next if ( $gene eq "ALL:FULLCLINICALEXOME");
@@ -945,9 +958,9 @@ sub readin_manifest {
 
     $sample_in_manifest = 1;
 
-    $panel_id{ uc ( $panel ) } = $panel_id;
+    $panel_id{ uc ( $clinical_ind ) } = $panel_id;
 
-    $panels{ $panel }++;
+    $clinical_inds{ $clinical_ind }++;
 
     $transcript ||= $genes2transcripts{uc($gene)};
 
@@ -967,7 +980,7 @@ sub readin_manifest {
     } 
   }
 
-  $gene_list{ 'PANEL' } = join(", ", sort keys %panels );
+  $gene_list{ 'PANEL' } = join(", ", sort keys %clinical_inds );
   
   return %gene_list;
 }
@@ -1058,6 +1071,7 @@ sub one2three {
 # Kim Brugger (23 Apr 2015)
 sub readin_panels_n_manifest {
   undef %genepanels;
+  undef %clinical_ind_panels;
   
   open(my $in, $genes2transcripts_file);
 
@@ -1073,12 +1087,13 @@ sub readin_panels_n_manifest {
 
   map{ 
     chomp; 
-    my ( $panel_name, $panel_id, $gene) = split(/\t/, $_); 
+    my ( $clinical_ind, $panel_id, $gene) = split(/\t/, $_); 
 
     if ( $gene && ($gene ne "BLANK" or $gene ne "")) {
-      push @{$genepanels{ uc( $panel_name )}}, uc( $gene );
-      $panel_names{ uc($panel_name) } = $panel_name;
-      $panel_id{ uc ( $panel_name ) } = $panel_id;
+      push @{$genepanels{ uc( $clinical_ind )}}, uc( $gene );
+      push @{$clinical_ind_panels{ uc( $clinical_ind )}}, uc( $panel_id );
+      $panel_names{ uc($clinical_ind) } = $clinical_ind;
+      $panel_id{ uc ( $clinical_ind ) } = $panel_id;
     }
   } <$in>;
 
@@ -1090,7 +1105,7 @@ sub readin_panels_n_manifest {
 sub parameter_panels2genes {
   my ( $param ) = @_;
   my %gene_list;
-  my %panels;
+  my %clinical_inds;
 
   $param =~ s/^\s+//;
   $param =~ s/^\s\z//;
@@ -1099,15 +1114,19 @@ sub parameter_panels2genes {
     $panel =~ s/^\s+//;
     $panel =~ s/\s+\z//g;
 
-    $panel = $panel_names{ uc( $panel )} if ( $panel_names{ uc( $panel )} );
-
-    $panels{ $panel }++;
     # Panels with an _ at the start are single genes. So make an ad hoc single gene panel when needed.
     if ( $panel =~ /^_/ ) {
       my $gene = $panel;
       $gene =~ s/^_//;
       push @{$genepanels{ uc( "$panel" )}}, uc( $gene );
     }
+
+    if ( $panel_names{ uc( $panel )} ) {
+      my $clinical_ind = $panel_names{ uc( $panel )};
+      my $panels = $panel_id{ uc($clinical_ind) };
+    }
+
+    $clinical_inds{ $panel }++;
 
     if ( ! $genepanels{ uc( $panel )} ) {
       print STDERR  "Unknown panel requested: $panel\n";
@@ -1127,7 +1146,7 @@ sub parameter_panels2genes {
     }
   }
 
-  $gene_list{ 'PANEL' } = join(", ", sort keys %panels);
+  $gene_list{ 'PANEL' } = join(", ", sort keys %clinical_inds);
 
   return %gene_list;
 }
