@@ -138,10 +138,6 @@ my @clinical_inds = map {
 my @panel_w_version = map {
   $_ =~ s/^\ +//;
   my $v = $panel_id{ uc($_) } || "NA"; 
-my $v = $panel_id{ uc($_) } || "NA"; 
-  my $v = $panel_id{ uc($_) } || "NA"; 
-my $v = $panel_id{ uc($_) } || "NA"; 
-  my $v = $panel_id{ uc($_) } || "NA"; 
   $_ = "$v"
 }  split(",", $transcript_list{ 'PANEL'});
 
