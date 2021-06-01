@@ -1106,7 +1106,7 @@ sub parameter_panels2genes {
   $param =~ s/^\s+//;
   $param =~ s/^\s\z//;
 
-  foreach my $panel (split(",", $param)) {
+  foreach my $panel (split(";", $param)) {
     $panel =~ s/^\s+//;
     $panel =~ s/\s+\z//g;
 
