@@ -44,7 +44,7 @@ main() {
     # get single genes from manifest/given list
     if [ ! -z ${list_panel_names_genes+x} ]; then
         default_IFS=$IFS
-        IFS=","
+        IFS=";"
         single_genes=$(for ele in $list_panel_names_genes; do if [[ $ele =~ ^_ ]]; then echo $ele | sed s/_//; fi; done)
         IFS=$default_IFS
     else
