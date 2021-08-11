@@ -27,6 +27,8 @@ main() {
     echo $sample_coverage_index_name
     dx download "$flagstat_file" -o inputs/
     echo $flagstat_file_name
+    dx download "$panel_bed" -o inputs/
+    echo $panel_bed
 
     # get sample id from vcf file name
     sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
@@ -67,6 +69,38 @@ main() {
             fi
         done
     fi
+
+    # filter annotated vcf to include regions in the flanked panel bed
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-G1vB3JQ433Gx5GJf1FZKYxbF" -o bedtools
+    chmod a+x bedtools
+    export PATH=$PATH:/home/dnanexus
+
+    # Filter vcf if bedfile is flanked, else do not intersect file
+    # check panel bed is flanked 
+    flank=$(basename $panel_bed_name | rev | cut -d_ -f-2 | rev | cut -d_ -f1)
+    echo $flank
+
+    #checks that the flank contains numeric number as its either flank or P in its location
+    if [[ $flank == *"bp"* ]];then #if flank contains bp, its really flank
+        echo "Looks flank has suffix bp - $flank"
+        # also check there is numeric in flank 
+        if [[ $flank =~ [0-9] ]];then
+            flank2=${flank::-2} #remove last two characters which are bp
+            echo $flank2
+            echo "bed file has a flank -> filtering vcf files" 
+            # filter annotated and raw vcf on regions in bed file
+            bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/filtered_annotated_vcf
+            bedtools intersect -header -a inputs/$raw_vcf_name -b inputs/$panel_bed_name > inputs/filtered_raw_vcf
+
+            mv inputs/filtered_annotated_vcf inputs/$annotated_vcf_name
+            mv inputs/filtered_raw_vcf inputs/$raw_vcf_name
+        else
+            echo "bed file has NO flank -> keeping all variants outside exons"  
+        fi
+    else
+        echo "second last field is not flank ending in bp -> keeping all variants outside exons"  
+    fi
+
 
     # Boolean to detect if workflow id has been found
     found_workflow_id=false
