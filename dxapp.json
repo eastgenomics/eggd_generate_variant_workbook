@@ -108,7 +108,7 @@
       "name": "panel_bed",
       "label": "Panel bed that matches panel name provided",
       "class": "file",
-      "optional": false,
+      "optional": true,
       "patterns": [
         "*.bed"
       ],
