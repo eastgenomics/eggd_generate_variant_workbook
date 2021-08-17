@@ -1,11 +1,11 @@
 {
-  "name": "vcf2xls_nirvana_v1.4.2",
-  "title": "vcf2xls_nirvana_v1.4.2",
+  "name": "vcf2xls_nirvana_v1.4.3",
+  "title": "vcf2xls_nirvana_v1.4.3",
   "summary": "vcf2xls_nirvana adapated for DNAnexus: no queries for Genetics Ark, uses Python STDOUT to replace essential queries for creating QC sheets",
   "dxapi": "1.0.0",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "properties": {
-    "githubRelease": "v1.4.2"
+    "githubRelease": "v1.4.3"
   },
   "inputSpec": [
     {
@@ -103,6 +103,16 @@
       "class": "file",
       "optional": false,
       "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated"
+    },
+    {
+      "name": "panel_bed",
+      "label": "Panel bed that matches panel name provided",
+      "class": "file",
+      "optional": true,
+      "patterns": [
+        "*.bed"
+      ],
+      "help": ""
     }
   ],
   "outputSpec": [

@@ -68,6 +68,26 @@ main() {
         done
     fi
 
+    # filter annotated vcf to include regions in the flanked panel bed using bedtools
+    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-G1vB3JQ433Gx5GJf1FZKYxbF" -o bedtools
+    chmod a+x bedtools
+    export PATH=$PATH:/home/dnanexus
+
+    if [ ! -z ${panel_bed+x} ]; then
+        dx download "$panel_bed" -o inputs/
+        echo $panel_bed_name
+
+        # If panel bed is provided, filter the vcf
+        bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/filtered_annotated_vcf
+        bedtools intersect -header -a inputs/$raw_vcf_name -b inputs/$panel_bed_name > inputs/filtered_raw_vcf
+
+        mv inputs/filtered_annotated_vcf inputs/$annotated_vcf_name
+        mv inputs/filtered_raw_vcf inputs/$raw_vcf_name
+
+    else
+        echo "VCF not filtered as panel bed not provided"
+    fi
+
     # Boolean to detect if workflow id has been found
     found_workflow_id=false
 
