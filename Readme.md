@@ -22,6 +22,7 @@ Inputs:
 - bioinformatic_manifest: Bioinformatic manifest (in 001_Reference)
 - exons_nirvana: Dump of exons from nirvana 2.0.10 (in 001_Reference)
 - nirvana_genes2transcripts: Genes2transcripts file (in 001_Reference)
+- panel_bed: flanked bed file used to filter vcf
 
 Example:
 ```
