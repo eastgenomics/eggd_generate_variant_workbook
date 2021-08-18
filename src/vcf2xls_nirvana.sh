@@ -29,7 +29,7 @@ main() {
     echo $flagstat_file_name
 
     # get sample id from vcf file name
-    sample_id=$(echo $annotated_vcf_prefix | awk -F "_" '{print $1}')
+    sample_id=$(grep -oP "^[a-zA-Z0-9]*" <<< $annotated_vcf_prefix)
     echo $sample_id
 
     # Download dynamic reference files
