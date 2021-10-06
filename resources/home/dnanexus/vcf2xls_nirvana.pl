@@ -230,7 +230,7 @@ sub find_sample_name {
   $sample = "$vcf_file";
   $sample =~ s/.*\///;
   $sample =~ s/\..*//;
-  $sample =~ m/^X[0-9]+/
+  $sample =~ m/^X[0-9]+/;
 
   return $& ;
 }
