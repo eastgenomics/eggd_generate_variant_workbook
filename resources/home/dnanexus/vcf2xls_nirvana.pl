@@ -103,14 +103,17 @@ check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 my $sample = find_sample_name( $vcf_file );
 
 $sample =~ s/_.*//;
+# match the X number bit at the beginning of the sample id extracted
+$sample =~ m/^X[0-9]+/;
 
 my %gene_list;
 my %hotspots;
 
+# $& corresponds to matching bit of the regex
 if ( $opts{ 'p' } ) {
-  %gene_list = parameter_panels2genes($opts{ 'p' }, $sample);
+  %gene_list = parameter_panels2genes($opts{ 'p' }, $&);
 } else {
-  %gene_list = readin_manifest( $manifest, $sample);
+  %gene_list = readin_manifest( $manifest, $&);
 }
 
 die "No genes for $sample\n" if ( keys %gene_list == 0 );
@@ -230,9 +233,8 @@ sub find_sample_name {
   $sample = "$vcf_file";
   $sample =~ s/.*\///;
   $sample =~ s/\..*//;
-  $sample =~ m/^X[0-9]+/;
 
-  return $& ;
+  return $sample ;
 }
 
 # Kim Brugger (20 May 2015)
