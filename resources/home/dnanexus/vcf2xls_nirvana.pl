@@ -27,7 +27,7 @@ my $TABIX = "packages/htslib-1.7/tabix";
 use Vcf;
 use Getopt::Std;
 
-my $opts = 'p:a:v:u:T:w:i:c:h';
+my $opts = 'p:a:s:v:u:T:w:i:c:h';
 my %opts;
 getopts($opts, \%opts);
 
@@ -95,6 +95,7 @@ my $full_exome_snps = 0;
 # }
 
 my $vcf_file = $opts{a} || shift || usage();
+my $sliced_vcf = $opts{s};
 my $raw_vcf_file = $opts{v};
 usage() if ( $opts{ 'h' });
 
@@ -158,7 +159,7 @@ my %meta_stats = ();
 $meta_stats{ 'PANEL'} = $gene_list{ 'PANEL'};
 $meta_stats{ 'PANEL_IDS'} = $gene_list{ 'PANEL_IDS'};
 
-analyse_vcf_file( $vcf_file );
+analyse_vcf_file( $sliced_vcf );
 
 print "Filling summary sheet\n";
 fill_summary_sheet();
