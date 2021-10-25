@@ -105,7 +105,7 @@ my $sample = find_sample_name( $vcf_file );
 
 $sample =~ s/_.*//;
 # match the X number bit at the beginning of the sample id extracted
-$sample =~ m/^X[0-9]+/;
+$sample =~ m/^[XGC][0-9]+/;
 
 my %gene_list;
 my %hotspots;
