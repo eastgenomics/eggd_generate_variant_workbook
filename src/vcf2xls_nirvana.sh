@@ -78,14 +78,11 @@ main() {
         echo $panel_bed_name
 
         # If panel bed is provided, filter the vcf
-        bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/filtered_annotated_vcf
-        bedtools intersect -header -a inputs/$raw_vcf_name -b inputs/$panel_bed_name > inputs/filtered_raw_vcf
-
-        mv inputs/filtered_annotated_vcf inputs/$annotated_vcf_name
-        mv inputs/filtered_raw_vcf inputs/$raw_vcf_name
-
+        bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
     else
+        # Create sliced annotated vcf to be the same as the annotated vcf if the bed is not provided
         echo "VCF not filtered as panel bed not provided"
+        cp inputs/$annotated_vcf_name inputs/sliced_annotated_vcf
     fi
 
     # Boolean to detect if workflow id has been found
@@ -165,6 +162,7 @@ main() {
     if [ -z ${list_panel_names_genes+x} ]; then
         perl vcf2xls_nirvana.pl \
             -a inputs/$annotated_vcf_name \
+            -s inputs/sliced_annotated_vcf \
             -v inputs/$raw_vcf_name \
             -c inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
@@ -175,6 +173,7 @@ main() {
         perl vcf2xls_nirvana.pl \
             -p "$list_panel_names_genes" \
             -a inputs/$annotated_vcf_name \
+            -s inputs/sliced_annotated_vcf \
             -v inputs/$raw_vcf_name \
             -c inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \

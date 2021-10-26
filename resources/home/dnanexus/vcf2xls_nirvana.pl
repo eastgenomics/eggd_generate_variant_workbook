@@ -27,7 +27,7 @@ my $TABIX = "packages/htslib-1.7/tabix";
 use Vcf;
 use Getopt::Std;
 
-my $opts = 'p:a:v:u:T:w:i:c:h';
+my $opts = 'p:a:s:v:u:T:w:i:c:h';
 my %opts;
 getopts($opts, \%opts);
 
@@ -95,6 +95,7 @@ my $full_exome_snps = 0;
 # }
 
 my $vcf_file = $opts{a} || shift || usage();
+my $sliced_vcf = $opts{s};
 my $raw_vcf_file = $opts{v};
 usage() if ( $opts{ 'h' });
 
@@ -103,14 +104,17 @@ check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 my $sample = find_sample_name( $vcf_file );
 
 $sample =~ s/_.*//;
+# match the X number bit at the beginning of the sample id extracted
+$sample =~ m/^[XGC][0-9]+/;
 
 my %gene_list;
 my %hotspots;
 
+# $& corresponds to matching bit of the regex
 if ( $opts{ 'p' } ) {
-  %gene_list = parameter_panels2genes($opts{ 'p' }, $sample);
+  %gene_list = parameter_panels2genes($opts{ 'p' }, $&);
 } else {
-  %gene_list = readin_manifest( $manifest, $sample);
+  %gene_list = readin_manifest( $manifest, $&);
 }
 
 die "No genes for $sample\n" if ( keys %gene_list == 0 );
@@ -155,7 +159,7 @@ my %meta_stats = ();
 $meta_stats{ 'PANEL'} = $gene_list{ 'PANEL'};
 $meta_stats{ 'PANEL_IDS'} = $gene_list{ 'PANEL_IDS'};
 
-analyse_vcf_file( $vcf_file );
+analyse_vcf_file( $sliced_vcf );
 
 print "Filling summary sheet\n";
 fill_summary_sheet();
