@@ -92,7 +92,6 @@ main() {
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
 
-
     # Get workflow name and id
     if dx describe --delim "_" $annotated_vcf_name | grep job- ; then
         job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
@@ -118,13 +117,7 @@ main() {
 
     # Download reference files
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpG6j433Gyp0kF6F9F69qq" -o esp_vcf.tab.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFpQ433Gv30GBPqz29V0k" -o kg_vcf.tab.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpPkj433Gfpz8g0x2X64jQ" -o exac_vcf.sites.vep.vcf.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGPj433GzPByY1Vpfz7bb" -o esp_vcf.tab.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFyj433GQkkJzFzbFb48J" -o kg_vcf.tab.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGgQ433GyvPj8Fq65F4qP" -o exac_vcf.sites.vep.vcf.gz.tbi
 
     # Compile samtools and tabix for perl script
     cd packages
