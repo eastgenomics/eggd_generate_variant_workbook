@@ -1,12 +1,12 @@
 {
-  "name": "vcf2xls_nirvana",
-  "title": "Vcf2xls nirvana",
+  "name": "eggd_vcf2xls_nirvana",
+  "title": "eggd_vcf2xls_nirvana",
   "summary": "Create xls from Nirvana annotated vcf",
   "dxapi": "1.0.0",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "authorizedUsers": ["org-emee_1"],
   "properties": {
-    "githubRelease": "v1.5.2"
+    "githubRelease": "v1.5.3"
   },
   "inputSpec": [
     {
