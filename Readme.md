@@ -26,7 +26,7 @@ Inputs:
 
 Example:
 ```
-dx run app-vcf2xls_nirvana/1.5.2 -iannotated_vcf=X210333_markdup_recalibrated_Haplotyper.refseq_nirvana_2010.annotated.vcf -iraw_vcf="X210333_markdup_recalibrated_Haplotyper.vcf.gz" -isample_coverage_file=X210333_markdup.nirvana_2010_5bp.gz -isample_coverage_index=X210333_markdup.nirvana_2010_5bp.gz.tbi -iflagstat_file=X210333_markdup.flagstat -igenepanels=001_Reference:/dynamic_files/gene_panels/gemini_panels_200522 -ibioinformatic_manifest=001_Reference:/dynamic_files/BioinformaticManifest/BioinformaticManifest_200819 -iexons_nirvana=001_Reference:/annotation/b37/exons_nirvana2010_no_PAR_Y.tsv -inirvana_genes2transcripts=001_Reference:/dynamic_files/nirvana_genes2transcripts/nirvana_genes2transcripts_2010_200728
+dx run app-vcf2xls_nirvana/1.5.3 -iannotated_vcf=X210333_markdup_recalibrated_Haplotyper.refseq_nirvana_2010.annotated.vcf -iraw_vcf="X210333_markdup_recalibrated_Haplotyper.vcf.gz" -isample_coverage_file=X210333_markdup.nirvana_2010_5bp.gz -isample_coverage_index=X210333_markdup.nirvana_2010_5bp.gz.tbi -iflagstat_file=X210333_markdup.flagstat -igenepanels=001_Reference:/dynamic_files/gene_panels/gemini_panels_200522 -ibioinformatic_manifest=001_Reference:/dynamic_files/BioinformaticManifest/BioinformaticManifest_200819 -iexons_nirvana=001_Reference:/annotation/b37/exons_nirvana2010_no_PAR_Y.tsv -inirvana_genes2transcripts=001_Reference:/dynamic_files/nirvana_genes2transcripts/nirvana_genes2transcripts_2010_200728
 ```
 
 ## What does this app output?
