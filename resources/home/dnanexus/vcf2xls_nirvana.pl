@@ -43,9 +43,6 @@ my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
 my $genepanels_file        = "genepanels";
 my $gemini_freq            = "gemini_freq.vcf.gz";
-my $esp_vcf             = "esp_vcf.tab.gz";
-my $kg_vcf              = "kg_vcf.tab.gz";
-my $exac_vcf            = "exac_vcf.sites.vep.vcf.gz";
 
 my %genes2transcripts;
 my %transcript2gene;
@@ -462,70 +459,6 @@ sub gemini_af {
 }
 
 
-# Kim Brugger (18 Jan 2018)
-sub external_af {
-  my ( $chrom, $pos, $ref, $alt) = @_;
-
-  my %res;
-
-  if ( -e $kg_vcf ) {
-    open(my $in, "$TABIX $kg_vcf $chrom:$pos-$pos |") || die "Could not open '$kg_vcf': $!\n";
-
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, $id, $vcf_ref, $vcf_alt, $AF_AFR, $AF_AMR, $AF_ASN, $AF_EUR, $AF_MAX ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        $res{ '1KG'} = $AF_MAX;
-        last;
-      }
-    }
-  }
-
-  if ( -e $esp_vcf ) {
-    open(my $in, "$TABIX $esp_vcf $chrom:$pos-$pos |") || die "Could not open '$esp_vcf': $!\n";
-    
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, $id, $vcf_ref, $vcf_alt, $AF_AA, $AF_AE, $AF_TA ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        $res{ 'ESP'} = max( $AF_AA, $AF_AE );
-        last;
-      }
-    }
-  }
-
-  if ( -e $exac_vcf ) {
-    open(my $in, "$TABIX $exac_vcf $chrom:$pos-$pos |") || die "Could not open '$exac_vcf': $!\n";
-
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        my %fields;
-
-        foreach my $field ( split(";",$info)) {
-          $field =~ /(.*?)=(.*)/;
-          $fields{ $1 } = $2;
-        }
-	
-        if ( $fields{ AF } =~ s/,.*// ){
-          $res{ ExAC } = $fields{ AF };
-        }
-        elsif ( $fields{ AF } ) {
-          $res{ ExAC } = $fields{ AF };
-        }
-	
-	      last;
-      }
-    }
-  }
-  return \%res;
-}
-
-
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
   my ($sheet_name, $entry, $CSQ, $comment) = @_;
@@ -587,19 +520,6 @@ sub write_variant {
 
 
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
-  my $external_AFs = external_af($$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
-
-  foreach my $external_AF_source ( keys %$external_AFs  ) {
-    if ( $external_AF_source =~ /ExAC/i ) {
-      $$entry{ 'INFO'}{'AF_ExAC' } = $$external_AFs{ $external_AF_source };
-    }
-    elsif ( $external_AF_source =~ /ESP/i ) {
-      $$entry{ 'INFO'}{'AF_ESP_MAX' } = $$external_AFs{ $external_AF_source };
-    }
-    elsif ( $external_AF_source =~ /1KG/i ) {
-      $$entry{ 'INFO' }{ 'AF_1KG_MAX' } = $$external_AFs{ $external_AF_source };
-    }
-  }
   
   $HGNC   = $ENS_gene if ( !$HGNC   || $HGNC   eq "" );
   $RefSeq = $feature  if ( !$RefSeq || $RefSeq eq "" );
@@ -647,7 +567,7 @@ sub write_variant {
     $comment .= " Pathogenic variant";
   }
   ###################################################################################################################
-  if ( low_AF_variant($AF_GEMINI, $$entry{INFO}{ 'AF_1KG_MAX' }, $$entry{INFO}{ 'AF_ESP_MAX' }, $$entry{INFO}{ 'AF_ExAC' })) {
+  if ( low_AF_variant($AF_GEMINI)) {
     $format = $$formatting{'red_cell'};
 
     if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
@@ -691,9 +611,6 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'PolyPhen' }, $PolyPhen, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_1KG_MAX' }, $$entry{INFO}{ 'AF_1KG_MAX' }||= 0, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ESP_MAX' }, $$entry{INFO}{ 'AF_ESP_MAX' }||= 0, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ExAC' }, $$entry{INFO}{ 'AF_ExAC'    }||= 0, $format);
 
   $comment ||= "";
 
@@ -786,9 +703,6 @@ sub add_worksheet {
 		'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
 		'dbsnp', 'PolyPhen', 'SIFT',
 		'AF_GEMINI',
-		'AF_1KG_MAX',
-		'AF_ESP_MAX',
-		'AF_ExAC',
 		'Comment',
   );
 
