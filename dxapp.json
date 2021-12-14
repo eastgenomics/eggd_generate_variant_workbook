@@ -3,15 +3,23 @@
   "title": "eggd_vcf2xls_nirvana",
   "summary": "Create xls from Nirvana annotated vcf",
   "dxapi": "1.0.0",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "authorizedUsers": ["org-emee_1"],
+  "developers":["org-emee_1"],
   "properties": {
-    "githubRelease": "v1.5.3"
+    "githubRelease": "v1.6.0"
   },
   "inputSpec": [
     {
       "name": "list_panel_names_genes",
       "label": "List of comma-separated panels or comma-separated genes (prefixed with \"_\")",
+      "class": "string",
+      "optional": true,
+      "help": ""
+    },
+    {
+      "name": "annotations",
+      "label": "List of comma-separated names of fields in the vcf to annotate the report with",
       "class": "string",
       "optional": true,
       "help": ""
@@ -133,17 +141,19 @@
         "hours": 6
       }
     },
-    "execDepends": [
-      {
-        "name": "pysam",
-       "package_manager": "pip",
-       "version": "0.12.0"
-      }
-    ],
     "interpreter": "bash",
-    "release": "16.04",
+    "release": "20.04",
+    "version": "0",
     "distribution": "Ubuntu",
-    "file": "src/vcf2xls_nirvana.sh"
+    "file": "src/vcf2xls_nirvana.sh",
+    "assetDepends": [
+      {
+        "name": "htslib",
+        "version": "1.14.0",
+        "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+        "folder": "/app_assets/htslib/htslib_v1.14.0"
+      }
+    ]
   },
   "access": {
     "project": "CONTRIBUTE",
@@ -156,7 +166,7 @@
     "aws:eu-central-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem1_ssd1_x2"
+          "instanceType": "mem1_ssd1_v2_x4"
         }
       }
     }
