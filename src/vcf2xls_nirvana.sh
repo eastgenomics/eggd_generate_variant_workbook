@@ -5,9 +5,18 @@ set -euxo pipefail
 main() {
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
-    else
-        echo "No panel/genes given"
     fi
+
+    if [ ! -z ${annotations+x} ]; then
+        echo "Value of annotations: '$annotations'"
+        # parse
+        default_IFS=$IFS
+        IFS=","
+        parsed_annotations=$(for ele in $annotations; do if [[ $ele =~ .*:=.* ]]; then echo $ele | sed s/:=.*//; else echo $ele; fi; done)
+        IFS=$default_IFS
+        echo "Adjusted annotations names for vcf2xls: '$parsed_annotations'"
+    fi
+
     echo "Value of raw_vcf: '$raw_vcf'"
     echo "Value of annotated_vcf: '$annotated_vcf'"
     echo "Value of sample_coverage_file: '$sample_coverage_file'"
@@ -119,22 +128,7 @@ main() {
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
 
-    # Compile samtools and tabix for perl script
     cd packages
-
-    tar xjf htslib-1.7.tar.bz2
-    cd htslib-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
-
-    tar xjf samtools-1.7.tar.bz2
-    cd samtools-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
 
     # Compile perl packages
     for perl_package in $(ls *gz); do
@@ -148,36 +142,31 @@ main() {
         cd ..
     done
 
-    cd /home/dnanexus
+    pip3 install ./pysam-0.18.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
 
-
-    # Run vcf2xls
-    if [ -z ${list_panel_names_genes+x} ]; then
-        perl vcf2xls_nirvana.pl \
-            -a inputs/$annotated_vcf_name \
+    opts="-a inputs/$annotated_vcf_name \
             -s inputs/sliced_annotated_vcf \
             -v inputs/$raw_vcf_name \
             -c inputs/$sample_coverage_file_name \
             -u $nb_usable_reads \
             -T $total_nb_reads \
-            -w "$analysis_name" \
-            -i "$workflow_id"
-    else
-        perl vcf2xls_nirvana.pl \
-            -p "$list_panel_names_genes" \
-            -a inputs/$annotated_vcf_name \
-            -s inputs/sliced_annotated_vcf \
-            -v inputs/$raw_vcf_name \
-            -c inputs/$sample_coverage_file_name \
-            -u $nb_usable_reads \
-            -T $total_nb_reads \
-            -w "$analysis_name" \
-            -i "$workflow_id"
+            -w \"${analysis_name}\" \
+            -i \"${workflow_id}\""
+
+    if [ ! -z ${list_panel_names_genes+x} ]; then
+        opts+=" -p \"${list_panel_names_genes}\""
     fi
 
+    if [ ! -z ${annotations+x} ]; then
+        opts+=" -f \"${parsed_annotations}\""
+    fi
+
+    cd /home/dnanexus
+
+    # Run vcf2xls
+    perl -I /home/dnanexus/ vcf2xls_nirvana.pl $opts
+
     project_id=$DX_PROJECT_CONTEXT_ID
-    #dx select $project_id
-    #source ~/.dnanexus_config/unsetenv
 
     version=0
     matching_files=1
