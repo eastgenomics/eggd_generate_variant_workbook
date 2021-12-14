@@ -6,38 +6,31 @@ use warnings;
 use Data::Dumper;
 use File::Spec;
 use List::Util qw( max );
+use List::Util qw( first );
 use POSIX;
-use Spreadsheet::WriteExcel;
-
-
-# Sets up dynamic paths for EASIH modules...
-# Makes it possible to work with multiple checkouts without setting 
-# perllib/perl5lib in the enviroment.
-BEGIN {
-  my $path = $0;
-  if ($path =~ /.*\//) {
-    $path =~ s/(.*)\/.*/$1/;
-    push @INC, "$path";
-    $ENV{'PATH'} .= ":$path/";
-  }
-}
-
-my $TABIX = "packages/htslib-1.7/tabix";
-
-use Vcf;
 use Getopt::Std;
 
-my $opts = 'p:a:s:v:u:T:w:i:c:h';
+use Spreadsheet::WriteExcel;
+use Vcf;
+
+my $opts = 'p:a:s:v:u:T:w:i:c:f:h';
 my %opts;
 getopts($opts, \%opts);
-
-my $samtools  = 'packages/samtools-1.7/samtools';
 
 my $RARE_VARIANT_AF = 0.02;
 my $nb_usable_reads = $opts{"u"};
 my $total_nb_reads = $opts{"T"};
 my $workflow = $opts{"w"};
 my $workflow_id = $opts{"i"};
+my @annotations;
+
+for my $i (keys %opts) {
+  print "$i $opts{$i}\n";
+}
+
+if ( $opts{"f"} ) {
+  @annotations = split( /,/, $opts{"f"} );
+}
 
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
@@ -150,7 +143,7 @@ my $coverage_file = $opts{c};
 my $sry;
 $sry = check_sry($coverage_file);
 
-setup_worksheets();
+setup_worksheets(@annotations);
 
 my %meta_stats = ();
 $meta_stats{ 'PANEL'} = $gene_list{ 'PANEL'};
@@ -171,7 +164,7 @@ sub check_sry {
   my $sry_outcome;
   my $SRY_region = "Y:2655024-2655649";
 
-  open(my $in, "$TABIX $coverage_file $SRY_region |") || die "Could not open '$coverage_file': $!\n";
+  open(my $in, "tabix $coverage_file $SRY_region |") || die "Could not open '$coverage_file': $!\n";
 
   while ( my $line = <$in> ) {
     chomp $line;
@@ -210,13 +203,13 @@ sub check_vcf_integrity_after_annotation {
 
   if ( -e $gvcf_file ) {
     print "vcf check includes gvcf\n";
-    system("./vcf_integrity_check.py -e -g $gvcf_file $vcf_file $raw_vcf_file");
+    system("python3 vcf_integrity_check.py -e -g $gvcf_file $vcf_file $raw_vcf_file");
   }
   else {
-    print "./vcf_integrity_check.py -e $vcf_file $raw_vcf_file\n";
-    system("./vcf_integrity_check.py -e $vcf_file $raw_vcf_file");
+    print "python3 vcf_integrity_check.py -e $vcf_file $raw_vcf_file\n";
+    system("python3 vcf_integrity_check.py -e $vcf_file $raw_vcf_file");
   }
-      
+
   die "vcf file ( $vcf_file) have lost its integrity" 
       if ($?  != 0);
 
@@ -250,6 +243,8 @@ sub analyse_vcf_file {
 
   my $vcf = Vcf->new(file=>$file);
   $vcf->parse_header();
+
+  my %gnomAD_hash;
 
   while (my $entry = $vcf->next_data_hash()) {
     my $CSQ_line = $$entry{INFO}{'CSQ'};
@@ -295,7 +290,7 @@ sub analyse_vcf_file {
     else{
       $gt2 = $$entry{ALT}[$gt2 - 1];
     }
-      
+
     if ( $homozygous_snps && $$entry{INFO}{AC} eq "2" ) {
       $interesting_variant++;
     }      
@@ -353,11 +348,11 @@ sub analyse_vcf_file {
       $effects = 'missense variant'   if ( $effects eq 'stop_lost');
       $effects = 'stop_gained'        if ( $effects eq 'start_lost');
 
-      push @usable_CSQs, [$effects, $CSQ]
+      push @usable_CSQs, [$effects, $CSQ];
     }
-     
+
     my ( $effects, $CSQ ) = (undef, undef);
-    
+
     if ( @usable_CSQs == 0 ) {
       next;
     }
@@ -368,17 +363,43 @@ sub analyse_vcf_file {
       $comment = "Multi non-ref allelic site";
     }
 
+    # create hash to point allele to the correct gnomAD frequency
+    %gnomAD_hash = ();
+
+    for my $infos ($$entry{INFO}) {
+      my %infos = %$infos;
+      my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
+
+      if ($egg_field_to_add) {
+        my ($freq1, $freq2) = split(/,/, $infos{$egg_field_to_add});
+
+        if (defined $freq1) {
+          $gnomAD_hash{$gt1} = $freq1;
+        } else {
+          $gnomAD_hash{$gt1} = "";
+        }
+
+        if (defined $freq2) {
+          $gnomAD_hash{$gt2} = $freq2;
+        } else {
+          $gnomAD_hash{$gt2} ||= "";
+        }
+      }
+    }
+
+    my $gnomAD_ref = \%gnomAD_hash;
+
     for (my $i = 0;  $i <@usable_CSQs; $i++) {
       ( $effects, $CSQ ) = @{$usable_CSQs[ $i ]};
 
       foreach my $effect ( split("&", $effects)) {
         if ( grep(/$effect/, @sheets )) {
-          write_variant($effect, $entry, $CSQ, $comment);
-            last;
+          write_variant($effect, $entry, $CSQ, $gnomAD_ref, $comment);
+          last;
         }
         # Keep any variants which don't match sheet names in other sheet
         else {
-          write_variant('other', $entry, $CSQ, $comment);    
+          write_variant('other', $entry, $CSQ, $gnomAD_ref, $comment);    
         }
       }
     }
@@ -440,12 +461,13 @@ sub gemini_af {
   my ( $chrom, $pos, $ref, $alt) = @_;
 
   if ( -e $gemini_freq ) {
-    open(my $in, "$TABIX $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
+    open(my $in, "tabix $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
     while (<$in>) {
       chomp;
       my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
 
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
+      # check if pos are equal between vcf and gemini vcf
+      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt eq $alt ) {
         $info =~ /AF=(.*?);/;
         return $1;
       }
@@ -461,7 +483,7 @@ sub gemini_af {
 
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
-  my ($sheet_name, $entry, $CSQ, $comment) = @_;
+  my ($sheet_name, $entry, $CSQ, $gnomAD_hash, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
 
@@ -518,9 +540,8 @@ sub write_variant {
     }
   }
 
-
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
-  
+
   $HGNC   = $ENS_gene if ( !$HGNC   || $HGNC   eq "" );
   $RefSeq = $feature  if ( !$RefSeq || $RefSeq eq "" );
 
@@ -612,6 +633,18 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
 
+  my %gnomAD = %{ $gnomAD_hash };
+
+  for my $infos ($$entry{INFO}) {
+    my %infos = %$infos;
+    my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
+
+    if ($egg_field_to_add) {
+      $egg_field_to_add =~ s/^\s+|\s+$//g ;
+      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $egg_field_to_add }, $gnomAD{$Allele}, $format);
+    }
+  }
+
   $comment ||= "";
 
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Comment' }, "$comment", $format);
@@ -661,8 +694,9 @@ sub pure_cpos {
 
 # Kim Brugger (23 Aug 2013)
 sub setup_worksheets {
+  my @annotations = @_;
   foreach my $sheet ( @sheets ) {
-    add_worksheet( $sheet );
+    add_worksheet( $sheet, @annotations );
   }
 }
 
@@ -694,7 +728,7 @@ sub usage {
  
 # Kim Brugger (09 Jul 2013)
 sub add_worksheet {
-  my ( $sheet_name ) = @_;
+  my ( $sheet_name, @annotations ) = @_;
 
   return if ( $added_worksheets{ $sheet_name } );
 
@@ -703,8 +737,14 @@ sub add_worksheet {
 		'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
 		'dbsnp', 'PolyPhen', 'SIFT',
 		'AF_GEMINI',
-		'Comment',
   );
+
+  push(@fields, @annotations);
+  push(@fields, "Comment");
+
+  foreach my $thing (@annotations) {
+    print "$thing\n";
+  }
 
   $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name );
 
@@ -823,11 +863,10 @@ sub add_worksheet {
     worksheet_write($sheet_name, $offset, 0, "Workflow id", $$formatting{ 'bold' });
     worksheet_write($sheet_name, $offset, 1, $workflow_id, undef);
     $offset += 1;
-  }
-  else {
+  } else {
     foreach my $field ( @fields ) {
       $field_index{ $field } = $i;
-      worksheet_write($sheet_name, 0, $i++, $field, $$formatting{ 'bold' });    
+      worksheet_write($sheet_name, 0, $i++, $field, $$formatting{ 'bold' });
     }    
   }
 
