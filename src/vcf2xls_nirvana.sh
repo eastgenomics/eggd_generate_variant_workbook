@@ -144,27 +144,27 @@ main() {
 
     pip3 install ./pysam-0.18.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
 
-    opts="-a inputs/$annotated_vcf_name \
-            -s inputs/sliced_annotated_vcf \
-            -v inputs/$raw_vcf_name \
-            -c inputs/$sample_coverage_file_name \
-            -u $nb_usable_reads \
-            -T $total_nb_reads \
-            -w \"${analysis_name}\" \
-            -i \"${workflow_id}\""
+    opts="-a inputs/$annotated_vcf_name "
+    opts+="-s inputs/sliced_annotated_vcf "
+    opts+="-v inputs/$raw_vcf_name "
+    opts+="-c inputs/$sample_coverage_file_name "
+    opts+="-u $nb_usable_reads "
+    opts+="-T $total_nb_reads "
+    opts+="-w \"$analysis_name\" "
+    opts+="-i \"$workflow_id\""
 
     if [ ! -z ${list_panel_names_genes+x} ]; then
-        opts+=" -p \"${list_panel_names_genes}\""
+        opts+=" -p \"$list_panel_names_genes\""
     fi
 
     if [ ! -z ${annotations+x} ]; then
-        opts+=" -f \"${parsed_annotations}\""
+        opts+=" -f \"$parsed_annotations\""
     fi
 
     cd /home/dnanexus
 
     # Run vcf2xls
-    perl -I /home/dnanexus/ vcf2xls_nirvana.pl $opts
+    eval "perl -I /home/dnanexus/ vcf2xls_nirvana.pl ${opts}"
 
     project_id=$DX_PROJECT_CONTEXT_ID
 
