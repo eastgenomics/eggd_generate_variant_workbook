@@ -379,14 +379,10 @@ sub analyse_vcf_file {
         # else store empty string
         if (defined $freq1) {
           $gnomAD_hash{$gt1} = $freq1;
-        } else {
-          $gnomAD_hash{$gt1} = "";
         }
 
         if (defined $freq2) {
           $gnomAD_hash{$gt2} = $freq2;
-        } else {
-          $gnomAD_hash{$gt2} = "";
         }
       }
     }
@@ -491,7 +487,7 @@ sub gemini_af {
 
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
-  my ($sheet_name, $entry, $CSQ, $gnomAD_hash, $comment) = @_;
+  my ($sheet_name, $entry, $CSQ, $gnomAD_ref, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
 
@@ -642,7 +638,7 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
 
   # dereference the hash
-  my %gnomAD = %{ $gnomAD_hash };
+  my %gnomAD = %{ $gnomAD_ref };
 
   # redundant looping to grab the eggd field name
   for my $infos ($$entry{INFO}) {
