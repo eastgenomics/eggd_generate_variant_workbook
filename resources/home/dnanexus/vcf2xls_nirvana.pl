@@ -24,6 +24,7 @@ my $workflow = $opts{"w"};
 my $workflow_id = $opts{"i"};
 my @annotations;
 
+# check if fields have been passed and parse them
 if ( $opts{"f"} ) {
   @annotations = split( /,/, $opts{"f"} );
 }
@@ -240,6 +241,7 @@ sub analyse_vcf_file {
   my $vcf = Vcf->new(file=>$file);
   $vcf->parse_header();
 
+  # initiate hash to store gnomAD frequencies
   my %gnomAD_hash;
 
   while (my $entry = $vcf->next_data_hash()) {
@@ -359,16 +361,22 @@ sub analyse_vcf_file {
       $comment = "Multi non-ref allelic site";
     }
 
-    # create hash to point allele to the correct gnomAD frequency
+    # reset hash when looking at another variant
     %gnomAD_hash = ();
 
+    # loop through the INFO fields
     for my $infos ($$entry{INFO}) {
+      # magic perl to have a hash back :shrug:
       my %infos = %$infos;
+      # look to see if an EGGD field is present
       my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
 
       if ($egg_field_to_add) {
+        # parse and assign frequencies
         my ($freq1, $freq2) = split(/,/, $infos{$egg_field_to_add});
 
+        # if frequencies are defined, store it in the gnomad hash
+        # else store empty string
         if (defined $freq1) {
           $gnomAD_hash{$gt1} = $freq1;
         } else {
@@ -378,11 +386,12 @@ sub analyse_vcf_file {
         if (defined $freq2) {
           $gnomAD_hash{$gt2} = $freq2;
         } else {
-          $gnomAD_hash{$gt2} ||= "";
+          $gnomAD_hash{$gt2} = "";
         }
       }
     }
 
+    # create a reference to the hash so that we can pass the hash to functions without warnings
     my $gnomAD_ref = \%gnomAD_hash;
 
     for (my $i = 0;  $i <@usable_CSQs; $i++) {
@@ -463,6 +472,9 @@ sub gemini_af {
       my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
 
       # check if pos are equal between vcf and gemini vcf
+      # - the gemini file only contains biallelic variants -> $vcf_alt
+      # - the way the function works is that it looks in the CSQ field to get the allele -> $alt
+      # so we can safely assume that no multiallelic will pop up
       if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt eq $alt ) {
         $info =~ /AF=(.*?);/;
         return $1;
@@ -629,8 +641,10 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
 
+  # dereference the hash
   my %gnomAD = %{ $gnomAD_hash };
 
+  # redundant looping to grab the eggd field name
   for my $infos ($$entry{INFO}) {
     my %infos = %$infos;
     my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
@@ -735,12 +749,9 @@ sub add_worksheet {
 		'AF_GEMINI',
   );
 
+  # add the custom fields to be added in the sheets
   push(@fields, @annotations);
   push(@fields, "Comment");
-
-  foreach my $thing (@annotations) {
-    print "$thing\n";
-  }
 
   $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name );
 
