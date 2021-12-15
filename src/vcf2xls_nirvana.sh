@@ -175,8 +175,8 @@ main() {
     # Tiny chance of race conditions leading to two files with the same name here
     while [ $matching_files -ne 0 ]; do 
         version=$((version+1))
-        output_name=${sample_id}_${version}.xls; 
-        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l); 
+        output_name=${sample_id}_${version}*.xls
+        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l)
     done;
     
     # Add text to report name if workflow id hasn't been found
