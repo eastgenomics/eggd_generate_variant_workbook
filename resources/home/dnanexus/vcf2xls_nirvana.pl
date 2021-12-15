@@ -24,10 +24,6 @@ my $workflow = $opts{"w"};
 my $workflow_id = $opts{"i"};
 my @annotations;
 
-for my $i (keys %opts) {
-  print "$i $opts{$i}\n";
-}
-
 if ( $opts{"f"} ) {
   @annotations = split( /,/, $opts{"f"} );
 }
