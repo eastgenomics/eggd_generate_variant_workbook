@@ -101,9 +101,14 @@ main() {
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
 
-    # Get workflow name and id
-    if dx describe --delim "_" $annotated_vcf_name | grep job- ; then
-        job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    # get job id creating the gnomad annotated vcf
+    gnomad_annotation_job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    # get file id of vcf annotator input raw vcf
+    nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _raw_vcf | cut -d= -f2)
+
+    # get workflow id and analysis name of nirvana annotated vcf
+    if dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- ; then
+        job_id=$(dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- | cut -d_ -f2)
         analysis=$(dx describe --delim "_" $job_id)
 
         if dx describe --delim "_" $job_id | grep Root ; then
