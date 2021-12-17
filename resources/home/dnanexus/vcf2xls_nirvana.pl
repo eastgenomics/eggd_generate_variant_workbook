@@ -6,7 +6,6 @@ use warnings;
 use Data::Dumper;
 use File::Spec;
 use List::Util qw( max );
-use List::Util qw( first );
 use POSIX;
 use Getopt::Std;
 
@@ -26,7 +25,7 @@ my @annotations;
 
 # check if fields have been passed and parse them
 if ( $opts{"f"} ) {
-  @annotations = split( /,/, $opts{"f"} );
+  @annotations = split( /;/, $opts{"f"} );
 }
 
 my $manifest               = "BioinformaticManifest";
@@ -241,8 +240,8 @@ sub analyse_vcf_file {
   my $vcf = Vcf->new(file=>$file);
   $vcf->parse_header();
 
-  # initiate hash to store gnomAD frequencies
-  my %gnomAD_hash;
+  # initiate hash to store custom annotation data
+  my %annotation_hash;
 
   while (my $entry = $vcf->next_data_hash()) {
     my $CSQ_line = $$entry{INFO}{'CSQ'};
@@ -362,45 +361,46 @@ sub analyse_vcf_file {
     }
 
     # reset hash when looking at another variant
-    %gnomAD_hash = ();
+    %annotation_hash = ();
 
-    # loop through the INFO fields
     for my $infos ($$entry{INFO}) {
-      # magic perl to have a hash back :shrug:
       my %infos = %$infos;
-      # look to see if an EGGD field is present
-      my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
+      my $grep_annotation;
 
-      if ($egg_field_to_add) {
-        # parse and assign frequencies
-        my ($freq1, $freq2) = split(/,/, $infos{$egg_field_to_add});
+      # for every annotation passed to the app
+      foreach my $annotation (@annotations) {
+        # check it is present in the INFO field of the variant
+        $grep_annotation = grep { $_ eq $annotation } keys %infos;
 
-        # if frequencies are defined, store it in the gnomad hash
-        # else store empty string
-        if (defined $freq1) {
-          $gnomAD_hash{$gt1} = $freq1;
-        }
+        # if present store in hash of hash, with annotation, key as keys
+        if ($grep_annotation) {
+          my ($data1, $data2) = split(/,/, $infos{$annotation});
 
-        if (defined $freq2) {
-          $gnomAD_hash{$gt2} = $freq2;
+          if (defined $data1) {
+            $annotation_hash{$annotation}{$gt1} = $data1;
+          }
+
+          if (defined $data2) {
+            $annotation_hash{$annotation}{$gt2} = $data2;
+          }
         }
       }
     }
 
     # create a reference to the hash so that we can pass the hash to functions without warnings
-    my $gnomAD_ref = \%gnomAD_hash;
+    my $annotation_hash_ref = \%annotation_hash;
 
     for (my $i = 0;  $i <@usable_CSQs; $i++) {
       ( $effects, $CSQ ) = @{$usable_CSQs[ $i ]};
 
       foreach my $effect ( split("&", $effects)) {
         if ( grep(/$effect/, @sheets )) {
-          write_variant($effect, $entry, $CSQ, $gnomAD_ref, $comment);
+          write_variant($effect, $entry, $CSQ, $annotation_hash_ref, $comment);
           last;
         }
         # Keep any variants which don't match sheet names in other sheet
         else {
-          write_variant('other', $entry, $CSQ, $gnomAD_ref, $comment);    
+          write_variant('other', $entry, $CSQ, $annotation_hash_ref, $comment);    
         }
       }
     }
@@ -487,7 +487,7 @@ sub gemini_af {
 
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
-  my ($sheet_name, $entry, $CSQ, $gnomAD_ref, $comment) = @_;
+  my ($sheet_name, $entry, $CSQ, $annotation_hash_ref, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
 
@@ -638,16 +638,11 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
 
   # dereference the hash
-  my %gnomAD = %{ $gnomAD_ref };
+  my %annotation_hash = %{ $annotation_hash_ref };
 
-  # redundant looping to grab the eggd field name
-  for my $infos ($$entry{INFO}) {
-    my %infos = %$infos;
-    my $egg_field_to_add = ( first { m/^EGGD*/ } sort keys %infos ) || '';
-
-    if ($egg_field_to_add) {
-      $egg_field_to_add =~ s/^\s+|\s+$//g ;
-      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $egg_field_to_add }, $gnomAD{$Allele}, $format);
+  for my $annotation (keys %annotation_hash) {
+    for my $gt (keys %{$annotation_hash{$annotation}}) {
+      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $annotation }, $annotation_hash{$annotation}{$Allele}, $format);
     }
   }
 
