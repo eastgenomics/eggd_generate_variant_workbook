@@ -145,8 +145,18 @@ def compare_vcfs( vcf_file1, vcf_file2, exit_on_error = False, gvcf_last = None)
             errors.append('format')
 
         for sample in vcf1_samples:
-            if ( vcf1_rec.samples[ sample] != vcf2_rec.samples[ sample] ):
+            if ( vcf1_rec.samples[ sample].keys() != vcf2_rec.samples[ sample].keys() ):
                 errors.append('sample {}'.format( sample ))
+
+            if ( vcf1_rec.samples[ sample] != vcf2_rec.samples[ sample] ):
+                for key in vcf1_rec.samples[ sample].keys():
+                    # Skip PL
+                    if key == "PL":
+                        continue
+                    # All other fields should match
+                    else:
+                        if vcf1_rec.samples[ sample][key] != vcf1_rec.samples[ sample][key]:
+                            errors.append('sample {}'.format( sample ))
 
         if (errors ):
             errors = handle_error( error_string.format( type="Error(s) on: {}".format( ", ".join(errors))), exit_on_error  )
