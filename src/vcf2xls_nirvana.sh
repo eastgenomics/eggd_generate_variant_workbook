@@ -37,6 +37,10 @@ main() {
     dx download "$flagstat_file" -o inputs/
     echo $flagstat_file_name
 
+    cd inputs
+    gunzip -c $annotated_vcf_name > annotated_vcf
+    cd ..
+
     # get sample id from vcf file name
     sample_id=$(grep -oP "^[a-zA-Z0-9]*" <<< $annotated_vcf_prefix)
     echo $sample_id
@@ -87,11 +91,11 @@ main() {
         echo $panel_bed_name
 
         # If panel bed is provided, filter the vcf
-        bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
+        bedtools intersect -header -a inputs/annotated_vcf -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
     else
         # Create sliced annotated vcf to be the same as the annotated vcf if the bed is not provided
         echo "VCF not filtered as panel bed not provided"
-        cp inputs/$annotated_vcf_name inputs/sliced_annotated_vcf
+        cp inputs/annotated_vcf inputs/sliced_annotated_vcf
     fi
 
     # Boolean to detect if workflow id has been found
@@ -104,7 +108,7 @@ main() {
     # get job id creating the gnomad annotated vcf
     gnomad_annotation_job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
     # get file id of vcf annotator input raw vcf
-    nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _raw_vcf | cut -d= -f2)
+    nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _dest_vcf | cut -d= -f2)
 
     # get workflow id and analysis name of nirvana annotated vcf
     if dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- ; then
@@ -135,6 +139,20 @@ main() {
 
     cd packages
 
+    tar xjf htslib-1.7.tar.bz2
+    cd htslib-1.7
+    sudo ./configure --prefix=/usr/bin
+    sudo make
+    sudo make install
+    cd ..
+
+    tar xjf samtools-1.7.tar.bz2
+    cd samtools-1.7
+    sudo ./configure --prefix=/usr/bin
+    sudo make
+    sudo make install
+    cd ..
+
     # Compile perl packages
     for perl_package in $(ls *gz); do
         base_name=${perl_package%.*.*}
@@ -147,9 +165,7 @@ main() {
         cd ..
     done
 
-    pip3 install ./pysam-0.18.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
-
-    opts="-a inputs/$annotated_vcf_name "
+    opts="-a inputs/annotated_vcf "
     opts+="-s inputs/sliced_annotated_vcf "
     opts+="-v inputs/$raw_vcf_name "
     opts+="-c inputs/$sample_coverage_file_name "
