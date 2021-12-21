@@ -141,19 +141,17 @@
         "hours": 6
       }
     },
-    "interpreter": "bash",
-    "release": "20.04",
-    "version": "0",
-    "distribution": "Ubuntu",
-    "file": "src/vcf2xls_nirvana.sh",
-    "assetDepends": [
+    "execDepends": [
       {
-        "name": "htslib",
-        "version": "1.14.0",
-        "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-        "folder": "/app_assets/htslib/htslib_v1.14.0"
+        "name": "pysam",
+       "package_manager": "pip",
+       "version": "0.12.0"
       }
-    ]
+    ],
+    "interpreter": "bash",
+    "release": "16.04",
+    "distribution": "Ubuntu",
+    "file": "src/vcf2xls_nirvana.sh"
   },
   "access": {
     "project": "CONTRIBUTE",
