@@ -9,10 +9,21 @@ main() {
 
     if [ ! -z ${annotations+x} ]; then
         echo "Value of annotations: '$annotations'"
+        parsed_annotations=""
         default_IFS=$IFS
-        IFS=","
+        IFS=";"
+
         # parse annotations and for custom renamed annotations i.e. NEW_NAME:=NAME, keep only the new_name bit
-        parsed_annotations=$(for ele in $annotations; do if [[ $ele =~ .*:=.* ]]; then echo $ele | sed s/:=.*//; else echo $ele; fi; done)
+        for ele in $annotations; do
+            if [[ $ele =~ .*:=.* ]]; then
+                annotation_to_add=$(echo $ele | sed s/:=.*//)
+            else
+                annotation_to_add=$(echo $ele)
+            fi
+
+            parsed_annotations+="$annotation_to_add;"
+        done
+
         IFS=$default_IFS
         echo "Adjusted annotations names for vcf2xls: '$parsed_annotations'"
     fi
