@@ -12,6 +12,8 @@ use Getopt::Std;
 use Spreadsheet::WriteExcel;
 use Vcf;
 
+my $TABIX = "packages/htslib-1.7/tabix";
+
 my $opts = 'p:a:s:v:u:T:w:i:c:f:h';
 my %opts;
 getopts($opts, \%opts);
@@ -87,7 +89,7 @@ usage() if ( $opts{ 'h' });
 
 check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 
-my $sample = find_sample_name( $vcf_file );
+my $sample = find_sample_name( $raw_vcf_file );
 
 $sample =~ s/_.*//;
 # match the X number bit at the beginning of the sample id extracted
@@ -160,7 +162,7 @@ sub check_sry {
   my $sry_outcome;
   my $SRY_region = "Y:2655024-2655649";
 
-  open(my $in, "tabix $coverage_file $SRY_region |") || die "Could not open '$coverage_file': $!\n";
+  open(my $in, "$TABIX $coverage_file $SRY_region |") || die "Could not open '$coverage_file': $!\n";
 
   while ( my $line = <$in> ) {
     chomp $line;
@@ -199,11 +201,11 @@ sub check_vcf_integrity_after_annotation {
 
   if ( -e $gvcf_file ) {
     print "vcf check includes gvcf\n";
-    system("python3 vcf_integrity_check.py -e -g $gvcf_file $vcf_file $raw_vcf_file");
+    system("./vcf_integrity_check.py -e -g $gvcf_file $vcf_file $raw_vcf_file");
   }
   else {
-    print "python3 vcf_integrity_check.py -e $vcf_file $raw_vcf_file\n";
-    system("python3 vcf_integrity_check.py -e $vcf_file $raw_vcf_file");
+    print "./vcf_integrity_check.py -e $vcf_file $raw_vcf_file\n";
+    system("./vcf_integrity_check.py -e $vcf_file $raw_vcf_file");
   }
 
   die "vcf file ( $vcf_file) have lost its integrity" 
@@ -462,7 +464,7 @@ sub gemini_af {
   my ( $chrom, $pos, $ref, $alt) = @_;
 
   if ( -e $gemini_freq ) {
-    open(my $in, "tabix $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
+    open(my $in, "$TABIX $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
     while (<$in>) {
       chomp;
       my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
