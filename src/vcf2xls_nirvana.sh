@@ -49,7 +49,13 @@ main() {
     echo $flagstat_file_name
 
     cd inputs
-    gunzip -c $annotated_vcf_name > annotated_vcf
+
+    if [[ $annotated_vcf_name == *.gz ]]; then
+        gunzip -c $annotated_vcf_name > annotated_vcf
+    else
+        mv $annotated_vcf_name annotated_vcf
+    fi
+
     cd ..
 
     # get sample id from vcf file name
