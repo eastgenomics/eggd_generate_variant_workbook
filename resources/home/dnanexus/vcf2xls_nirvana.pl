@@ -384,6 +384,9 @@ sub analyse_vcf_file {
 
           if (defined $data2) {
             $annotation_hash{$annotation}{$gt2} = $data2;
+          } else {
+            # we have one value for that annotation, so assign it to both gt
+            $annotation_hash{$annotation}{$gt2} = $data1;
           }
         }
       }
