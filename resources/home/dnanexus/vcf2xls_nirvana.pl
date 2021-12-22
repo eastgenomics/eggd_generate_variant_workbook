@@ -612,6 +612,30 @@ sub write_variant {
     $meta_stats{ $sheet_name }{ 'common' }++;
   }
 
+
+  # dereference the hash
+  my %annotation_hash = %{ $annotation_hash_ref };
+
+  for my $annotation (keys %annotation_hash) {
+    for my $gt (keys %{$annotation_hash{$annotation}}) {
+      if ( low_AF_variant($annotation_hash{$annotation}{$Allele})) {
+        $format = $$formatting{'red_cell'};
+
+        if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
+          $format = $$formatting{'purple_cell'};
+          $meta_stats{ $sheet_name }{ 'rare/LQ' }++;
+        }
+        else {
+          $meta_stats{ $sheet_name }{ 'rare' }++;
+        }
+      }
+      else {
+        $meta_stats{ $sheet_name }{ 'common' }++;
+      }
+      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $annotation }, $annotation_hash{$annotation}{$Allele}, $format);
+    }
+  }
+
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Change' }, "$change", $format );
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Score' }, $$entry{QUAL}, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Depth' }, $$entry{INFO}{DP}, $format);
@@ -641,15 +665,6 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'PolyPhen' }, $PolyPhen, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
-
-  # dereference the hash
-  my %annotation_hash = %{ $annotation_hash_ref };
-
-  for my $annotation (keys %annotation_hash) {
-    for my $gt (keys %{$annotation_hash{$annotation}}) {
-      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $annotation }, $annotation_hash{$annotation}{$Allele}, $format);
-    }
-  }
 
   $comment ||= "";
 
