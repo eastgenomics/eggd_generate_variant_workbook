@@ -29,9 +29,6 @@
       "label": "Nirvana annotated vcf",
       "class": "file",
       "optional": false,
-      "patterns": [
-        "*.annotated.vcf"
-      ],
       "help": ""
     },
     {
