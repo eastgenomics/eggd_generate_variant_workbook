@@ -13,8 +13,8 @@ This app may be executed as a standalone app.
 
 Inputs:
 
-- list_panel_names_genes: List of panels/genes to get data from, used in reanalysis (optional)
-- annotations: annotations present in INFO field in annotated vcf to add to the report (optional)
+- list_panel_names_genes: List of panels/genes to get data from, used in reanalysis, semi colon separated (optional)
+- annotations: annotations present in INFO field in annotated vcf to add to the report, , semi colon separated (optional)
 - annotated_vcf: Nirvana annotated vcf
 - raw_vcf: Vcf before annotation
 - sample_coverage_file: Sample level coverage file
