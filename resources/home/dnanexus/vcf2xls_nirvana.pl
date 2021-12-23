@@ -376,17 +376,32 @@ sub analyse_vcf_file {
 
         # if present store in hash of hash, with annotation, key as keys
         if ($grep_annotation) {
-          my ($data1, $data2) = split(/,/, $infos{$annotation});
+          # get the header line of interest, it's an array of hash
+          my $header_line = $vcf->get_header_line(key=>'INFO', ID=>$annotation);
+          # get first element of array
+          my $header_hash = $header_line->[0];
+          # magic perl to make it a hash instead of weird thing that's not manipulable
+          # why not allow me to create the hash when i initialize it?
+          # I tried and it didn't work, so either i'm dumb or perl is dumb
+          # I wanna say perl but the jury's still out
+          my %header_hash = %$header_hash;
 
-          if (defined $data1) {
-            $annotation_hash{$annotation}{$gt1} = $data1;
-          }
+          if ( $header_hash{'Number'} eq 'A' | $header_hash{'Number'} == 1 ) {
+            my ($data1, $data2) = split(/,/, $infos{$annotation});
 
-          if (defined $data2) {
-            $annotation_hash{$annotation}{$gt2} = $data2;
+            if (defined $data1) {
+              $annotation_hash{$annotation}{$gt1} = $data1;
+            }
+
+            if (defined $data2) {
+              $annotation_hash{$annotation}{$gt2} = $data2;
+            } else {
+              # we have one value for that annotation, so assign it to both gt
+              $annotation_hash{$annotation}{$gt2} = $data1;
+            }
           } else {
-            # we have one value for that annotation, so assign it to both gt
-            $annotation_hash{$annotation}{$gt2} = $data1;
+            print STDERR  "Expected number of values ($header_hash{'Number'}) for \"$annotation\" is not handled by this version of vcf2xls\n";
+            exit -1;
           }
         }
       }
