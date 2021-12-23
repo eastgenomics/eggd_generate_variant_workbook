@@ -1,12 +1,13 @@
 {
-  "name": "vcf2xls_nirvana",
-  "title": "Vcf2xls nirvana",
+  "name": "eggd_vcf2xls_nirvana",
+  "title": "eggd_vcf2xls_nirvana",
   "summary": "Create xls from Nirvana annotated vcf",
   "dxapi": "1.0.0",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "authorizedUsers": ["org-emee_1"],
+  "developers":["org-emee_1"],
   "properties": {
-    "githubRelease": "v1.5.2"
+    "githubRelease": "v1.6.0"
   },
   "inputSpec": [
     {
@@ -17,13 +18,17 @@
       "help": ""
     },
     {
+      "name": "annotations",
+      "label": "List of comma-separated names of fields in the vcf to annotate the report with",
+      "class": "string",
+      "optional": true,
+      "help": ""
+    },
+    {
       "name": "annotated_vcf",
       "label": "Nirvana annotated vcf",
       "class": "file",
       "optional": false,
-      "patterns": [
-        "*.annotated.vcf"
-      ],
       "help": ""
     },
     {
@@ -156,7 +161,7 @@
     "aws:eu-central-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem1_ssd1_x2"
+          "instanceType": "mem1_ssd1_v2_x4"
         }
       }
     }

@@ -5,9 +5,29 @@ set -euxo pipefail
 main() {
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
-    else
-        echo "No panel/genes given"
     fi
+
+    if [ ! -z ${annotations+x} ]; then
+        echo "Value of annotations: '$annotations'"
+        parsed_annotations=""
+        default_IFS=$IFS
+        IFS=";"
+
+        # parse annotations and for custom renamed annotations i.e. NEW_NAME:=NAME, keep only the new_name bit
+        for ele in $annotations; do
+            if [[ $ele =~ .*:=.* ]]; then
+                annotation_to_add=$(echo $ele | sed s/:=.*//)
+            else
+                annotation_to_add=$(echo $ele)
+            fi
+
+            parsed_annotations+="$annotation_to_add;"
+        done
+
+        IFS=$default_IFS
+        echo "Adjusted annotations names for vcf2xls: '$parsed_annotations'"
+    fi
+
     echo "Value of raw_vcf: '$raw_vcf'"
     echo "Value of annotated_vcf: '$annotated_vcf'"
     echo "Value of sample_coverage_file: '$sample_coverage_file'"
@@ -27,6 +47,16 @@ main() {
     echo $sample_coverage_index_name
     dx download "$flagstat_file" -o inputs/
     echo $flagstat_file_name
+
+    cd inputs
+
+    if [[ $annotated_vcf_name == *.gz ]]; then
+        gunzip -c $annotated_vcf_name > annotated_vcf
+    else
+        mv $annotated_vcf_name annotated_vcf
+    fi
+
+    cd ..
 
     # get sample id from vcf file name
     sample_id=$(grep -oP "^[a-zA-Z0-9]*" <<< $annotated_vcf_prefix)
@@ -78,11 +108,11 @@ main() {
         echo $panel_bed_name
 
         # If panel bed is provided, filter the vcf
-        bedtools intersect -header -a inputs/$annotated_vcf_name -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
+        bedtools intersect -header -a inputs/annotated_vcf -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
     else
         # Create sliced annotated vcf to be the same as the annotated vcf if the bed is not provided
         echo "VCF not filtered as panel bed not provided"
-        cp inputs/$annotated_vcf_name inputs/sliced_annotated_vcf
+        cp inputs/annotated_vcf inputs/sliced_annotated_vcf
     fi
 
     # Boolean to detect if workflow id has been found
@@ -92,10 +122,14 @@ main() {
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
 
+    # get job id creating the gnomad annotated vcf
+    gnomad_annotation_job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    # get file id of vcf annotator input raw vcf
+    nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _dest_vcf | cut -d= -f2)
 
-    # Get workflow name and id
-    if dx describe --delim "_" $annotated_vcf_name | grep job- ; then
-        job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
+    # get workflow id and analysis name of nirvana annotated vcf
+    if dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- ; then
+        job_id=$(dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- | cut -d_ -f2)
         analysis=$(dx describe --delim "_" $job_id)
 
         if dx describe --delim "_" $job_id | grep Root ; then
@@ -118,15 +152,8 @@ main() {
 
     # Download reference files
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpG6j433Gyp0kF6F9F69qq" -o esp_vcf.tab.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFpQ433Gv30GBPqz29V0k" -o kg_vcf.tab.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpPkj433Gfpz8g0x2X64jQ" -o exac_vcf.sites.vep.vcf.gz
     dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGPj433GzPByY1Vpfz7bb" -o esp_vcf.tab.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpFyj433GQkkJzFzbFb48J" -o kg_vcf.tab.gz.tbi
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpGgQ433GyvPj8Fq65F4qP" -o exac_vcf.sites.vep.vcf.gz.tbi
 
-    # Compile samtools and tabix for perl script
     cd packages
 
     tar xjf htslib-1.7.tar.bz2
@@ -155,36 +182,29 @@ main() {
         cd ..
     done
 
-    cd /home/dnanexus
+    opts="-a inputs/annotated_vcf "
+    opts+="-s inputs/sliced_annotated_vcf "
+    opts+="-v inputs/$raw_vcf_name "
+    opts+="-c inputs/$sample_coverage_file_name "
+    opts+="-u $nb_usable_reads "
+    opts+="-T $total_nb_reads "
+    opts+="-w \"$analysis_name\" "
+    opts+="-i \"$workflow_id\""
 
-
-    # Run vcf2xls
-    if [ -z ${list_panel_names_genes+x} ]; then
-        perl vcf2xls_nirvana.pl \
-            -a inputs/$annotated_vcf_name \
-            -s inputs/sliced_annotated_vcf \
-            -v inputs/$raw_vcf_name \
-            -c inputs/$sample_coverage_file_name \
-            -u $nb_usable_reads \
-            -T $total_nb_reads \
-            -w "$analysis_name" \
-            -i "$workflow_id"
-    else
-        perl vcf2xls_nirvana.pl \
-            -p "$list_panel_names_genes" \
-            -a inputs/$annotated_vcf_name \
-            -s inputs/sliced_annotated_vcf \
-            -v inputs/$raw_vcf_name \
-            -c inputs/$sample_coverage_file_name \
-            -u $nb_usable_reads \
-            -T $total_nb_reads \
-            -w "$analysis_name" \
-            -i "$workflow_id"
+    if [ ! -z ${list_panel_names_genes+x} ]; then
+        opts+=" -p \"$list_panel_names_genes\""
     fi
 
+    if [ ! -z ${annotations+x} ]; then
+        opts+=" -f \"$parsed_annotations\""
+    fi
+
+    cd /home/dnanexus
+
+    # Run vcf2xls
+    eval "perl -I /home/dnanexus/ vcf2xls_nirvana.pl ${opts}"
+
     project_id=$DX_PROJECT_CONTEXT_ID
-    #dx select $project_id
-    #source ~/.dnanexus_config/unsetenv
 
     version=0
     matching_files=1
@@ -193,8 +213,8 @@ main() {
     # Tiny chance of race conditions leading to two files with the same name here
     while [ $matching_files -ne 0 ]; do 
         version=$((version+1))
-        output_name=${sample_id}_${version}.xls; 
-        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l); 
+        output_name=${sample_id}_${version}*.xls
+        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l)
     done;
     
     # Add text to report name if workflow id hasn't been found

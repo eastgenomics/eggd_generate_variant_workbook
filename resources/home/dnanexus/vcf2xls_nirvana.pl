@@ -7,45 +7,33 @@ use Data::Dumper;
 use File::Spec;
 use List::Util qw( max );
 use POSIX;
+use Getopt::Std;
+
 use Spreadsheet::WriteExcel;
-
-
-# Sets up dynamic paths for EASIH modules...
-# Makes it possible to work with multiple checkouts without setting 
-# perllib/perl5lib in the enviroment.
-BEGIN {
-  my $path = $0;
-  if ($path =~ /.*\//) {
-    $path =~ s/(.*)\/.*/$1/;
-    push @INC, "$path";
-    $ENV{'PATH'} .= ":$path/";
-  }
-}
+use Vcf;
 
 my $TABIX = "packages/htslib-1.7/tabix";
 
-use Vcf;
-use Getopt::Std;
-
-my $opts = 'p:a:s:v:u:T:w:i:c:h';
+my $opts = 'p:a:s:v:u:T:w:i:c:f:h';
 my %opts;
 getopts($opts, \%opts);
-
-my $samtools  = 'packages/samtools-1.7/samtools';
 
 my $RARE_VARIANT_AF = 0.02;
 my $nb_usable_reads = $opts{"u"};
 my $total_nb_reads = $opts{"T"};
 my $workflow = $opts{"w"};
 my $workflow_id = $opts{"i"};
+my @annotations;
+
+# check if fields have been passed and parse them
+if ( $opts{"f"} ) {
+  @annotations = split( /;/, $opts{"f"} );
+}
 
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
 my $genepanels_file        = "genepanels";
 my $gemini_freq            = "gemini_freq.vcf.gz";
-my $esp_vcf             = "esp_vcf.tab.gz";
-my $kg_vcf              = "kg_vcf.tab.gz";
-my $exac_vcf            = "exac_vcf.sites.vep.vcf.gz";
 
 my %genes2transcripts;
 my %transcript2gene;
@@ -101,7 +89,7 @@ usage() if ( $opts{ 'h' });
 
 check_vcf_integrity_after_annotation($vcf_file, $raw_vcf_file);
 
-my $sample = find_sample_name( $vcf_file );
+my $sample = find_sample_name( $raw_vcf_file );
 
 $sample =~ s/_.*//;
 # match the X number bit at the beginning of the sample id extracted
@@ -153,7 +141,7 @@ my $coverage_file = $opts{c};
 my $sry;
 $sry = check_sry($coverage_file);
 
-setup_worksheets();
+setup_worksheets(@annotations);
 
 my %meta_stats = ();
 $meta_stats{ 'PANEL'} = $gene_list{ 'PANEL'};
@@ -219,7 +207,7 @@ sub check_vcf_integrity_after_annotation {
     print "./vcf_integrity_check.py -e $vcf_file $raw_vcf_file\n";
     system("./vcf_integrity_check.py -e $vcf_file $raw_vcf_file");
   }
-      
+
   die "vcf file ( $vcf_file) have lost its integrity" 
       if ($?  != 0);
 
@@ -253,6 +241,9 @@ sub analyse_vcf_file {
 
   my $vcf = Vcf->new(file=>$file);
   $vcf->parse_header();
+
+  # initiate hash to store custom annotation data
+  my %annotation_hash;
 
   while (my $entry = $vcf->next_data_hash()) {
     my $CSQ_line = $$entry{INFO}{'CSQ'};
@@ -298,7 +289,7 @@ sub analyse_vcf_file {
     else{
       $gt2 = $$entry{ALT}[$gt2 - 1];
     }
-      
+
     if ( $homozygous_snps && $$entry{INFO}{AC} eq "2" ) {
       $interesting_variant++;
     }      
@@ -356,11 +347,11 @@ sub analyse_vcf_file {
       $effects = 'missense variant'   if ( $effects eq 'stop_lost');
       $effects = 'stop_gained'        if ( $effects eq 'start_lost');
 
-      push @usable_CSQs, [$effects, $CSQ]
+      push @usable_CSQs, [$effects, $CSQ];
     }
-     
+
     my ( $effects, $CSQ ) = (undef, undef);
-    
+
     if ( @usable_CSQs == 0 ) {
       next;
     }
@@ -371,17 +362,65 @@ sub analyse_vcf_file {
       $comment = "Multi non-ref allelic site";
     }
 
+    # reset hash when looking at another variant
+    %annotation_hash = ();
+
+    for my $infos ($$entry{INFO}) {
+      my %infos = %$infos;
+      my $grep_annotation;
+
+      # for every annotation passed to the app
+      foreach my $annotation (@annotations) {
+        # check it is present in the INFO field of the variant
+        $grep_annotation = grep { $_ eq $annotation } keys %infos;
+
+        # if present store in hash of hash, with annotation, key as keys
+        if ($grep_annotation) {
+          # get the header line of interest, it's an array of hash
+          my $header_line = $vcf->get_header_line(key=>'INFO', ID=>$annotation);
+          # get first element of array
+          my $header_hash = $header_line->[0];
+          # magic perl to make it a hash instead of weird thing that's not manipulable
+          # why not allow me to create the hash when i initialize it?
+          # I tried and it didn't work, so either i'm dumb or perl is dumb
+          # I wanna say perl but the jury's still out
+          my %header_hash = %$header_hash;
+
+          if ( $header_hash{'Number'} eq 'A' | $header_hash{'Number'} == 1 ) {
+            my ($data1, $data2) = split(/,/, $infos{$annotation});
+
+            if (defined $data1) {
+              $annotation_hash{$annotation}{$gt1} = $data1;
+            }
+
+            if (defined $data2) {
+              $annotation_hash{$annotation}{$gt2} = $data2;
+            } else {
+              # we have one value for that annotation, so assign it to both gt
+              $annotation_hash{$annotation}{$gt2} = $data1;
+            }
+          } else {
+            print STDERR  "Expected number of values ($header_hash{'Number'}) for \"$annotation\" is not handled by this version of vcf2xls\n";
+            exit -1;
+          }
+        }
+      }
+    }
+
+    # create a reference to the hash so that we can pass the hash to functions without warnings
+    my $annotation_hash_ref = \%annotation_hash;
+
     for (my $i = 0;  $i <@usable_CSQs; $i++) {
       ( $effects, $CSQ ) = @{$usable_CSQs[ $i ]};
 
       foreach my $effect ( split("&", $effects)) {
         if ( grep(/$effect/, @sheets )) {
-          write_variant($effect, $entry, $CSQ, $comment);
-            last;
+          write_variant($effect, $entry, $CSQ, $annotation_hash_ref, $comment);
+          last;
         }
         # Keep any variants which don't match sheet names in other sheet
         else {
-          write_variant('other', $entry, $CSQ, $comment);    
+          write_variant('other', $entry, $CSQ, $annotation_hash_ref, $comment);    
         }
       }
     }
@@ -448,7 +487,11 @@ sub gemini_af {
       chomp;
       my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
 
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
+      # check if pos are equal between vcf and gemini vcf
+      # - the gemini file only contains biallelic variants -> $vcf_alt
+      # - the way the function works is that it looks in the CSQ field to get the allele -> $alt
+      # so we can safely assume that no multiallelic will pop up
+      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt eq $alt ) {
         $info =~ /AF=(.*?);/;
         return $1;
       }
@@ -462,73 +505,9 @@ sub gemini_af {
 }
 
 
-# Kim Brugger (18 Jan 2018)
-sub external_af {
-  my ( $chrom, $pos, $ref, $alt) = @_;
-
-  my %res;
-
-  if ( -e $kg_vcf ) {
-    open(my $in, "$TABIX $kg_vcf $chrom:$pos-$pos |") || die "Could not open '$kg_vcf': $!\n";
-
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, $id, $vcf_ref, $vcf_alt, $AF_AFR, $AF_AMR, $AF_ASN, $AF_EUR, $AF_MAX ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        $res{ '1KG'} = $AF_MAX;
-        last;
-      }
-    }
-  }
-
-  if ( -e $esp_vcf ) {
-    open(my $in, "$TABIX $esp_vcf $chrom:$pos-$pos |") || die "Could not open '$esp_vcf': $!\n";
-    
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, $id, $vcf_ref, $vcf_alt, $AF_AA, $AF_AE, $AF_TA ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        $res{ 'ESP'} = max( $AF_AA, $AF_AE );
-        last;
-      }
-    }
-  }
-
-  if ( -e $exac_vcf ) {
-    open(my $in, "$TABIX $exac_vcf $chrom:$pos-$pos |") || die "Could not open '$exac_vcf': $!\n";
-
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
-
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt =~ /$alt/ ) {
-        my %fields;
-
-        foreach my $field ( split(";",$info)) {
-          $field =~ /(.*?)=(.*)/;
-          $fields{ $1 } = $2;
-        }
-	
-        if ( $fields{ AF } =~ s/,.*// ){
-          $res{ ExAC } = $fields{ AF };
-        }
-        elsif ( $fields{ AF } ) {
-          $res{ ExAC } = $fields{ AF };
-        }
-	
-	      last;
-      }
-    }
-  }
-  return \%res;
-}
-
-
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
-  my ($sheet_name, $entry, $CSQ, $comment) = @_;
+  my ($sheet_name, $entry, $CSQ, $annotation_hash_ref, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
 
@@ -585,22 +564,8 @@ sub write_variant {
     }
   }
 
-
   my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
-  my $external_AFs = external_af($$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
 
-  foreach my $external_AF_source ( keys %$external_AFs  ) {
-    if ( $external_AF_source =~ /ExAC/i ) {
-      $$entry{ 'INFO'}{'AF_ExAC' } = $$external_AFs{ $external_AF_source };
-    }
-    elsif ( $external_AF_source =~ /ESP/i ) {
-      $$entry{ 'INFO'}{'AF_ESP_MAX' } = $$external_AFs{ $external_AF_source };
-    }
-    elsif ( $external_AF_source =~ /1KG/i ) {
-      $$entry{ 'INFO' }{ 'AF_1KG_MAX' } = $$external_AFs{ $external_AF_source };
-    }
-  }
-  
   $HGNC   = $ENS_gene if ( !$HGNC   || $HGNC   eq "" );
   $RefSeq = $feature  if ( !$RefSeq || $RefSeq eq "" );
 
@@ -647,7 +612,7 @@ sub write_variant {
     $comment .= " Pathogenic variant";
   }
   ###################################################################################################################
-  if ( low_AF_variant($AF_GEMINI, $$entry{INFO}{ 'AF_1KG_MAX' }, $$entry{INFO}{ 'AF_ESP_MAX' }, $$entry{INFO}{ 'AF_ExAC' })) {
+  if ( low_AF_variant($AF_GEMINI)) {
     $format = $$formatting{'red_cell'};
 
     if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
@@ -660,6 +625,30 @@ sub write_variant {
   }
   else {
     $meta_stats{ $sheet_name }{ 'common' }++;
+  }
+
+
+  # dereference the hash
+  my %annotation_hash = %{ $annotation_hash_ref };
+
+  for my $annotation (keys %annotation_hash) {
+    for my $gt (keys %{$annotation_hash{$annotation}}) {
+      if ( low_AF_variant($annotation_hash{$annotation}{$Allele})) {
+        $format = $$formatting{'red_cell'};
+
+        if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
+          $format = $$formatting{'purple_cell'};
+          $meta_stats{ $sheet_name }{ 'rare/LQ' }++;
+        }
+        else {
+          $meta_stats{ $sheet_name }{ 'rare' }++;
+        }
+      }
+      else {
+        $meta_stats{ $sheet_name }{ 'common' }++;
+      }
+      worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $annotation }, $annotation_hash{$annotation}{$Allele}, $format);
+    }
   }
 
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Change' }, "$change", $format );
@@ -691,9 +680,6 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'PolyPhen' }, $PolyPhen, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_1KG_MAX' }, $$entry{INFO}{ 'AF_1KG_MAX' }||= 0, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ESP_MAX' }, $$entry{INFO}{ 'AF_ESP_MAX' }||= 0, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_ExAC' }, $$entry{INFO}{ 'AF_ExAC'    }||= 0, $format);
 
   $comment ||= "";
 
@@ -744,8 +730,9 @@ sub pure_cpos {
 
 # Kim Brugger (23 Aug 2013)
 sub setup_worksheets {
+  my @annotations = @_;
   foreach my $sheet ( @sheets ) {
-    add_worksheet( $sheet );
+    add_worksheet( $sheet, @annotations );
   }
 }
 
@@ -777,7 +764,7 @@ sub usage {
  
 # Kim Brugger (09 Jul 2013)
 sub add_worksheet {
-  my ( $sheet_name ) = @_;
+  my ( $sheet_name, @annotations ) = @_;
 
   return if ( $added_worksheets{ $sheet_name } );
 
@@ -786,11 +773,11 @@ sub add_worksheet {
 		'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
 		'dbsnp', 'PolyPhen', 'SIFT',
 		'AF_GEMINI',
-		'AF_1KG_MAX',
-		'AF_ESP_MAX',
-		'AF_ExAC',
-		'Comment',
   );
+
+  # add the custom fields to be added in the sheets
+  push(@fields, @annotations);
+  push(@fields, "Comment");
 
   $added_worksheets{ $sheet_name } = $workbook->add_worksheet( $sheet_name );
 
@@ -909,11 +896,10 @@ sub add_worksheet {
     worksheet_write($sheet_name, $offset, 0, "Workflow id", $$formatting{ 'bold' });
     worksheet_write($sheet_name, $offset, 1, $workflow_id, undef);
     $offset += 1;
-  }
-  else {
+  } else {
     foreach my $field ( @fields ) {
       $field_index{ $field } = $i;
-      worksheet_write($sheet_name, 0, $i++, $field, $$formatting{ 'bold' });    
+      worksheet_write($sheet_name, 0, $i++, $field, $$formatting{ 'bold' });
     }    
   }
 
