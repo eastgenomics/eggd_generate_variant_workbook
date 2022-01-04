@@ -386,7 +386,7 @@ sub analyse_vcf_file {
           # I wanna say perl but the jury's still out
           my %header_hash = %$header_hash;
 
-          if ( $header_hash{'Number'} eq 'A' | $header_hash{'Number'} == 1 ) {
+          if ( $header_hash{'Number'} eq 'A' | $header_hash{'Number'} eq '1' ) {
             my ($data1, $data2) = split(/,/, $infos{$annotation});
 
             if (defined $data1) {
@@ -510,6 +510,7 @@ sub write_variant {
   my ($sheet_name, $entry, $CSQ, $annotation_hash_ref, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
+  print "$Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp\n";
 
   return if ($Consequence eq "upstream_gene_variant" || $Consequence eq "downstream_gene_variant");
   return if ( $HGVSc && $HGVSc eq "");
@@ -612,7 +613,16 @@ sub write_variant {
     $comment .= " Pathogenic variant";
   }
   ###################################################################################################################
-  if ( low_AF_variant($AF_GEMINI)) {
+  
+  # dereference the hash
+  my %annotation_hash = %{ $annotation_hash_ref };
+  
+  my @annotation_freqs = ();
+  for my $annotation (keys %annotation_hash) {
+    push(@annotation_freqs,$annotation_hash{$annotation}{$Allele});
+  }
+
+  if ( low_AF_variant(@annotation_freqs)) {
     $format = $$formatting{'red_cell'};
 
     if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
@@ -627,28 +637,8 @@ sub write_variant {
     $meta_stats{ $sheet_name }{ 'common' }++;
   }
 
-
-  # dereference the hash
-  my %annotation_hash = %{ $annotation_hash_ref };
-
   for my $annotation (keys %annotation_hash) {
-    for my $gt (keys %{$annotation_hash{$annotation}}) {
-      if ( low_AF_variant($annotation_hash{$annotation}{$Allele})) {
-        $format = $$formatting{'red_cell'};
-
-        if ( $$entry{'QUAL'} < $MIN_QUALITY_VAR || $$entry{INFO}{DP} < $LOW_COVERAGE_VAR ) {
-          $format = $$formatting{'purple_cell'};
-          $meta_stats{ $sheet_name }{ 'rare/LQ' }++;
-        }
-        else {
-          $meta_stats{ $sheet_name }{ 'rare' }++;
-        }
-      }
-      else {
-        $meta_stats{ $sheet_name }{ 'common' }++;
-      }
       worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ $annotation }, $annotation_hash{$annotation}{$Allele}, $format);
-    }
   }
 
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'Change' }, "$change", $format );
