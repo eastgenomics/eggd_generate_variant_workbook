@@ -683,7 +683,11 @@ sub write_variant {
 # Kim Brugger (20 May 2015)
 sub low_AF_variant {
   my ( @freqs ) = @_;
-  map { return 0 if ($_ && $_ > $RARE_VARIANT_AF) } @freqs;
+  for (@freqs) {
+    if ($_ > $RARE_VARIANT_AF) {
+      return 0
+    }
+  }
   return 1;
 }
 
