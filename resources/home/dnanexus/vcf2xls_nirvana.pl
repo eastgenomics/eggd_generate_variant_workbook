@@ -510,7 +510,6 @@ sub write_variant {
   my ($sheet_name, $entry, $CSQ, $annotation_hash_ref, $comment) = @_;
 
   my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp) = @$CSQ;
-  print "$Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$Consequence,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$HGVSp\n";
 
   return if ($Consequence eq "upstream_gene_variant" || $Consequence eq "downstream_gene_variant");
   return if ( $HGVSc && $HGVSc eq "");
