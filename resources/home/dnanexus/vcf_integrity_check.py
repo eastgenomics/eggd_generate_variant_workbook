@@ -129,7 +129,7 @@ def compare_vcfs( vcf_file1, vcf_file2, exit_on_error = False, gvcf_last = None)
         if ( vcf1_rec.id != vcf2_rec.id ):
             errors.append('ID')
 
-        if ( vcf1_rec.alts != vcf2_rec.alts ):
+        if ( set(vcf1_rec.alts) != set(vcf2_rec.alts) ):
             errors.append('Alts')
 
         # Some odd rounding errors and making strings into float bug,
