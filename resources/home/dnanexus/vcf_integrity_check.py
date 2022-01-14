@@ -123,8 +123,12 @@ def compare_vcfs( vcf_file1, vcf_file2, exit_on_error = False, gvcf_last = None)
         if ( vcf1_rec.chrom != vcf2_rec.chrom ):
             errors.append('chromosome')
 
-        if ( vcf1_rec.pos != vcf2_rec.pos ):
-            errors.append('chromosome')
+        # This check was removed to account for the new vcf left align step
+        # added to custom annotate the vcf.
+        # This causes in repeated regions to change the position of the variant
+        # failing the check
+        # if ( vcf1_rec.pos != vcf2_rec.pos ):
+        #     errors.append('position')
 
         if ( vcf1_rec.id != vcf2_rec.id ):
             errors.append('ID')
