@@ -28,7 +28,7 @@ Inputs:
 Example:
 
 ```bash
-dx run app-vcf2xls_nirvana/1.6.2 -iannotated_vcf=${annotated_vcf} -iraw_vcf=${raw_vcf} -isample_coverage_file=${nirvana_coverage.gz} -isample_coverage_index=${nirvana_coverage.gz.tbi} -iflagstat_file=${samtools_file.flagstat} -igenepanels=001_Reference:/dynamic_files/gene_panels/${genepanels.tsv} -ibioinformatic_manifest=001_Reference:/dynamic_files/BioinformaticManifest/${bioinformatic_manifest.tsv} -inirvana_genes2transcripts=001_Reference:/dynamic_files/nirvana_genes2transcripts/${g2t.tsv} [-ilist_panel_names_genes="$reanalysis_panel_string" -iannotations="$name_of_annotations"]
+dx run app-eggd_vcf2xls_nirvana/1.6.3 -iannotated_vcf=${annotated_vcf} -iraw_vcf=${raw_vcf} -isample_coverage_file=${nirvana_coverage.gz} -isample_coverage_index=${nirvana_coverage.gz.tbi} -iflagstat_file=${samtools_file.flagstat} -igenepanels=001_Reference:/dynamic_files/gene_panels/${genepanels.tsv} -ibioinformatic_manifest=001_Reference:/dynamic_files/BioinformaticManifest/${bioinformatic_manifest.tsv} -inirvana_genes2transcripts=001_Reference:/dynamic_files/nirvana_genes2transcripts/${g2t.tsv} [-ilist_panel_names_genes="$reanalysis_panel_string" -iannotations="$name_of_annotations"]
 ```
 
 ## What does this app output?
