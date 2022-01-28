@@ -122,25 +122,17 @@ main() {
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
 
-    # get job id creating the gnomad annotated vcf
-    gnomad_annotation_job_id=$(dx describe --delim "_" $annotated_vcf_name | grep job- | cut -d_ -f2)
     # get file id of vcf annotator input raw vcf
-    nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _dest_vcf | cut -d= -f2)
+    raw_vcf_job_id=$(dx describe --json $raw_vcf_name | jq-linux64 -r .createdBy.job)
 
     # get workflow id and analysis name of nirvana annotated vcf
-    if dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- ; then
-        job_id=$(dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- | cut -d_ -f2)
-        analysis=$(dx describe --delim "_" $job_id)
+    if dx describe --json $raw_vcf_job_id | jq-linux64 -e 'has("rootExecution")'  ; then
+        analysis_id=$(dx describe --json $raw_vcf_job_id | jq-linux64 -r '.rootExecution')
 
-        if dx describe --delim "_" $job_id | grep Root ; then
-            analysis_id=$(dx describe --delim "_" $job_id | grep Root | cut -d_ -f2)
-            workflow=$(dx describe --delim "_" $analysis_id)
-
-            if dx describe --delim "_" $analysis_id | grep Workflow ; then
-                workflow_id=$(dx describe --delim "_" $analysis_id | grep Workflow | cut -d_ -f2)
-                analysis_name=$(dx describe --name $analysis_id)
-                found_workflow_id=true
-            fi
+        if dx describe --json $analysis_id | jq-linux64 -e 'has("executable")' ; then
+            workflow_id=$(dx describe --json $analysis_id | jq-linux64 -r '.executable')
+            analysis_name=$(dx describe --json $workflow_id | jq-linux64 -r '.name')
+            found_workflow_id=true
         fi
     fi
 
@@ -149,10 +141,6 @@ main() {
     nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
     nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
     nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
-
-    # Download reference files
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
 
     cd packages
 

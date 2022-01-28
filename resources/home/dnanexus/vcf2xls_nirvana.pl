@@ -33,7 +33,6 @@ if ( $opts{"f"} ) {
 my $manifest               = "BioinformaticManifest";
 my $genes2transcripts_file = "nirvana_genes2transcripts";
 my $genepanels_file        = "genepanels";
-my $gemini_freq            = "gemini_freq.vcf.gz";
 
 my %genes2transcripts;
 my %transcript2gene;
@@ -48,13 +47,13 @@ readin_panels_n_manifest();
 my @QC_sheets = ('Summary');
 
 my @variant_sheets = (
-              'stop_gained',
-              'frameshift_variant',
-              'consensus splice',
-              'missense_variant',
-              'synonymous_variant',
-              'other',
-    );
+  'stop_gained',
+  'frameshift_variant',
+  'consensus splice',
+  'missense_variant',
+  'synonymous_variant',
+  'other',
+);
 
 my @sheets;
 @sheets = (@QC_sheets, @variant_sheets);
@@ -477,34 +476,6 @@ sub setup_workbook {
 }
 
 
-# Kim Brugger (18 Jan 2018)
-sub gemini_af {
-  my ( $chrom, $pos, $ref, $alt) = @_;
-
-  if ( -e $gemini_freq ) {
-    open(my $in, "$TABIX $gemini_freq $chrom:$pos-$pos |") || die "Could not open '$gemini_freq': $!\n";
-    while (<$in>) {
-      chomp;
-      my ( $vcf_chrom, $vcf_pos, undef, $vcf_ref, $vcf_alt, undef, undef, $info ) = split("\t");
-
-      # check if pos are equal between vcf and gemini vcf
-      # - the gemini file only contains biallelic variants -> $vcf_alt
-      # - the way the function works is that it looks in the CSQ field to get the allele -> $alt
-      # so we can safely assume that no multiallelic will pop up
-      if ( $vcf_pos == $pos && $vcf_ref eq $ref && $vcf_alt eq $alt ) {
-        $info =~ /AF=(.*?);/;
-        return $1;
-      }
-    }
-    return 0;
-  }
-  else {
-    die "Freq file '$gemini_freq' not found \n";
-
-  }
-}
-
-
 # Kim Brugger (23 Aug 2013)
 sub write_variant {
   my ($sheet_name, $entry, $CSQ, $annotation_hash_ref, $comment) = @_;
@@ -563,8 +534,6 @@ sub write_variant {
       $Allele = $$entry{ ALT }[ $gt2 - 1];
     }
   }
-
-  my $AF_GEMINI = gemini_af( $$entry{CHROM}, $$entry{POS}, $$entry{REF}, $Allele);
 
   $HGNC   = $ENS_gene if ( !$HGNC   || $HGNC   eq "" );
   $RefSeq = $feature  if ( !$RefSeq || $RefSeq eq "" );
@@ -668,7 +637,6 @@ sub write_variant {
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'dbsnp' }, $$entry{ID}, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'PolyPhen' }, $PolyPhen, $format);
   worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'SIFT' }, $SIFT, $format);
-  worksheet_write($sheet_name, $worksheet_offset{ $sheet_name }, $field_index{ 'AF_GEMINI' }, $AF_GEMINI, $format);
 
   $comment ||= "";
 
@@ -765,7 +733,6 @@ sub add_worksheet {
 		'Position', 'Genomic Ref Allele', 'Genomic Alt Allele', 
 		'Nucleotide pos','Change', 'AA change', 'Score', 'Depth', 'AAF', 'Genotype',       
 		'dbsnp', 'PolyPhen', 'SIFT',
-		'AF_GEMINI',
   );
 
   # add the custom fields to be added in the sheets
