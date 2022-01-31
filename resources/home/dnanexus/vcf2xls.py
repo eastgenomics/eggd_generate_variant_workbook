@@ -17,8 +17,15 @@ class vcf():
     """
 
     def __init__(self, args) -> None:
-        # returns list of variants from each vcf
         self.args = args
+        # possible columns and appropriate dtypes
+        self.dtypes = {
+            "CHROM": str,
+            "POS": int,
+            "REF": str,
+            "ALT": str,
+            "DP": int
+        }
         self.vcfs = [self.read(x) for x in args.vcfs]
 
         if args.filter:
@@ -119,16 +126,25 @@ class vcf():
             vcf_df[col] = info_df[col]
 
         vcf_df.drop('INFO', axis=1, inplace=True)  # drop INFO as we fully split it out
-        pd.set_option('display.max_rows', None)  # or 1000
 
-        vcf_df['Prev_AC'] = vcf_df['Prev_AC'].apply(lambda x: 0 if x == '' else x)
-
-        print(vcf_df['Prev_AC'])
-
-        vcf_df = vcf_df.astype({'Prev_AC': int})
-
+        vcf_df = self.set_types(vcf_df)
 
         return vcf_df
+
+
+    def set_types(self, vcf_df):
+        """
+        Sets appropriate dtypes on given df of variants
+        """
+        # first set any empty strings to pd.NA values to not break types
+        vcf_df = vcf_df.replace('', np.nan)
+
+        # get any AF and AC columns that should be floats
+        int_columns = [x for x in vcf_df.columns if '_AF' in x or '_AC' in x]
+        for col in int_columns:
+            self.dtypes[col] = float
+
+        return vcf_df.astype(self.dtypes)
 
 
     def validate_filters(self):
@@ -163,30 +179,45 @@ class vcf():
         operator = [
             re.findall('>|<|>=|<=|==|!=', x) for x in self.args.filter
         ]
-        
+
         self.filters = [
             [x[0], y[0], x[1]] for x, y in zip(field_value, operator)
         ]
-
-        
 
 
     def filter(self):
         """
         Apply filters passed to dfs of variants
         """
+        # build list of indices of variants to filter out against specified
+        # filters, then apply filter to df, retaining filtered rows
+        self.filtered_rows = pd.DataFrame()
 
-        for vcf in self.vcfs:
+        for idx, vcf in enumerate(self.vcfs):
+            all_filter_idxs = []
             for filter in self.filters:
-                
+                col, operator, value = filter[0], filter[1], filter[2]
+                if pd.api.types.is_numeric_dtype(vcf[f'{filter[0]}']):
+                    # check column we're filtering is numeric and set types
+                    value = int(value)
+                else:
+                    # string values have to be wrapped in quotes from np.where()
+                    value = f"'{value}'"
+
+                # get row indices to filter
                 filter_idxs = eval((
-                    f"vcf['{filter[0]}'].apply("
-                    f"lambda x: x {filter[1]} {int(filter[2])})"
+                    f"np.where(vcf['{col}'].apply("
+                    f"lambda x: x {operator} {value}))[0]"
                 ))
+                all_filter_idxs.extend(filter_idxs)
 
+            all_filter_idxs = sorted(all_filter_idxs)
 
-        
-
+            # apply the filter, assign back the filtered df
+            self.filtered_rows = self.filtered_rows.append(
+                vcf.loc[all_filter_idxs]
+            )
+            self.vcfs[idx] = vcf.drop(all_filter_idxs)
 
 
 def parse_args() -> argparse.Namespace:
