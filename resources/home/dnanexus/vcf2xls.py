@@ -1,8 +1,5 @@
 import argparse
-from collections import OrderedDict
-from distutils.log import info
-import gzip
-import os
+from pathlib import Path
 import re
 import sys
 
@@ -34,8 +31,8 @@ class vcf():
             self.build_filters()
             self.filter()
 
-        if args.exclude:
-            self.drop_columns
+        if args.exclude or args.include:
+            self.drop_columns()
 
 
     def read(self, vcf):
@@ -54,6 +51,8 @@ class vcf():
         header : list
             vcf header lines
         """
+        sample = Path(vcf).stem.split('_')[0]
+
         with open(vcf) as fh:
             # read in header of vcf
             header = []
@@ -66,7 +65,7 @@ class vcf():
         # split last line of header out header to use as column names
         columns = [x.strip('#') for x in header[-1].split()]
 
-        # kind horrible way to parse the CSQ fields but this is how VEP
+        # kind horrible way to parse the CSQ field names but this is how VEP
         # seems to have always stored them (6+ years +) in the header as:
         # ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
         # annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
@@ -77,6 +76,29 @@ class vcf():
         vcf_df = pd.read_csv(
             vcf, sep='\t', comment='#', names=columns
         )
+
+        info_df, info_keys = self.split_info(vcf_df, csq_fields)
+
+        for col in info_keys:
+            # add all info values to main vcf df
+            vcf_df[col] = info_df[col]
+
+        vcf_df.drop('INFO', axis=1, inplace=True)  # drop INFO as we fully split it out
+
+        if self.args.sample_name:
+            # add sample name from filename as 1st column
+            vcf_df.insert(loc=0, column='sampleName', value=sample)
+
+        vcf_df = self.set_types(vcf_df)
+
+        return vcf_df
+
+
+    def split_info(self, vcf_df, csq_fields):
+        """
+        Given a vcf of data read in to a df, split out the INFO column to
+        all separate values
+        """
 
         # split out INFO into respective columns, everything will be in key=value
         # pairs except for the CSQ fields from above. Therefore, we can split those
@@ -124,15 +146,7 @@ class vcf():
             info_values, columns=info_keys
         )
 
-        for col in info_keys:
-            # add all info values to main vcf df
-            vcf_df[col] = info_df[col]
-
-        vcf_df.drop('INFO', axis=1, inplace=True)  # drop INFO as we fully split it out
-
-        vcf_df = self.set_types(vcf_df)
-
-        return vcf_df
+        return info_df, info_keys
 
 
     def set_types(self, vcf_df):
@@ -148,6 +162,9 @@ class vcf():
             self.dtypes[col] = float
 
         return vcf_df.astype(self.dtypes)
+
+
+    def add_sample_name():
 
 
     def validate_filters(self):
@@ -225,14 +242,24 @@ class vcf():
 
     def drop_columns(self):
         """
-        If --exclude passed, drop given columns from vcf data if they exist
+        If --exclude or --include passed, drop given columns (or inverse of)
+        from vcf data if they exist.
         """
-        print(self.args.exluce)
-
-        sys.exit()
-
         for idx, vcf in enumerate(self.vcfs):
-            pass
+            if self.args.include:
+                # include passed => select all columns not specified to drop
+                to_drop = list(
+                    set(vcf.columns.tolist()) - set(self.args.include)
+                )
+            else:
+                to_drop = self.args.exclude
+
+            # sense check given exclude columns is in the vcfs
+            assert [x for x in vcf.columns for x in to_drop], (
+                "Column '{x}' specified with --exclude not present in one or more "
+                "of the given vcfs."
+            )
+            self.vcfs[idx].drop(to_drop, axis=1, inplace=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -253,14 +280,14 @@ def parse_args() -> argparse.Namespace:
         help='annotated vcf file'
     )
     parser.add_argument(
-        '-e', '--exclude', nargs='?',
+        '-e', '--exclude', nargs='+',
         help=(
             'columns in vcf to EXCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
         )
     )
     parser.add_argument(
-        '-i', '--include', nargs='?',
+        '-i', '--include', nargs='+',
         help=(
             'columns in vcf to INCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
@@ -282,6 +309,14 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        '-s', '--sample_name', action='store_true',
+        help='Add sample name from filename as first column'
+    )
+    parser.add_argument(
+        '-m', '--merge', action='store_true',
+        help='Merge multiple vcfs into one dataframe of variants to display'
+    )
+    parser.add_argument(
         '-a', '--analysis', required=False,
         help='name of analysis to display in summary'
     )
@@ -300,14 +335,6 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     vcf(args)
-
-    print(args)
-
-    sys.exit()
-
-    header, vcf_df = read_vcf(args.vcf)
-
-    print(vcf_df.columns)
 
 
 if __name__ == "__main__":
