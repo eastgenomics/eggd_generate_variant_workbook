@@ -71,7 +71,7 @@ class vcf():
         # split last line of header out header to use as column names
         columns = [x.strip('#') for x in header[-1].split()]
 
-        # kind horrible way to parse the CSQ field names but this is how VEP
+        # kind of horrible way to parse the CSQ field names but this is how VEP
         # seems to have always stored them (6+ years +) in the header as:
         # ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
         # annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
@@ -107,18 +107,22 @@ class vcf():
         Given a vcf of data read in to a df, split out the INFO column to
         all separate values
         """
+        # split CSQ values to own column
+        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
 
-        # split out INFO into respective columns, everything will be in key=value
-        # pairs except for the CSQ fields from above. Therefore, we can split those
-        # out to separate columns, then split the rest of pairs to own columns
-        csq_values = [
-            x.split('CSQ=')[-1].split('|') for x in vcf_df['INFO'].tolist()
-        ]
-        print(csq_values[0])
-        sys.exit()
-        for idx, name in enumerate(csq_fields):
-            # add each column of data to df by index
-            vcf_df[name] = [value[idx] for value in csq_values]
+        # variants with multiple transcript annotation will have duplicate CSQ
+        # data that is comma sepparated => expand this to multiple rows
+        columns = list(vcf_df.columns)
+        columns.remove('CSQ')
+        vcf_df = vcf_df.set_index(columns).apply(
+            lambda x: x.str.split(',').explode()
+        ).reset_index()
+
+        # split each CSQ value to own columns
+        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
+
+        # split out rest of INFO into respective columns, everything will be
+        # in key=value pairs or single values that are flags
 
         # get the key value pairs of INFO data
         info_pairs = [
@@ -130,7 +134,7 @@ class vcf():
         info_keys = sorted(list(set([
             x.split('=')[0] if '=' in x else x for lst in info_pairs for x in lst
         ])))
-        info_keys = [x for x in info_keys if x]
+        info_keys = [x for x in info_keys if x]  # can end up with empty strings
 
         info_values = []
 
@@ -154,6 +158,12 @@ class vcf():
         info_df = pd.DataFrame(
             info_values, columns=info_keys
         )
+
+        if 'COSMIC' in vcf_df.columns:
+            # handle known bug in VEP annotation where it duplicates COSMIC
+            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
+                lambda x: '&'.join(set(x.split('&')))
+            )
 
         return info_df, info_keys
 
@@ -288,19 +298,20 @@ class excel():
         self.writer = pd.ExcelWriter(f"test.xlsx", engine='openpyxl')
         self.workbook = self.writer.book
 
+        self.write_variants()
         self.write_summary()
         self.set_font()
 
-        self.write_variants()
 
         self.workbook.save(f"test.xlsx")
+
 
     def write_summary(self):
         """
         Write summary sheet to excel file
         """
         self.summary = self.workbook.create_sheet('summary')
-        self.summary.cell(1,1).value = "Summary"
+        self.summary.cell(1, 1).value = "Summary"
 
 
     def write_variants(self):
