@@ -34,6 +34,9 @@ class vcf():
             self.build_filters()
             self.filter()
 
+        if args.exclude:
+            self.drop_columns
+
 
     def read(self, vcf):
         """
@@ -220,6 +223,18 @@ class vcf():
             self.vcfs[idx] = vcf.drop(all_filter_idxs)
 
 
+    def drop_columns(self):
+        """
+        If --exclude passed, drop given columns from vcf data if they exist
+        """
+        print(self.args.exluce)
+
+        sys.exit()
+
+        for idx, vcf in enumerate(self.vcfs):
+            pass
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments
@@ -240,7 +255,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-e', '--exclude', nargs='?',
         help=(
-            'columns in vcf to exclude from output, by default all INFO and '
+            'columns in vcf to EXCLUDE from output, by default all INFO and '
+            'CSQ fields are expanded to their own columns'
+        )
+    )
+    parser.add_argument(
+        '-i', '--include', nargs='?',
+        help=(
+            'columns in vcf to INCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
         )
     )
