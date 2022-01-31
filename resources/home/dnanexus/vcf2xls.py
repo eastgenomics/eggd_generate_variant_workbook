@@ -4,7 +4,9 @@ import re
 import sys
 
 import numpy as np
+from openpyxl.styles import Alignment, Border, colors, Font, Side
 import pandas as pd
+from pygments import highlight
 
 
 
@@ -23,6 +25,7 @@ class vcf():
             "ALT": str,
             "DP": int
         }
+        # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
 
         if args.filter:
@@ -33,6 +36,9 @@ class vcf():
 
         if args.exclude or args.include:
             self.drop_columns()
+
+        if args.merge:
+            self.merge()
 
 
     def read(self, vcf):
@@ -77,6 +83,12 @@ class vcf():
             vcf, sep='\t', comment='#', names=columns
         )
 
+        if self.args.add_name:
+            # add sample name from filename as 1st column
+            vcf_df.insert(loc=0, column='sampleName', value=sample)
+
+        print(vcf_df)
+
         info_df, info_keys = self.split_info(vcf_df, csq_fields)
 
         for col in info_keys:
@@ -84,10 +96,6 @@ class vcf():
             vcf_df[col] = info_df[col]
 
         vcf_df.drop('INFO', axis=1, inplace=True)  # drop INFO as we fully split it out
-
-        if self.args.sample_name:
-            # add sample name from filename as 1st column
-            vcf_df.insert(loc=0, column='sampleName', value=sample)
 
         vcf_df = self.set_types(vcf_df)
 
@@ -106,7 +114,8 @@ class vcf():
         csq_values = [
             x.split('CSQ=')[-1].split('|') for x in vcf_df['INFO'].tolist()
         ]
-
+        print(csq_values[0])
+        sys.exit()
         for idx, name in enumerate(csq_fields):
             # add each column of data to df by index
             vcf_df[name] = [value[idx] for value in csq_values]
@@ -157,14 +166,13 @@ class vcf():
         vcf_df = vcf_df.replace('', np.nan)
 
         # get any AF and AC columns that should be floats
-        int_columns = [x for x in vcf_df.columns if '_AF' in x or '_AC' in x]
+        int_columns = [
+            x for x in vcf_df.columns if '_AF' in x or '_AC' in x
+        ]
         for col in int_columns:
             self.dtypes[col] = float
 
         return vcf_df.astype(self.dtypes)
-
-
-    def add_sample_name():
 
 
     def validate_filters(self):
@@ -262,6 +270,58 @@ class vcf():
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True)
 
 
+    def merge(self):
+        """
+        Merge all variants into one big sorted dataframe
+        """
+        self.vcfs = pd.concat(self.vcfs).reset_index(drop=True)
+
+
+class excel():
+    """
+    Functions for wrangling variant data into spreadsheet formatting and
+    writing output file
+    """
+    def __init__(self, args, vcfs) -> None:
+        self.args = args
+        self.vcfs = vcfs
+        self.writer = pd.ExcelWriter(f"test.xlsx", engine='openpyxl')
+        self.workbook = self.writer.book
+
+        self.write_summary()
+        self.set_font()
+
+        self.write_variants()
+
+        self.workbook.save(f"test.xlsx")
+
+    def write_summary(self):
+        """
+        Write summary sheet to excel file
+        """
+        self.summary = self.workbook.create_sheet('summary')
+        self.summary.cell(1,1).value = "Summary"
+
+
+    def write_variants(self):
+        """
+
+        """
+        with self.writer:
+            # add variants
+            self.vcfs.to_excel(self.writer, sheet_name="variants", index=False)
+
+
+    def set_font(self):
+        """
+        Set font to all cells in sheet to Calibri
+        """
+        for ws in self.workbook:
+            for cells in ws.rows:
+                for cell in cells:
+                    cell.font = Font(name="Calibri")
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments
@@ -309,7 +369,7 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
-        '-s', '--sample_name', action='store_true',
+        '-s', '--add_name', action='store_true',
         help='Add sample name from filename as first column'
     )
     parser.add_argument(
@@ -334,7 +394,8 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
-    vcf(args)
+    vcf_handler = vcf(args)
+    excel_handler = excel(args, vcf_handler.vcfs)
 
 
 if __name__ == "__main__":
