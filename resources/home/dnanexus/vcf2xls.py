@@ -345,6 +345,11 @@ class vcf():
             )
             self.vcfs[idx] = vcf.drop(all_filter_idxs)
 
+            print((
+                f"Applied the filters {self.filters} to vcf, filtered out "
+                f"{len(all_filter_idxs)} rows"
+            ))
+
 
     def drop_columns(self):
         """
