@@ -130,6 +130,7 @@ class vcf():
                     break
 
         columns = [x.strip('#') for x in header[-1].split()]
+        columns[-1] = 'SAMPLE'
 
         return header, columns
 
@@ -261,6 +262,7 @@ class vcf():
         Remove nan values from all dataframes
         """
         for idx, vcf in enumerate(self.vcfs):
+            print(vcf)
             vcf = vcf.astype(str)
 
             for col in vcf.columns:
@@ -383,7 +385,7 @@ class vcf():
         """
         Merge all variants into one big sorted dataframe
         """
-        self.vcfs = pd.concat(self.vcfs).reset_index(drop=True)
+        self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
 
 
 class excel():
@@ -544,13 +546,13 @@ def parse_args() -> argparse.Namespace:
         else:
             args.output = Path(args.vcfs[0]).name.replace(
                 '.vcf', '').replace('.gz', '')
-    
+
     args.output += ".xlsx"
 
     if not args.sheets:
         if len(args.vcfs) > 1:
             # sheet names not specified for > 1 vcf passed => use vcf names
-            args.sheets = [Path(x).name for x in args.vcfs]
+            args.sheets = [Path(x).name.split('_')[0] for x in args.vcfs]
         else:
             # one vcf => name it variants
             args.sheets = ["variants"]
