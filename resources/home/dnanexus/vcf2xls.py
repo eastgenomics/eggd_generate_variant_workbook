@@ -68,6 +68,10 @@ class vcf():
         if args.merge:
             self.merge()
 
+        self.remove_nan()
+
+        print("Finished munging variants from vcf(s)")
+
 
     def read(self, vcf):
         """
@@ -252,6 +256,21 @@ class vcf():
         return vcf_df.astype(df_dtypes, errors='ignore')
 
 
+    def remove_nan(self):
+        """
+        Remove nan values from all dataframes
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            vcf = vcf.astype(str)
+
+            for col in vcf.columns:
+                vcf[col] = vcf[col].apply(
+                    lambda x: x.replace('nan', '') if x == 'nan' else x
+                )
+
+            self.vcfs[idx] = vcf
+
+
     def validate_filters(self):
         """
         Validate filters passed for filtering variants down
@@ -401,7 +420,9 @@ class excel():
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
-                vcf.to_excel(self.writer, sheet_name=sheet, index=False)
+                vcf.to_excel(
+                    self.writer, sheet_name=sheet, index=False
+                )
 
 
     def set_font(self):
