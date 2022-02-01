@@ -62,6 +62,9 @@ class vcf():
         if args.exclude or args.include:
             self.drop_columns()
 
+        if args.reorder:
+            self.order_columns()
+
         if args.merge:
             self.merge()
 
@@ -343,6 +346,19 @@ class vcf():
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
+    def order_columns(self):
+        """
+        Reorder columns by specified order from arguments, any not specified
+        will retain original order after reorder columns
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            vcf_columns = list(vcf.columns)
+            [vcf_columns.remove(x) for x in self.args.reorder]
+            column_order = self.args.reorder + vcf_columns
+
+            self.vcfs[idx] = vcf[column_order]
+
+
     def merge(self):
         """
         Merge all variants into one big sorted dataframe
@@ -425,6 +441,13 @@ def parse_args() -> argparse.Namespace:
         help=(
             'Columns in vcf to INCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
+        )
+    )
+    parser.add_argument(
+        '-r', '--reorder', required=False, nargs='+',
+        help=(
+            'Set order for columns in output vcf, any not specified will be '
+            'appended to the end'
         )
     )
     parser.add_argument(
