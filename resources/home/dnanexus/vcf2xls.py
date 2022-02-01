@@ -548,8 +548,6 @@ def main():
     vcf_handler = vcf(args)
     excel_handler = excel(args, vcf_handler.vcfs)
 
-    print("Done.")
-
 
 if __name__ == "__main__":
     main()
