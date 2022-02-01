@@ -97,7 +97,8 @@ class vcf():
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
-            vcf, sep='\t', comment='#', names=columns, dtype=self.dtypes
+            vcf, sep='\t', comment='#', names=columns,
+            dtype=self.dtypes, compression='infer'
         )
 
         if self.args.add_name:
@@ -262,7 +263,6 @@ class vcf():
         Remove nan values from all dataframes
         """
         for idx, vcf in enumerate(self.vcfs):
-            print(vcf)
             vcf = vcf.astype(str)
 
             for col in vcf.columns:
@@ -419,6 +419,8 @@ class excel():
         """
 
         """
+        total_rows = sum([len(x) for x in self.vcfs])
+        print(f"Writing {total_rows} rows to output xlsx file")
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
@@ -550,18 +552,18 @@ def parse_args() -> argparse.Namespace:
     args.output += ".xlsx"
 
     if not args.sheets:
-        if len(args.vcfs) > 1:
+        if len(args.vcfs) > 1 and not args.merge:
             # sheet names not specified for > 1 vcf passed => use vcf names
             args.sheets = [Path(x).name.split('_')[0] for x in args.vcfs]
         else:
             # one vcf => name it variants
             args.sheets = ["variants"]
-
-    assert len(args.vcfs) == len(args.sheets), (
-        "Different number of sheets specified to total vcfs passed. Number of "
-        f"vcf passed: {len(args.vcfs)}. Number of sheet names passed: "
-        f"{len(args.sheets)}"
-    )
+    else:
+        assert len(args.vcfs) == len(args.sheets), (
+            "Different number of sheets specified to total vcfs passed. Number of "
+            f"vcf passed: {len(args.vcfs)}. Number of sheet names passed: "
+            f"{len(args.sheets)}"
+        )
 
     return args
 
@@ -569,7 +571,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     vcf_handler = vcf(args)
-    excel_handler = excel(args, vcf_handler.vcfs)
+    excel(args, vcf_handler.vcfs)
 
 
 if __name__ == "__main__":
