@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import re
 import sys
+from typing import Union
 
 import numpy as np
 from openpyxl.styles import Alignment, Border, colors, Font, Side
@@ -11,11 +12,19 @@ import pandas as pd
 class vcf():
     """
     Functions to handle reading and manipulating vcf data
+
+    Attributes
+    ----------
+    args : argparse.Namespace
+        arguments passed from command line
+    dtypes : dict
+        common columns present in annotated vcfs and appropriate dtype to apply
+    vcfs : list of pd.DataFrame
+        list of dataframes read in from self.args.vcfs
     """
 
     def __init__(self, args) -> None:
         self.args = args
-        # possible columns and appropriate dtypes
         self.dtypes = {
             "CHROM": str,
             "POS": int,
@@ -73,7 +82,7 @@ class vcf():
         print("Finished munging variants from vcf(s)")
 
 
-    def read(self, vcf):
+    def read(self, vcf) -> pd.DataFrame:
         """
         Reads given vcf into pd.DataFrame
 
@@ -117,9 +126,22 @@ class vcf():
         return vcf_df
 
 
-    def parse_header(self, vcf):
+    def parse_header(self, vcf) -> Union[list, list]:
         """
-        Read in header to list of given vcf
+        Read in header lines of given vcf to list, returning the list and the
+        vcf column names
+
+        Parameters
+        ----------
+        vcf : str
+            vcf filename to read header from
+
+        Returns
+        -------
+        header : list
+            list of header lines read from vcf
+        columns : list
+            column names from vcf
         """
         with open(vcf) as fh:
             # read in header of vcf
@@ -136,7 +158,7 @@ class vcf():
         return header, columns
 
 
-    def parse_csq_fields(self, header):
+    def parse_csq_fields(self, header) -> list:
         """
         Parse out csq field names from vcf header.
 
@@ -144,6 +166,17 @@ class vcf():
         seems to have always stored them (6+ years +) in the header as:
         ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
         annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
+
+        Parameters
+        ----------
+        header : list
+            list of header lines read from vcf
+
+        Returns
+        -------
+        csq_fields : list
+            list of CSQ field names parsed from vcf header, used to assign as
+            column headings when splitting out CSQ data for each variant
         """
         csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
         csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
@@ -151,10 +184,19 @@ class vcf():
         return csq_fields
 
 
-    def split_info(self, vcf_df):
+    def split_info(self, vcf_df) -> pd.DataFrame:
         """
-        Given a vcf of data read in to a df, split out the INFO column to
-        all separate values
+        Splits out the INFO column of vcf to all separate values
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with separated INFO fields
         """
         # get the key value pairs of INFO data
         info_pairs = [
@@ -198,9 +240,22 @@ class vcf():
         return vcf_df
 
 
-    def split_csq(self, vcf_df, csq_fields):
+    def split_csq(self, vcf_df, csq_fields) -> pd.DataFrame:
         """
         Split out CSQ string to separate fields to get annotation
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+        csq_fields : list
+            list of CSQ field names parsed from vcf header, used to assign as
+            column headings when splitting out CSQ data for each variant
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with separated CSQ fields
         """
         vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
 
@@ -225,20 +280,19 @@ class vcf():
         return vcf_df
 
 
-    def print_columns(self):
-        """
-        Prints columns from each vcf and exits
-        """
-        for name, vcf in zip(self.args.vcfs, self.vcfs):
-            print(f"Columns for {Path(name).name}: ")
-            print(f"\n\t{list(vcf.columns)}\n\n")
-
-        sys.exit()
-
-
-    def set_types(self, vcf_df):
+    def set_types(self, vcf_df) -> pd.DataFrame:
         """
         Sets appropriate dtypes on given df of variants
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with dtypes set
         """
         # first set any empty strings to pd.NA values to not break types
         vcf_df = vcf_df.replace('', np.nan)
@@ -258,9 +312,11 @@ class vcf():
         return vcf_df.astype(df_dtypes, errors='ignore')
 
 
-    def remove_nan(self):
+    def remove_nan(self) -> None:
         """
-        Remove nan values from all dataframes
+        Remove NaN values from all dataframes, cast everything to a string
+        first as this method is called before writing and it reliably allows
+        us to identify and replace all NaN values
         """
         for idx, vcf in enumerate(self.vcfs):
             vcf = vcf.astype(str)
@@ -273,9 +329,16 @@ class vcf():
             self.vcfs[idx] = vcf
 
 
-    def validate_filters(self):
+    def validate_filters(self) -> None:
         """
-        Validate filters passed for filtering variants down
+        Validate filters passed for filtering variants down.
+
+        These come from args.filter and wil be in the format
+        <column><operator><value> (i.e. "Consequence!=synonymous"), currently
+        supports the operators >, <, >=, <=, == and !=
+
+        Method will check that a valid operator has been passed, and that the
+        given column is present in all columns of all vcfs
         """
         for filter in self.args.filter:
             # check a valid operand passed
@@ -292,12 +355,13 @@ class vcf():
                 )
 
 
-    def build_filters(self):
+    def build_filters(self) -> None:
         """
-        Returns cmd line passed filters as list of lists of each filter
+        Formats cmd line passed filters as list of lists of each filter
         expression for filtering df of variants.
 
-
+        This will separate out the passed filters from the format
+        "Consequence!=synonymous" -> ["Consequence", "!=", "synonymous"]
         """
         field_value = [
             re.split(r'>|<|>=|<=|==|!=', x) for x in self.args.filter
@@ -311,9 +375,15 @@ class vcf():
         ]
 
 
-    def filter(self):
+    def filter(self) -> None:
         """
-        Apply filters passed to dfs of variants
+        Apply filters passed to ech dataframe of variants.
+
+        Filters first checked in self.validate_filters then formatted in
+        self.build filters ready to be passed to np.where()
+
+        Currently wrapped in an eval() call which is not ideal but works for
+        interpreting the operator passed as a string from the cmd line
         """
         # build list of indices of variants to filter out against specified
         # filters, then apply filter to df, retaining filtered rows
@@ -351,10 +421,36 @@ class vcf():
             ))
 
 
-    def drop_columns(self):
+    def print_columns(self) -> None:
         """
-        If --exclude or --include passed, drop given columns (or inverse of)
-        from vcf data if they exist.
+        Simple method to just print the columns from each vcf and exit.
+
+        Useful for identify what columns are present in INFO and CSQ fields
+        for using --include, --exclude and --reorder arguments
+        """
+        for name, vcf in zip(self.args.vcfs, self.vcfs):
+            print(f"Columns for {Path(name).name}: ")
+            print(f"\n\t{list(vcf.columns)}\n\n")
+
+        sys.exit()
+
+
+    def drop_columns(self) -> None:
+        """
+        If `--exclude` or `--include` passed, drop given columns
+        (or inverse of) from vcf data if they exist.
+
+        If `--include` passed will take the given list of columns and drop the
+        remaining columns not specified from all dataframes
+
+        If `--exclude` passed will take the given list of columns and drop
+        from all dataframes
+
+        Raises
+        ------
+        AssertionError
+            Raised when columns specified with --include / --exclude are not
+            present in one or more of the dataframes
         """
         for idx, vcf in enumerate(self.vcfs):
             if self.args.include:
@@ -367,28 +463,45 @@ class vcf():
 
             # sense check given exclude columns is in the vcfs
             assert [x for x in vcf.columns for x in to_drop], (
-                "Column '{x}' specified with --exclude not present in "
-                "one or more of the given vcfs."
+                "Column '{x}' specified with --exclude/--include not "
+                "present in one or more of the given vcfs. Valid column "
+                f"names: {vcf.columns}"
             )
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
-    def order_columns(self):
+    def order_columns(self) -> None:
         """
-        Reorder columns by specified order from arguments, any not specified
-        will retain original order after reorder columns
+        Reorder columns by specified order from `--reorder` argument, any not
+        specified will retain original order after reorder columns
+
+        Raises
+        ------
+        AssertionError
+            Raised when columns specified with --reorder are not
+            present in one or more of the dataframes
         """
         for idx, vcf in enumerate(self.vcfs):
             vcf_columns = list(vcf.columns)
+
+            # sense check given exclude columns is in the vcfs
+            assert [x for x in vcf.columns for x in self.args.reorder], (
+                "Column '{x}' specified with --reorder not "
+                "present in one or more of the given vcfs. Valid column "
+                f"names: {vcf.columns}"
+            )
+
             [vcf_columns.remove(x) for x in self.args.reorder]
             column_order = self.args.reorder + vcf_columns
 
             self.vcfs[idx] = vcf[column_order]
 
 
-    def merge(self):
+    def merge(self) -> None:
         """
-        Merge all variants into one big sorted dataframe
+        Merge all variants into one big dataframe, should be used with
+        --add_name argument if provenance of variants in merged dataframe
+        is important
         """
         self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
 
@@ -397,6 +510,24 @@ class excel():
     """
     Functions for wrangling variant data into spreadsheet formatting and
     writing output file
+
+    Attributes
+    ----------
+    args : argparse.Namespace
+        arguments passed from command line
+    vcfs : list of pd.DataFrame
+        list of dataframes formatted to write to file from vcf() methods
+    writer : pandas.io.excel._openpyxl.OpenpyxlWriter
+        writer object for writing Excel data to file
+    workbook : openpyxl.workbook.workbook.Workbook
+        openpyxl workbook object for interacting with per-sheet writing and
+        formatting of output Excel file
+
+    Outputs
+    -------
+    {args.output}.xlsx : file
+        Excel file with variants written to, name passed from command line or
+        inferred from input vcf name if not specified
     """
     def __init__(self, args, vcfs) -> None:
         print(f"Writing to output file: {args.output}")
@@ -412,7 +543,7 @@ class excel():
         self.workbook.save(args.output)
 
 
-    def write_summary(self):
+    def write_summary(self) -> None:
         """
         Write summary sheet to excel file
         """
@@ -420,9 +551,14 @@ class excel():
         self.summary.cell(1, 1).value = "Summary"
 
 
-    def write_variants(self):
+    def write_variants(self) -> None:
         """
+        Writes all variants from dataframe(s) to sheet(s) specified in
+        self.args.sheets.
 
+        If sheet names not specified, these will be set as "variant" where one
+        dataframe is being written, or the vcf filename prefix if there are
+        more than one dataframes to write
         """
         total_rows = sum([len(x) for x in self.vcfs])
         print(f"Writing {total_rows} rows to output xlsx file")
@@ -434,9 +570,11 @@ class excel():
                 )
 
 
-    def set_font(self):
+    def set_font(self) -> None:
         """
         Set font to all cells in sheet to Calibri
+
+        Default is Times New Roman and it is ugly
         """
         for ws in self.workbook:
             for cells in ws.rows:
