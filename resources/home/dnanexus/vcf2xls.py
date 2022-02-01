@@ -1,5 +1,4 @@
 import argparse
-from email import header
 from pathlib import Path
 import re
 import sys
@@ -7,9 +6,6 @@ import sys
 import numpy as np
 from openpyxl.styles import Alignment, Border, colors, Font, Side
 import pandas as pd
-from pygments import highlight
-from pyrsistent import optional
-
 
 
 class vcf():
@@ -50,6 +46,7 @@ class vcf():
             "Prev_AC": pd.Int16Dtype(),
             "Prev_NS": pd.Int16Dtype()
         }
+
         # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
 
@@ -385,7 +382,8 @@ class excel():
         """
         with self.writer:
             # add variants
-            self.vcfs.to_excel(self.writer, sheet_name="variants", index=False)
+            for sheet, vcf in zip(self.args.sheets, self.vcfs):
+                vcf.to_excel(self.writer, sheet_name=sheet, index=False)
 
 
     def set_font(self):
@@ -481,7 +479,23 @@ def parse_args() -> argparse.Namespace:
         )
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if not args.sheets:
+        if len(args.vcfs) > 1:
+            # sheet names not specified for > 1 vcf passed => use vcf names
+            args.sheets = [Path(x).name for x in args.vcfs]
+        else:
+            # one vcf => name it variants
+            args.sheets = ["variants"]
+
+    assert len(args.vcfs) == len(args.sheets), (
+        "Different number of sheets specified to total vcfs passed. Number of "
+        f"vcf passed: {len(args.vcfs)}. Number of sheet names passed: "
+        f"{len(args.sheets)}"
+    )
+
+    return args
 
 
 def main():
