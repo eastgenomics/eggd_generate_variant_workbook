@@ -86,6 +86,7 @@ class vcf():
             vcf header lines
         """
         sample = Path(vcf).stem.split('_')[0]
+        print(f"Reading in vcf {vcf}")
 
         header, columns = self.parse_header(vcf)
         csq_fields = self.parse_csq_fields(header)
@@ -372,16 +373,17 @@ class excel():
     writing output file
     """
     def __init__(self, args, vcfs) -> None:
+        print(f"Writing to output file: {args.output}")
         self.args = args
         self.vcfs = vcfs
-        self.writer = pd.ExcelWriter(f"test.xlsx", engine='openpyxl')
+        self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
 
         self.write_variants()
         self.write_summary()
         self.set_font()
 
-        self.workbook.save(f"test.xlsx")
+        self.workbook.save(args.output)
 
 
     def write_summary(self):
@@ -479,6 +481,14 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        '-o', '--output', required=False,
+        help=(
+            'output name prefix for file, if more than 1 vcf passed a name '
+            'must be specified. If only 1 vcf passed and no output name, the '
+            'vcf filename prefix will be used'
+        )
+    )
+    parser.add_argument(
         '-m', '--merge', action='store_true',
         help='Merge multiple vcfs into one dataframe of variants to display'
     )
@@ -504,6 +514,18 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
+    if not args.output:
+        if len(args.vcfs) > 1:
+            raise RuntimeError((
+                "More than one vcf passed but no output name specified with "
+                "--output"
+            ))
+        else:
+            args.output = Path(args.vcfs[0]).name.replace(
+                '.vcf', '').replace('.gz', '')
+    
+    args.output += ".xlsx"
+
     if not args.sheets:
         if len(args.vcfs) > 1:
             # sheet names not specified for > 1 vcf passed => use vcf names
@@ -525,6 +547,8 @@ def main():
     args = parse_args()
     vcf_handler = vcf(args)
     excel_handler = excel(args, vcf_handler.vcfs)
+
+    print("Done.")
 
 
 if __name__ == "__main__":
