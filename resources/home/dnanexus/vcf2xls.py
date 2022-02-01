@@ -44,7 +44,11 @@ class vcf():
             "ClinVar_CLNDN": str,
             "ClinVar_CLNSIG": str,
             "COSMIC": str,
-            "Feature": str
+            "Feature": str,
+            "STR": bool,
+            "RU": bool,
+            "Prev_AC": pd.Int16Dtype(),
+            "Prev_NS": pd.Int16Dtype()
         }
         # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
