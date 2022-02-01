@@ -1,4 +1,5 @@
 import argparse
+from email import header
 from pathlib import Path
 import re
 import sys
@@ -7,6 +8,7 @@ import numpy as np
 from openpyxl.styles import Alignment, Border, colors, Font, Side
 import pandas as pd
 from pygments import highlight
+from pyrsistent import optional
 
 
 
@@ -21,12 +23,34 @@ class vcf():
         self.dtypes = {
             "CHROM": str,
             "POS": int,
+            "ID": str,
             "REF": str,
             "ALT": str,
-            "DP": int
+            "QUAL": str,
+            "FILTER": str,
+            "FORMAT": str,
+            "DP": int,
+            "SYMBOL": str,
+            "VARIANT_CLASS": str,
+            "Consequence": str,
+            "EXON": str,
+            "HGVSc": str,
+            "HGVSp": str,
+            "gnomAD_AF": float,
+            "gnomADg_AF": float,
+            "CADD_PHRED": float,
+            "Existing_variation": str,
+            "ClinVar": str,
+            "ClinVar_CLNDN": str,
+            "ClinVar_CLNSIG": str,
+            "COSMIC": str,
+            "Feature": str
         }
         # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
+
+        if args.print_columns:
+            self.print_columns()
 
         if args.filter:
             # filters vcfs against passed parameters
@@ -59,6 +83,34 @@ class vcf():
         """
         sample = Path(vcf).stem.split('_')[0]
 
+        header, columns = self.parse_header(vcf)
+        csq_fields = self.parse_csq_fields(header)
+
+        # read vcf into pandas df
+        vcf_df = pd.read_csv(
+            vcf, sep='\t', comment='#', names=columns, dtype=self.dtypes
+        )
+
+        if self.args.add_name:
+            # add sample name from filename as 1st column
+            vcf_df.insert(loc=0, column='sampleName', value=sample)
+
+        # split out INFO column values and CSQ
+        vcf_df = self.split_info(vcf_df)
+        vcf_df = self.split_csq(vcf_df, csq_fields)
+
+        # drop INFO and CSQ as we fully split them out
+        vcf_df.drop(['INFO', 'CSQ'], axis=1, inplace=True)
+
+        vcf_df = self.set_types(vcf_df)
+
+        return vcf_df
+
+
+    def parse_header(self, vcf):
+        """
+        Read in header to list of given vcf
+        """
         with open(vcf) as fh:
             # read in header of vcf
             header = []
@@ -68,62 +120,31 @@ class vcf():
                 else:
                     break
 
-        # split last line of header out header to use as column names
         columns = [x.strip('#') for x in header[-1].split()]
 
-        # kind of horrible way to parse the CSQ field names but this is how VEP
-        # seems to have always stored them (6+ years +) in the header as:
-        # ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
-        # annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
+        return header, columns
+
+
+    def parse_csq_fields(self, header):
+        """
+        Parse out csq field names from vcf header.
+
+        Kind of horrible way to parse the CSQ field names but this is how VEP
+        seems to have always stored them (6+ years +) in the header as:
+        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
+        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
+        """
         csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
         csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
 
-        # read vcf into pandas df
-        vcf_df = pd.read_csv(
-            vcf, sep='\t', comment='#', names=columns
-        )
-
-        if self.args.add_name:
-            # add sample name from filename as 1st column
-            vcf_df.insert(loc=0, column='sampleName', value=sample)
-
-        print(vcf_df)
-
-        info_df, info_keys = self.split_info(vcf_df, csq_fields)
-
-        for col in info_keys:
-            # add all info values to main vcf df
-            vcf_df[col] = info_df[col]
-
-        vcf_df.drop('INFO', axis=1, inplace=True)  # drop INFO as we fully split it out
-
-        vcf_df = self.set_types(vcf_df)
-
-        return vcf_df
+        return csq_fields
 
 
-    def split_info(self, vcf_df, csq_fields):
+    def split_info(self, vcf_df):
         """
         Given a vcf of data read in to a df, split out the INFO column to
         all separate values
         """
-        # split CSQ values to own column
-        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-
-        # variants with multiple transcript annotation will have duplicate CSQ
-        # data that is comma sepparated => expand this to multiple rows
-        columns = list(vcf_df.columns)
-        columns.remove('CSQ')
-        vcf_df = vcf_df.set_index(columns).apply(
-            lambda x: x.str.split(',').explode()
-        ).reset_index()
-
-        # split each CSQ value to own columns
-        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
-
-        # split out rest of INFO into respective columns, everything will be
-        # in key=value pairs or single values that are flags
-
         # get the key value pairs of INFO data
         info_pairs = [
             x.split('CSQ=')[0].split(';') for x in vcf_df['INFO'].tolist()
@@ -132,9 +153,9 @@ class vcf():
 
         # get unique list of keys from key=value pairs in INFO
         info_keys = sorted(list(set([
-            x.split('=')[0] if '=' in x else x for lst in info_pairs for x in lst
+            x.split('=')[0] if '=' in x else x for pair in info_pairs for x in pair
         ])))
-        info_keys = [x for x in info_keys if x]  # can end up with empty strings
+        info_keys = [x for x in info_keys if x]  # can end up with empty string
 
         info_values = []
 
@@ -159,13 +180,49 @@ class vcf():
             info_values, columns=info_keys
         )
 
+        for col in info_keys:
+            # add all info values to main vcf df
+            vcf_df[col] = info_df[col]
+
+        return vcf_df
+
+
+    def split_csq(self, vcf_df, csq_fields):
+        """
+        Split out CSQ string to separate fields to get annotation
+        """
+        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
+
+        # variants with multiple transcript annotation will have duplicate CSQ
+        # data that is comma sepparated => expand this to multiple rows, if no
+        # ',' present rows will remain unaffacted (i.e. one transcript)
+        columns = list(vcf_df.columns)
+        columns.remove('CSQ')
+        vcf_df = vcf_df.set_index(columns).apply(
+            lambda x: x.str.split(',').explode()
+        ).reset_index()
+
+        # split each CSQ value to own columns
+        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
+
         if 'COSMIC' in vcf_df.columns:
             # handle known bug in VEP annotation where it duplicates COSMIC
             vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
                 lambda x: '&'.join(set(x.split('&')))
             )
 
-        return info_df, info_keys
+        return vcf_df
+
+
+    def print_columns(self):
+        """
+        Prints columns from each vcf and exits
+        """
+        for name, vcf in zip(self.args.vcfs, self.vcfs):
+            print(f"Columns for {Path(name).name}: ")
+            print(f"\n\t{list(vcf.columns)}\n\n")
+
+        sys.exit()
 
 
     def set_types(self, vcf_df):
@@ -182,7 +239,12 @@ class vcf():
         for col in int_columns:
             self.dtypes[col] = float
 
-        return vcf_df.astype(self.dtypes)
+        # filter all dtypes to just those columns in current df
+        df_dtypes = {
+            k: v for k, v in self.dtypes.items() if k in list(vcf_df.columns)
+        }
+
+        return vcf_df.astype(df_dtypes, errors='ignore')
 
 
     def validate_filters(self):
@@ -274,10 +336,10 @@ class vcf():
 
             # sense check given exclude columns is in the vcfs
             assert [x for x in vcf.columns for x in to_drop], (
-                "Column '{x}' specified with --exclude not present in one or more "
-                "of the given vcfs."
+                "Column '{x}' specified with --exclude not present in "
+                "one or more of the given vcfs."
             )
-            self.vcfs[idx].drop(to_drop, axis=1, inplace=True)
+            self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
     def merge(self):
@@ -301,7 +363,6 @@ class excel():
         self.write_variants()
         self.write_summary()
         self.set_font()
-
 
         self.workbook.save(f"test.xlsx")
 
@@ -348,26 +409,26 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         '-v', '--vcfs', nargs='+',
-        help='annotated vcf file'
+        help='Annotated vcf file'
     )
     parser.add_argument(
         '-e', '--exclude', nargs='+',
         help=(
-            'columns in vcf to EXCLUDE from output, by default all INFO and '
+            'Columns in vcf to EXCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
         )
     )
     parser.add_argument(
         '-i', '--include', nargs='+',
         help=(
-            'columns in vcf to INCLUDE from output, by default all INFO and '
+            'Columns in vcf to INCLUDE from output, by default all INFO and '
             'CSQ fields are expanded to their own columns'
         )
     )
     parser.add_argument(
         '-f', '--filter', nargs='+',
         help=(
-            'columns on which to filter out variants. Format should be '
+            'Columns on which to filter out variants. Format should be '
             'as <column><operator><value> (gnomAD_AF<0.02). Supported '
             'operands are >|<|>=|<=|==|!='
         )
@@ -375,13 +436,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-k', '--keep', action='store_true',
         help=(
-            'pass when using --filter to keep filtered variants in a '
+            'Pass when using --filter to keep filtered variants in a '
             'separated "filtered" tab'
         )
     )
     parser.add_argument(
-        '-s', '--add_name', action='store_true',
+        '-n', '--add_name', action='store_true',
         help='Add sample name from filename as first column'
+    )
+    parser.add_argument(
+        '-s', '--sheets', nargs='+',
+        help=(
+            'Names to use for multiple sheets, these MUST be the same number '
+            'as the number of vcfs passed and in the same order. If not '
+            'given, if there is 1 vcf passed the sheet will be named '
+            '"variants", if multiple the name prefix of the vcf will be used'
+        )
     )
     parser.add_argument(
         '-m', '--merge', action='store_true',
@@ -389,15 +459,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         '-a', '--analysis', required=False,
-        help='name of analysis to display in summary'
+        help='Name of analysis to display in summary'
     )
     parser.add_argument(
         '-w', '--workflow', required=False,
-        help='id of workflow to display in summary'
+        help='ID of workflow to display in summary'
     )
     parser.add_argument(
         '-p', '--panel', required=False,
         help='panel name to display in summary'
+    )
+    parser.add_argument(
+        '--print-columns', required=False, action='store_true',
+        help=(
+            'Print total columns of all vcfs that will be output to the xlsx. '
+            'Useful to identify what will be in the output to include / exclude'
+        )
     )
 
     return parser.parse_args()
