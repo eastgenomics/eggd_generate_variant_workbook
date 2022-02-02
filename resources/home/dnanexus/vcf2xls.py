@@ -507,7 +507,8 @@ class vcf():
         Raises
         ------
         AssertionError
-
+            Raised when columns specified with --rename do not exist in more
+            or more of the vcfs columns
         """
         for idx, vcf in enumerate(self.vcfs):
             # sense check given reorder keys are in the vcfs
