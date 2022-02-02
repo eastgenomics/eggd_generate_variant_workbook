@@ -87,7 +87,12 @@ class vcf():
 
     def read(self, vcf) -> pd.DataFrame:
         """
-        Reads given vcf into pd.DataFrame
+        Reads given vcf into pd.DataFrame, calls following methods:
+
+        - self.parse_header()
+        - self.parse_csq_fields()
+        - self.split_info()
+        - self.split_csq()
 
         Parameters
         ------
@@ -559,14 +564,14 @@ class excel():
         inferred from input vcf name if not specified
     """
     def __init__(self, args, vcfs) -> None:
-        print(f"Writing to output file: {args.output}")
+        print(f"Writing to output file: {Path(args.output).absolute()}")
         self.args = args
         self.vcfs = vcfs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
 
-        self.write_variants()
         self.write_summary()
+        self.write_variants()
         self.set_font()
 
         self.workbook.save(args.output)
