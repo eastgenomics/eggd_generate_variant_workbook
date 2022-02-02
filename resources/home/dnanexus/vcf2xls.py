@@ -389,8 +389,9 @@ class vcf():
         interpreting the operator passed as a string from the cmd line
         """
         # build list of indices of variants to filter out against specified
-        # filters, then apply filter to df, retaining filtered rows
-        self.filtered_rows = pd.DataFrame()
+        # filters, then apply filter to df, retain filtered rows if --keep set
+        if self.args.keep:
+            filtered_rows = pd.DataFrame()
 
         for idx, vcf in enumerate(self.vcfs):
             all_filter_idxs = []
@@ -398,7 +399,7 @@ class vcf():
                 col, operator, value = filter[0], filter[1], filter[2]
                 if pd.api.types.is_numeric_dtype(vcf[f'{filter[0]}']):
                     # check column we're filtering is numeric and set types
-                    value = int(value)
+                    value = float(value)
                 else:
                     # string values have to be wrapped in quotes from np.where()
                     value = f"'{value}'"
@@ -413,15 +414,20 @@ class vcf():
             all_filter_idxs = sorted(all_filter_idxs)
 
             # apply the filter, assign back the filtered df
-            self.filtered_rows = self.filtered_rows.append(
-                vcf.loc[all_filter_idxs]
-            )
+            if self.args.keep:
+                filtered_rows = filtered_rows.append(
+                    vcf.loc[all_filter_idxs], ignore_index=True
+                )
             self.vcfs[idx] = vcf.drop(all_filter_idxs)
 
             print((
-                f"Applied the filters {self.filters} to vcf, filtered out "
+                f"Applied the filters {self.filters} to vcf(s), filtered out "
                 f"{len(all_filter_idxs)} rows"
             ))
+
+        if self.args.keep:
+            self.vcfs.append(filtered_rows)
+            self.args.sheets.append("filtered")
 
 
     def print_columns(self) -> None:
