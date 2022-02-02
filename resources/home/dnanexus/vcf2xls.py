@@ -74,6 +74,9 @@ class vcf():
         if args.reorder:
             self.order_columns()
 
+        if args.rename:
+            self.rename_columns()
+
         if args.merge:
             self.merge()
 
@@ -497,6 +500,25 @@ class vcf():
             self.vcfs[idx] = vcf[column_order]
 
 
+    def rename_columns(self) -> None:
+        """
+        Rename columnns from key value pairs passed from --rename argument
+
+        Raises
+        ------
+        AssertionError
+
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            # sense check given reorder keys are in the vcfs
+            assert [x for x in vcf.columns for x in self.args.rename.keys()], (
+                f"Column(s) specified with --rename not present in one or "
+                f"more of the given vcfs. Valid column names: {vcf.columns}."
+                f"Column names passed to --rename: {self.args.rename.keys()}"
+            )
+            self.vcfs[idx].rename(columns=dict(self.args.rename.items()))
+
+
     def merge(self) -> None:
         """
         Merge all variants into one big dataframe, should be used with
@@ -582,6 +604,21 @@ class excel():
                     cell.font = Font(name="Calibri")
 
 
+
+class parsePairs(argparse.Action):
+    """
+    Simple class method for enabling passing of key value pairs to argparse
+    as this is not natively supported by argparse
+
+    Used for passing in names to rename columns in output Excel
+    """
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict())
+        for value in values:
+            key, value = value.split('=')
+            getattr(namespace, self.dest)[key] = value
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments
@@ -618,6 +655,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             'Set order for columns in output vcf, any not specified will be '
             'appended to the end'
+        )
+    )
+    parser.add_argument(
+        '-z', '--rename', nargs='*', action=parsePairs,
+        help=(
+            'Pass pairs of {column_name}={new_column_name} for renaming '
+            'columns in output excel, should be passed as '
+            '--rename CHROM=chr POS=pos REF=ref...'
         )
     )
     parser.add_argument(
@@ -713,6 +758,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+
     vcf_handler = vcf(args)
     excel(args, vcf_handler.vcfs)
 
