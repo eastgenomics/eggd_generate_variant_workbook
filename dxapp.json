@@ -12,14 +12,14 @@
   "inputSpec": [
     {
       "name": "list_panel_names_genes",
-      "label": "List of comma-separated panels or comma-separated genes (prefixed with \"_\")",
+      "label": "List of semicolon-separated panels or comma-separated genes (prefixed with \"_\")",
       "class": "string",
       "optional": true,
       "help": ""
     },
     {
       "name": "annotations",
-      "label": "List of comma-separated names of fields in the vcf to annotate the report with",
+      "label": "List of semicolon-separated names of fields in the vcf to annotate the report with",
       "class": "string",
       "optional": true,
       "help": ""
