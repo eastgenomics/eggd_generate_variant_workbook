@@ -17,6 +17,8 @@ class vcf():
     ----------
     args : argparse.Namespace
         arguments passed from command line
+    refs : list
+        list of genome reference files used for givne VCFs
     dtypes : dict
         common columns present in annotated vcfs and appropriate dtype to apply
     vcfs : list of pd.DataFrame
@@ -25,6 +27,7 @@ class vcf():
 
     def __init__(self, args) -> None:
         self.args = args
+        self.refs = []
         self.dtypes = {
             "CHROM": str,
             "POS": int,
@@ -110,6 +113,7 @@ class vcf():
         print(f"Reading in vcf {vcf}")
 
         header, columns = self.parse_header(vcf)
+        self.get_reference(header)
         csq_fields = self.parse_csq_fields(header)
 
         # read vcf into pandas df
@@ -164,6 +168,24 @@ class vcf():
         columns[-1] = 'SAMPLE'
 
         return header, columns
+
+
+    def get_reference(self, header) -> None:
+        """
+        Parse reference file used from VCF header
+
+        Parameters
+        ----------
+        header : list
+            lines of vcf header
+        """
+        ref = next(
+            iter([x for x in header if x.startswith('##reference')]), None
+        )
+        if ref:
+            if not ref in self.refs:
+                # add reference file if found and same not already in list
+                self.refs.append(Path(ref).name)
 
 
     def parse_csq_fields(self, header) -> list:
@@ -551,6 +573,8 @@ class excel():
         arguments passed from command line
     vcfs : list of pd.DataFrame
         list of dataframes formatted to write to file from vcf() methods
+    refs : list
+        list of reference names parsed from vcf headers
     writer : pandas.io.excel._openpyxl.OpenpyxlWriter
         writer object for writing Excel data to file
     workbook : openpyxl.workbook.workbook.Workbook
@@ -563,10 +587,11 @@ class excel():
         Excel file with variants written to, name passed from command line or
         inferred from input vcf name if not specified
     """
-    def __init__(self, args, vcfs) -> None:
+    def __init__(self, args, vcfs, refs) -> None:
         print(f"Writing to output file: {Path(args.output).absolute()}")
         self.args = args
         self.vcfs = vcfs
+        self.refs = refs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
 
@@ -583,6 +608,8 @@ class excel():
         """
         self.summary = self.workbook.create_sheet('summary')
         self.summary.cell(1, 1).value = "Summary"
+        self.summary.cell(1, 3).value = "Reference:"
+        self.summary.cell(1, 4).value = ', '.join(self.refs)
 
 
     def write_variants(self) -> None:
@@ -772,7 +799,7 @@ def main():
     args = parse_args()
 
     vcf_handler = vcf(args)
-    excel(args, vcf_handler.vcfs)
+    excel(args, vcf_handler.vcfs, vcf_handler.refs)
 
 
 if __name__ == "__main__":
