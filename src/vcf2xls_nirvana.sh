@@ -2,7 +2,31 @@
 
 set -euxo pipefail
 
+_download_files () {
+    # downloads input files with xargs parallel for speed
+    local file_list=$1
+    xargs -n1 -P"${CPU}" "$file_list"
+}
+
+
+
 main() {
+    echo "Value of raw_vcf: '$raw_vcf'"
+    echo "Value of annotated_vcf: '$annotated_vcf'"
+    echo "Value of sample_coverage_file: '$sample_coverage_file'"
+    echo "Value of sample_coverage_index: '$sample_coverage_index'"
+    echo "Value of flagstat_file: '$flagstat_file'"
+
+    # total cores available for cmds that make use of them
+    CPU=$(grep -c ^processor /proc/cpuinfo)
+
+    mark-section "Downloading inputs"
+    _download_files "${raw_vcf} ${annotated_vcf} ${sample_coverage_file} \
+        ${sample_coverage_index} ${flagstat_file} ${genepanels_file}\
+        ${bioinformatic_manifest} ${nirvana_genes2transcripts}"
+
+
+    mark-section "Parsing values"
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
     fi
@@ -28,44 +52,12 @@ main() {
         echo "Adjusted annotations names for vcf2xls: '$parsed_annotations'"
     fi
 
-    echo "Value of raw_vcf: '$raw_vcf'"
-    echo "Value of annotated_vcf: '$annotated_vcf'"
-    echo "Value of sample_coverage_file: '$sample_coverage_file'"
-    echo "Value of sample_coverage_index: '$sample_coverage_index'"
-    echo "Value of flagstat_file: '$flagstat_file'"
-
-    # Download sample inputs
-    mkdir inputs
-
-    dx download "$annotated_vcf" -o inputs/
-    echo $annotated_vcf_name
-    dx download "$raw_vcf" -o inputs/
-    echo $raw_vcf_name
-    dx download "$sample_coverage_file" -o inputs/
-    echo $sample_coverage_file_name
-    dx download "$sample_coverage_index" -o inputs/
-    echo $sample_coverage_index_name
-    dx download "$flagstat_file" -o inputs/
-    echo $flagstat_file_name
-
-    cd inputs
 
     if [[ $annotated_vcf_name == *.gz ]]; then
         gunzip -c $annotated_vcf_name > annotated_vcf
     else
         mv $annotated_vcf_name annotated_vcf
     fi
-
-    cd ..
-
-    # get sample id from vcf file name
-    sample_id=$(grep -oP "^[a-zA-Z0-9]*" <<< $annotated_vcf_prefix)
-    echo $sample_id
-
-    # Download dynamic reference files
-    dx download "$genepanels_file" -o genepanels
-    dx download "$bioinformatic_manifest" -o BioinformaticManifest
-    dx download "$nirvana_genes2transcripts" -o nirvana_genes2transcripts
 
     mkdir -p /home/dnanexus/out/xls_reports
 
@@ -99,10 +91,6 @@ main() {
     fi
 
     # filter annotated vcf to include regions in the flanked panel bed using bedtools
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-G1vB3JQ433Gx5GJf1FZKYxbF" -o bedtools
-    chmod a+x bedtools
-    export PATH=$PATH:/home/dnanexus
-
     if [ ! -z ${panel_bed+x} ]; then
         dx download "$panel_bed" -o inputs/
         echo $panel_bed_name
@@ -150,59 +138,6 @@ main() {
     nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
     nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
 
-    # Download reference files
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpV0j433GqJXGvJ30B8p2Y" -o gemini_freq.vcf.gz
-    dx download "project-Fkb6Gkj433GVVvj73J7x8KbV:file-FpQpJ5Q433Gb2V5y3fxx09p0" -o gemini_freq.vcf.gz.tbi
-
-    cd packages
-
-    tar xjf htslib-1.7.tar.bz2
-    cd htslib-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
-
-    tar xjf samtools-1.7.tar.bz2
-    cd samtools-1.7
-    sudo ./configure --prefix=/usr/bin
-    sudo make
-    sudo make install
-    cd ..
-
-    # Compile perl packages
-    for perl_package in $(ls *gz); do
-        base_name=${perl_package%.*.*}
-        echo "Installing: $base_name"
-        tar xzf $perl_package
-        cd $base_name
-        perl Makefile.PL
-        make
-        sudo make install
-        cd ..
-    done
-
-    opts="-a inputs/annotated_vcf "
-    opts+="-s inputs/sliced_annotated_vcf "
-    opts+="-v inputs/$raw_vcf_name "
-    opts+="-c inputs/$sample_coverage_file_name "
-    opts+="-u $nb_usable_reads "
-    opts+="-T $total_nb_reads "
-    opts+="-w \"$analysis_name\" "
-    opts+="-i \"$workflow_id\""
-
-    if [ ! -z ${list_panel_names_genes+x} ]; then
-        opts+=" -p \"$list_panel_names_genes\""
-    fi
-
-    if [ ! -z ${annotations+x} ]; then
-        opts+=" -f \"$parsed_annotations\""
-    fi
-
-    cd /home/dnanexus
-
-    # Run vcf2xls
-    eval "perl -I /home/dnanexus/ vcf2xls_nirvana.pl ${opts}"
 
     project_id=$DX_PROJECT_CONTEXT_ID
 
@@ -211,12 +146,12 @@ main() {
     output_name=${sample_id}_${version}.xls
 
     # Tiny chance of race conditions leading to two files with the same name here
-    while [ $matching_files -ne 0 ]; do 
+    while [ $matching_files -ne 0 ]; do
         version=$((version+1))
         output_name=${sample_id}_${version}*.xls
         matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l)
     done;
-    
+
     # Add text to report name if workflow id hasn't been found
     if [ $found_workflow_id = true ]; then
         output_name="${sample_id}_${version}.xls"
@@ -225,10 +160,7 @@ main() {
     fi
 
     echo "Output name: $output_name"
-    
-    cp /home/dnanexus/out/xls_reports/report.xls /home/dnanexus/out/xls_reports/${output_name}
 
     output_file=$(dx upload /home/dnanexus/out/xls_reports/${output_name} --brief)
-
     dx-jobutil-add-output xls_report "$output_file" --class=file
 }
