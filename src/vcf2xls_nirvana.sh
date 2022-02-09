@@ -122,17 +122,19 @@ main() {
     analysis_name="No workflow id found for this report."
     workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
 
-    # get file id of vcf annotator input raw vcf
-    raw_vcf_job_id=$(dx describe --json $raw_vcf_name | jq-linux64 -r .createdBy.job)
+    if dx describe --json $raw_vcf_name | jq-linux64 -e .createdBy.job ; then
+        # get file id of vcf annotator input raw vcf
+        raw_vcf_job_id=$(dx describe --json $raw_vcf_name | jq-linux64 -r .createdBy.job)
 
-    # get workflow id and analysis name of nirvana annotated vcf
-    if dx describe --json $raw_vcf_job_id | jq-linux64 -e 'has("rootExecution")'  ; then
-        analysis_id=$(dx describe --json $raw_vcf_job_id | jq-linux64 -r '.rootExecution')
+        # get workflow id and analysis name of nirvana annotated vcf
+        if dx describe --json $raw_vcf_job_id | jq-linux64 -e 'has("rootExecution")'  ; then
+            analysis_id=$(dx describe --json $raw_vcf_job_id | jq-linux64 -r '.rootExecution')
 
-        if dx describe --json $analysis_id | jq-linux64 -e 'has("executable")' ; then
-            workflow_id=$(dx describe --json $analysis_id | jq-linux64 -r '.executable')
-            analysis_name=$(dx describe --json $workflow_id | jq-linux64 -r '.name')
-            found_workflow_id=true
+            if dx describe --json $analysis_id | jq-linux64 -e 'has("executable")' ; then
+                workflow_id=$(dx describe --json $analysis_id | jq-linux64 -r '.executable')
+                analysis_name=$(dx describe --json $workflow_id | jq-linux64 -r '.name')
+                found_workflow_id=true
+            fi
         fi
     fi
 
