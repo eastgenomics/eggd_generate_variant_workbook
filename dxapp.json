@@ -3,7 +3,7 @@
   "title": "eggd_vcf2xls_nirvana",
   "summary": "Create xls from Nirvana annotated vcf",
   "dxapi": "1.0.0",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "authorizedUsers": [
     "org-emee_1"
   ],
