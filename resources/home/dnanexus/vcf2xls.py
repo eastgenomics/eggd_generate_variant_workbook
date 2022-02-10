@@ -9,7 +9,7 @@ from openpyxl.styles import Alignment, Border, colors, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
 
-DEFAULT_FONT.name = "Calibri"  # override default openpyxl font
+# openpyxl style settings
 THIN = Side(border_style="thin", color="000000")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
@@ -619,6 +619,7 @@ class excel():
             self.summary = self.workbook.create_sheet('summary')
             self.dias_summary()
 
+
     def dias_summary(self) -> None:
         """
         Write summary sheet in format for RD group, adds the following info
@@ -682,7 +683,6 @@ class excel():
         for cell in title_cells:
             self.summary[cell].font = Font(bold=True)
 
-
         # set column widths for readability
         self.summary.column_dimensions['A'].width = 13
         self.summary.column_dimensions['B'].width = 13
@@ -695,7 +695,7 @@ class excel():
 
         # colour title cells
         blueFill = PatternFill(
-            patternType="solid", start_color="33CCFF")
+            patternType="solid", start_color="ADD8E6")
 
         colour_cells =[
             "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
@@ -704,7 +704,7 @@ class excel():
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
 
-        # set borders around title areas
+        # set borders around table areas
         row_ranges = [
             'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
             'B16:I16', 'B17:I17', 'B18:I18',
