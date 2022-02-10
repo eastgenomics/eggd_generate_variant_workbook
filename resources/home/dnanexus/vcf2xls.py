@@ -23,6 +23,8 @@ class vcf():
         common columns present in annotated vcfs and appropriate dtype to apply
     vcfs : list of pd.DataFrame
         list of dataframes read in from self.args.vcfs
+    filtered_rows : pd.DataFrame
+        dataframe of all rows dropped from all vcfs
     """
 
     def __init__(self, args) -> None:
@@ -418,7 +420,7 @@ class vcf():
         # build list of indices of variants to filter out against specified
         # filters, then apply filter to df, retain filtered rows if --keep set
         if self.args.keep:
-            filtered_rows = pd.DataFrame()
+            self.filtered_rows = pd.DataFrame()
 
         for idx, vcf in enumerate(self.vcfs):
             all_filter_idxs = []
@@ -441,8 +443,7 @@ class vcf():
             all_filter_idxs = sorted(all_filter_idxs)
 
             # apply the filter, assign back the filtered df
-            if self.args.keep:
-                filtered_rows = filtered_rows.append(
+            self.filtered_rows = self.filtered_rows.append(
                     vcf.loc[all_filter_idxs], ignore_index=True
                 )
             self.vcfs[idx] = vcf.drop(all_filter_idxs)
@@ -452,8 +453,10 @@ class vcf():
                 f"{len(all_filter_idxs)} rows"
             ))
 
+        self.filtered_rows = self.filtered_rows.reset_index()
+
         if self.args.keep:
-            self.vcfs.append(filtered_rows)
+            self.vcfs.append(self.filtered_rows)
             self.args.sheets.append("filtered")
 
 
