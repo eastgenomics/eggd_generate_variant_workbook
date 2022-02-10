@@ -444,7 +444,8 @@ class vcf():
                 ))
                 all_filter_idxs.extend(filter_idxs)
 
-            all_filter_idxs = sorted(all_filter_idxs)
+            # get unique list of indexes matching filters
+            all_filter_idxs = sorted(list(set(all_filter_idxs)))
 
             # apply the filter, assign back the filtered df
             self.filtered_rows = self.filtered_rows.append(
