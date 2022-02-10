@@ -5,9 +5,13 @@ import sys
 from typing import Union
 
 import numpy as np
-from openpyxl.styles import Alignment, Border, colors, Font, Side
+from openpyxl.styles import Alignment, Border, colors, DEFAULT_FONT, Font, Side
+from openpyxl.styles.fills import PatternFill
 import pandas as pd
 
+DEFAULT_FONT.name = "Calibri"  # override default openpyxl font
+THIN = Side(border_style="thin", color="000000")
+THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 class vcf():
     """
@@ -609,10 +613,107 @@ class excel():
         """
         Write summary sheet to excel file
         """
-        self.summary = self.workbook.create_sheet('summary')
-        self.summary.cell(1, 1).value = "Summary"
-        self.summary.cell(1, 3).value = "Reference:"
-        self.summary.cell(1, 4).value = ', '.join(self.refs)
+        if self.args.summary == 'dias':
+            # generate summary sheet in format for RD/dias
+            self.summary = self.workbook.create_sheet('summary')
+            self.dias_summary()
+
+    def dias_summary(self) -> None:
+        """
+        Write summary sheet in format for RD group, adds the following info
+
+        """
+        # write titles for summary values
+        self.summary.cell(1, 1).value = "Sample ID:"
+        self.summary.cell(1, 5).value = "Clinical Indication(s):"
+        self.summary.cell(2, 5).value = "Panel(s):"
+        self.summary.cell(40, 1).value = "Reads:"
+        self.summary.cell(41, 1).value = "Usable Reads:"
+        self.summary.cell(43, 1).value = "Workflow:"
+        self.summary.cell(44, 1).value = "Workflow ID:"
+
+        # write summary values
+        self.summary.cell(1, 2).value = self.args.sample
+        self.summary.cell(1, 6).value = self.args.clinical_indication
+        self.summary.cell(2, 6).value = self.args.panel
+        self.summary.cell(40, 2).value = self.args.reads
+        self.summary.cell(41, 2).value = self.args.usable_reads
+        self.summary.cell(43, 2).value = self.args.workflow[0]
+        self.summary.cell(44, 2).value = self.args.workflow[1]
+
+        # write center reporting section tables
+        self.summary.cell(9, 2).value = "Phenotype:"
+
+        self.summary.cell(16, 2).value = "Panels"
+        self.summary.cell(16, 3).value = "Excel file"
+        self.summary.cell(16, 4).value = "Comments"
+        self.summary.cell(16, 6).value = "Analysis by"
+        self.summary.cell(16, 7).value = "Date"
+        self.summary.cell(16, 8).value = "Checked by"
+        self.summary.cell(16, 9).value = "Date"
+
+        self.summary.cell(21, 2).value = "Sanger sequencing confirmation"
+        self.summary.cell(22, 2).value = "Gene"
+        self.summary.cell(22, 3).value = "NM_#"
+        self.summary.cell(22, 4).value = "Coordinate"
+        self.summary.cell(22, 5).value = "cDNA"
+        self.summary.cell(22, 6).value = "Protein change"
+        self.summary.cell(22, 7).value = "WS#"
+        self.summary.cell(22, 8).value = "Confirmed (Y/N)"
+
+        self.summary.cell(28, 2).value = "GEM comments summary"
+        self.summary.cell(28, 4).value = "Date"
+
+        # merge some title columns that have longer text
+        self.summary.merge_cells(start_row=9, end_row=9, start_column=2, end_column=5)
+        self.summary.merge_cells(start_row=21, end_row=21, start_column=2, end_column=8)
+        self.summary.merge_cells(start_row=16, end_row=16, start_column=4, end_column=5)
+        self.summary.merge_cells(start_row=28, end_row=28, start_column=2, end_column=3)
+        self.summary.merge_cells(start_row=28, end_row=28, start_column=4, end_column=6)
+
+        # set titles to bold
+        title_cells = [
+            "A1", "A40", "A41", "A43", "A44", "B1", "B9", "B16", "B21", "B22",
+            "B28", "B40", "B41", "B43", "B44", "C16", "C22", "D16", "D22",
+            "D28", "E1", "E2", "E22", "F1", "F2", "F16", "F22", "G16", "G22",
+            "H16", "H22", "I16"
+        ]
+        for cell in title_cells:
+            self.summary[cell].font = Font(bold=True)
+
+
+        # set column widths for readability
+        self.summary.column_dimensions['A'].width = 13
+        self.summary.column_dimensions['B'].width = 13
+        self.summary.column_dimensions['C'].width = 13
+        self.summary.column_dimensions['D'].width = 13
+        self.summary.column_dimensions['E'].width = 18
+        self.summary.column_dimensions['F'].width = 16
+        self.summary.column_dimensions['G'].width = 16
+        self.summary.column_dimensions['H'].width = 16
+
+        # colour title cells
+        blueFill = PatternFill(
+            patternType="solid", start_color="33CCFF")
+
+        colour_cells =[
+            "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
+            "D28", "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+        ]
+        for cell in colour_cells:
+            self.summary[cell].fill = blueFill
+
+        # set borders around title areas
+        row_ranges = [
+            'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
+            'B16:I16', 'B17:I17', 'B18:I18',
+            'B21:H21', 'B22:H22', 'B23:H23', 'B24:H24', 'B25:H25',
+            'B28:F28', 'B29:F29', 'B30:F30', 'B31:F31', 'B32:F32'
+        ]
+        for row in row_ranges:
+            for cells in  self.summary[row]:
+                for cell in cells:
+                    cell.border = THIN_BORDER
 
 
     def write_variants(self) -> None:
@@ -748,16 +849,36 @@ def parse_args() -> argparse.Namespace:
         help='Merge multiple vcfs into one dataframe of variants to display'
     )
     parser.add_argument(
-        '-a', '--analysis', required=False,
+        '--summary', required=False,
+        help='summary sheet to include, must be one of: dias'
+    )
+    parser.add_argument(
+        '--analysis', default='',
         help='Name of analysis to display in summary'
     )
     parser.add_argument(
-        '-w', '--workflow', required=False,
-        help='ID of workflow to display in summary'
+        '--workflow', default=('', ''), nargs=2,
+        help='ID and name of workflow to display in summary'
     )
     parser.add_argument(
-        '-p', '--panel', required=False,
+        '--panel', default='',
         help='panel name to display in summary'
+    )
+    parser.add_argument(
+        '--clinical_indication', default='',
+        help="clinical indication to write into summary sheet"
+    )
+    parser.add_argument(
+        '--sample', default='',
+        help='name of sample to display in summary report'
+    )
+    parser.add_argument(
+        '--reads', default='',
+        help='total reads from flagstat'
+    )
+    parser.add_argument(
+        '--usable_reads', default='',
+        help='usable reads from flagstat'
     )
     parser.add_argument(
         '--print-columns', required=False, action='store_true',
