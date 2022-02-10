@@ -23,6 +23,14 @@ class vcf():
         arguments passed from command line
     refs : list
         list of genome reference files used for given VCFs
+    total_vcf_rows : int
+        value to keep total number of rows read in to ensure we don't drop
+        any unless --filter is used and --keep is not and => intentionally
+        dropping filtered rows
+    expanded_vcf_rows : int
+        value to track total rows expanded out when multiple transcript
+        annotations for one variant are present, resulting in one row per
+        transcript annotation per variant in resultant dataframe
     dtypes : dict
         common columns present in annotated vcfs and appropriate dtype to apply
     vcfs : list of pd.DataFrame
@@ -34,6 +42,8 @@ class vcf():
     def __init__(self, args) -> None:
         self.args = args
         self.refs = []
+        self.total_vcf_rows = 0
+        self.expanded_vcf_rows = 0
         self.dtypes = {
             "CHROM": str,
             "POS": int,
@@ -68,6 +78,10 @@ class vcf():
         # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
 
+        print(f"\nTotal variants from {len(self.vcfs)} vcf(s): {self.total_vcf_rows}\n")
+        if self.expanded_vcf_rows > 0:
+            print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
+
         if args.print_columns:
             self.print_columns()
 
@@ -91,7 +105,7 @@ class vcf():
 
         self.remove_nan()
 
-        print("Finished munging variants from vcf(s)")
+        print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
 
     def read(self, vcf) -> pd.DataFrame:
@@ -116,7 +130,7 @@ class vcf():
             vcf header lines
         """
         sample = Path(vcf).stem.split('_')[0]
-        print(f"Reading in vcf {vcf}")
+        print(f"\nReading in vcf {vcf}\n")
 
         header, columns = self.parse_header(vcf)
         self.get_reference(header)
@@ -127,6 +141,10 @@ class vcf():
             vcf, sep='\t', comment='#', names=columns,
             dtype=self.dtypes, compression='infer'
         )
+
+        self.total_vcf_rows += len(vcf_df.index)  # update our total count
+        print(f"Total rows in current VCF: {len(vcf_df.index)}")
+        print(f"Total rows of all vcfs read in: {self.total_vcf_rows}\n")
 
         if self.args.add_name:
             # add sample name from filename as 1st column
@@ -293,6 +311,7 @@ class vcf():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with separated CSQ fields
         """
+        df_rows = len(vcf_df.index)
         vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
 
         # variants with multiple transcript annotation will have duplicate CSQ
@@ -300,6 +319,9 @@ class vcf():
         # ',' present rows will remain unaffacted (i.e. one transcript)
         columns = list(vcf_df.columns)
         columns.remove('CSQ')
+
+        # set index to be everything except CSQ, expand this to multiple rows
+        # then set index back
         vcf_df = vcf_df.set_index(columns).apply(
             lambda x: x.str.split(',').explode()
         ).reset_index()
@@ -312,6 +334,13 @@ class vcf():
             vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
                 lambda x: '&'.join(set(x.split('&')))
             )
+
+        if df_rows != len(vcf_df.index):
+            # total rows has changed => we must have multiple transcripts
+            print(f"Total rows of VCF changed on splitting CSQ values")
+            print(f"Total rows before: {df_rows}")
+            print(f"Total rows after: {len(vcf_df.index)}")
+            self.expanded_vcf_rows += len(vcf_df.index) - df_rows
 
         return vcf_df
 
@@ -453,9 +482,12 @@ class vcf():
                 )
             self.vcfs[idx] = vcf.drop(all_filter_idxs)
 
+            filter_string = ', '.join([' '.join(x) for x in self.filters])
+
             print((
-                f"Applied the filters {self.filters} to vcf(s), filtered out "
-                f"{len(all_filter_idxs)} rows"
+                f"\nApplied the following filters: {filter_string} to vcf(s)\n"
+                f"Filtered out {len(all_filter_idxs)} rows\n"
+                f"Total rows remaining: {len(self.vcfs[idx].index)}\n\n"
             ))
 
         self.filtered_rows = self.filtered_rows.reset_index()
