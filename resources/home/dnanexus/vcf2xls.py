@@ -22,7 +22,7 @@ class vcf():
     args : argparse.Namespace
         arguments passed from command line
     refs : list
-        list of genome reference files used for givne VCFs
+        list of genome reference files used for given VCFs
     dtypes : dict
         common columns present in annotated vcfs and appropriate dtype to apply
     vcfs : list of pd.DataFrame
