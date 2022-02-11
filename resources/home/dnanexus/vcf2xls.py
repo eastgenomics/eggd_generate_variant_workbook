@@ -162,6 +162,7 @@ class vcf():
         # split out INFO column values and CSQ
         vcf_df = self.split_info(vcf_df)
         vcf_df = self.split_csq(vcf_df, csq_fields)
+        vcf_df = self.split_format_fields(vcf_df)
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO', 'CSQ'], axis=1, inplace=True)
@@ -245,6 +246,49 @@ class vcf():
         csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
 
         return csq_fields
+
+
+    def split_format_fields(self, vcf_df) -> pd.DataFrame:
+        """
+        Get format fields from FORMAT column to split out sample values to
+        individual columns
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with split out FORMAT fields
+        """
+        # get unique list of FORMAT fields from all rows
+        fields = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
+
+        # split out FORMAT and SAMPLE columns a list of ':' joined pairs
+        tmp_df = pd.DataFrame()
+        tmp_df['tmp'] = vcf_df.apply(
+            lambda x: {
+                '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
+            }, axis=1
+        )
+        tmp_df = tmp_df.astype(str)
+
+        format_cols = tmp_df.join(pd.DataFrame([
+            dict(l) for l in tmp_df.pop('tmp').str.findall((r'(\w+)=([^,\}]+)'))
+        ]))
+
+        for col in format_cols.columns:
+            format_cols[col] = format_cols[col].apply(
+                lambda x: x.rstrip("'") if type(x) == str else x
+            )
+
+        vcf_df = vcf_df.join(format_cols, rsuffix=" (FMT)")
+
+        vcf_df.drop(['FORMAT', 'SAMPLE'], axis=1, inplace=True)
+
+        return vcf_df
 
 
     def split_info(self, vcf_df) -> pd.DataFrame:
@@ -945,7 +989,6 @@ class excel():
             width = 13
 
         return width
-
 
 
 class parsePairs(argparse.Action):
