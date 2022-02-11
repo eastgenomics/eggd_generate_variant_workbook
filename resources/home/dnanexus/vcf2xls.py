@@ -1,5 +1,4 @@
 import argparse
-from dis import dis
 from pathlib import Path
 import re
 from string import ascii_uppercase as uppercase
@@ -51,6 +50,7 @@ class vcf():
         self.refs = []
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
+        self.filtered_rows = pd.DataFrame()
         self.dtypes = {
             "CHROM": str,
             "POS": int,
@@ -623,10 +623,25 @@ class vcf():
         Verify total variants in resultant dataframe(s) match what was read in,
         unless --filter has been applied and --keep has not.
 
+        Totals we have tracked to check on:
+
+        - self.total_vcf_rows -> total rows read in from vcf before modifying
+        - self.expanded_rows -> total rows expanded out when CSQ contains
+            multiple transcripts, and each transcript for each variant is split
+            to individual rows
+        - self.filtered_rows -> total rows filtered out to separate df by
+            filters passed with --filter
+        - total_rows_to_write -> total of all rows that will be written to the
+            xlsx across all sheets
+
+
         Raises
         ------
-
+        AssertionError
+            Raised when the total rows we have tracked don't seem to equal what
+            is going to be written to file
         """
+        print("Verifying total variants being written to file is correct")
         if not self.args.merge:
             # haven't merged to one df => count all
             total_rows_to_write = sum([len(df.index) for df in self.vcfs])
@@ -634,8 +649,35 @@ class vcf():
             total_rows_to_write = len(self.vcf[0])
 
         if self.args.filter:
-            filtered_rows = len(self.filtered_rows)
+            total_filtered_rows = len(self.filtered_rows)
 
+        # totals we tracked in previous methods
+        tracked_total = int(self.total_vcf_rows) + int(self.expanded_vcf_rows)
+
+        print(f"\nTotal variants identified:")
+        print(f"\tTotal rows read in from vcf(s): {self.total_vcf_rows}")
+        print((
+            f"\tTotal rows expanded: "
+            f"{self.expanded_vcf_rows}"
+        ))
+        print(f"\tTotal rows filtered with --filter: {len(self.filtered_rows)}")
+        if not self.args.keep:
+            print("\t\t--keep not passed, these filtered rows will be dropped")
+        else:
+            print("\t\t--keep passed, filtered variants will be written to file")
+        print(f"\tTotal rows going to write to file: {total_rows_to_write}")
+        print(f"\tTotal rows we have tracked: {tracked_total}")
+
+
+        if not self.args.keep:
+            # not keeping filtered rows => check that total we would write if
+            # they were included is what we expect from reading in and expanding
+            total_rows_to_write += int(len(self.filtered_rows))
+
+        assert tracked_total == total_rows_to_write, (
+            "Total rows to be written to file don't appear to equal what has "
+            "been tracked, this suggests we have dropped some variants..."
+        )
 
 
 class excel():
@@ -690,8 +732,9 @@ class excel():
 
     def dias_summary(self) -> None:
         """
-        Write summary sheet in format for RD group, adds the following info
-
+        Write summary sheet in format for RD group, adds the following info:
+            - sample ID, panel(s), run IDs etc.
+            - formatted tables for them to fill in reporting
         """
         # write titles for summary values
         self.summary.cell(1, 1).value = "Sample ID:"
@@ -872,7 +915,7 @@ class excel():
             current_sheet.column_dimensions[column_list[idx]].width = width
 
 
-    def get_closest_match(self, column, widths):
+    def get_closest_match(self, column, widths) -> int:
         """
         Given a column name, find the closest match (if there is one) in the
         widths dict and return its width value to set. Using imprecise name
@@ -1078,7 +1121,6 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
-
     vcf_handler = vcf(args)
     excel(args, vcf_handler.vcfs, vcf_handler.refs)
 
