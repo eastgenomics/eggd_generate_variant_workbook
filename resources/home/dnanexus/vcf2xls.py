@@ -1,9 +1,12 @@
 import argparse
+from dis import dis
 from pathlib import Path
 import re
+from string import ascii_uppercase as uppercase
 import sys
 from typing import Union
 
+import Levenshtein as levenshtein
 import numpy as np
 from openpyxl.styles import Alignment, Border, colors, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
@@ -16,6 +19,10 @@ THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 class vcf():
     """
     Functions to handle reading and manipulating vcf data
+
+    Called in the order:
+
+    read() -> filter() -> drop_columns() -> reorder() -> merge() -> rename()
 
     Attributes
     ----------
@@ -97,13 +104,15 @@ class vcf():
         if args.reorder:
             self.order_columns()
 
-        if args.rename:
-            self.rename_columns()
-
         if args.merge:
             self.merge()
 
+        self.rename_columns()
+
         self.remove_nan()
+
+        # run checks to ensure we haven't unintentionally dropped variants
+        self.verify_totals()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
@@ -575,7 +584,8 @@ class vcf():
 
     def rename_columns(self) -> None:
         """
-        Rename columnns from key value pairs passed from --rename argument
+        Rename columnns from key value pairs passed from --rename argument,
+        also remove underscores from all names for nicer reading
 
         Raises
         ------
@@ -584,13 +594,19 @@ class vcf():
             or more of the vcfs columns
         """
         for idx, vcf in enumerate(self.vcfs):
-            # sense check given reorder keys are in the vcfs
-            assert [x for x in vcf.columns for x in self.args.rename.keys()], (
-                f"Column(s) specified with --rename not present in one or "
-                f"more of the given vcfs. Valid column names: {vcf.columns}."
-                f"Column names passed to --rename: {self.args.rename.keys()}"
-            )
-            self.vcfs[idx].rename(columns=dict(self.args.rename.items()))
+            if self.args.rename:
+                # sense check given reorder keys are in the vcfs
+                assert [x for x in vcf.columns for x in self.args.rename.keys()], (
+                    f"Column(s) specified with --rename not present in one or "
+                    f"more of the given vcfs. Valid column names: {vcf.columns}."
+                    f"Column names passed to --rename: {self.args.rename.keys()}"
+                )
+                self.vcfs[idx].rename(columns=dict(self.args.rename.items()))
+
+            # remove underscores from all names
+            self.vcfs[idx].columns = [
+                x.replace('_', ' ') for x in self.vcfs[idx].columns
+            ]
 
 
     def merge(self) -> None:
@@ -600,6 +616,26 @@ class vcf():
         is important
         """
         self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
+
+
+    def verify_totals(self) -> None:
+        """
+        Verify total variants in resultant dataframe(s) match what was read in,
+        unless --filter has been applied and --keep has not.
+
+        Raises
+        ------
+
+        """
+        if not self.args.merge:
+            # haven't merged to one df => count all
+            total_rows_to_write = sum([len(df.index) for df in self.vcfs])
+        else:
+            total_rows_to_write = len(self.vcf[0])
+
+        if self.args.filter:
+            filtered_rows = len(self.filtered_rows)
+
 
 
 class excel():
@@ -727,7 +763,7 @@ class excel():
 
         # colour title cells
         blueFill = PatternFill(
-            patternType="solid", start_color="ADD8E6")
+            patternType="solid", start_color="0CABA8")
 
         colour_cells =[
             "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
@@ -766,6 +802,9 @@ class excel():
                 vcf.to_excel(
                     self.writer, sheet_name=sheet, index=False
                 )
+                curr_worksheet = self.writer.sheets[sheet]
+                self.set_widths(curr_worksheet, vcf.columns)
+                self.workbook.save(self.args.output)
 
 
     def set_font(self) -> None:
@@ -778,6 +817,91 @@ class excel():
             for cells in ws.rows:
                 for cell in cells:
                     cell.font = Font(name="Calibri")
+
+
+    def set_widths(self, current_sheet, sheet_columns) -> None:
+        """
+        Set widths for variant sheets off common names to be more readable
+
+        Parameters
+        ----------
+        current_sheet : openpyxl.Writer
+            writer object for current sheet
+        sheet_columns : list
+            column names for sheet from DataFrame.columns
+        """
+        widths = {
+            "chrom": 8,
+            "pos": 12,
+            "ref": 10,
+            "alt": 10,
+            "qual": 10,
+            "af": 6,
+            "dp": 10,
+            'ac': 10,
+            'af': 10,
+            'an': 10,
+            'dp': 10,
+            'baseqranksum': 15,
+            'clippingranksum': 16,
+            "symbol": 12,
+            "exon": 9,
+            "variant class": 15,
+            "consequence": 25,
+            "hgvsc": 24,
+            "hgvsp": 24,
+            "gnomad": 13,
+            "existing variation": 18,
+            "clinvar": 10,
+            "clinvar clndn": 18,
+            "clinvar clinsig": 18,
+            "cosmic": 15,
+            "feature": 17
+        }
+
+        # generate list of 78 potential xlsx columns from A,B,C...BX,BY,BZ
+        # allows for handling a lot of columns
+        column_list = [
+            f"{x}{y}" for x in ['', 'A', 'B'] for y in uppercase
+        ]
+
+        for idx, column in enumerate(sheet_columns):
+            # loop over column names, select width by closest match from dict
+            # and set width in sheet letter
+            width = self.get_closest_match(column.lower(), widths)
+            current_sheet.column_dimensions[column_list[idx]].width = width
+
+
+    def get_closest_match(self, column, widths):
+        """
+        Given a column name, find the closest match (if there is one) in the
+        widths dict and return its width value to set. Using imprecise name
+        matching as columns can differ between variant callers, annotation in
+        VEP and renaming in vcf.rename_columns()
+
+        Parameters
+        ----------
+        column : str
+            name of column
+        widths : dict
+            dict of common column names and widths
+
+        Returns
+        -------
+        width : int
+            column width value to set
+        """
+        distances = {x: levenshtein.distance(column, x) for x in widths.keys()}
+        closest_match = min(distances, key=distances.get)
+
+        if distances[closest_match] <= 5:
+            # close enough match to probably be correct
+            width = widths[closest_match]
+        else:
+            # no close matches to name, use default width
+            width = 13
+
+        return width
 
 
 
