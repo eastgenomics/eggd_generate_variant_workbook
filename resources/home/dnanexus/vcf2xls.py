@@ -275,17 +275,19 @@ class vcf():
         )
         tmp_df = tmp_df.astype(str)
 
+        # split every row to a dict of key value pairs and build df
         format_cols = tmp_df.join(pd.DataFrame([
             dict(l) for l in tmp_df.pop('tmp').str.findall((r'(\w+)=([^,\}]+)'))
         ]))
 
+        # some columns have an extra quote added for some reason...
         for col in format_cols.columns:
             format_cols[col] = format_cols[col].apply(
                 lambda x: x.rstrip("'") if type(x) == str else x
             )
 
+        # add split out columns to main df
         vcf_df = vcf_df.join(format_cols, rsuffix=" (FMT)")
-
         vcf_df.drop(['FORMAT', 'SAMPLE'], axis=1, inplace=True)
 
         return vcf_df
