@@ -264,11 +264,11 @@ class vcf():
                                       |
                                       ▼
         -----------------------------------------------------------------------
-        GT  |  AD     |  DP   |   GQ   |  PGT  |   PID         |  PL
+        GT  | AD      |  DP   |   GQ   |  PGT  |   PID         |  PL
         ----------------------------------------------------------------------
-        0/1 |  83,88  |  171  |   99   |  na   |  na           |  2136,0,1880
-        0/1 |  128,128|  256  |   99   |  na   |  na           |  3163,0,3015
-        0/1 |  120,93 |  213  |   99   |  0|1  |  46896303_C_G |  3367,0,6381
+        0/1 | 83,88   |  171  |   99   |  na   |  na           |  2136,0,1880
+        0/1 | 128,128 |  256  |   99   |  na   |  na           |  3163,0,3015
+        0/1 | 120,93  |  213  |   99   |  0|1  |  46896303_C_G |  3367,0,6381
         -----------------------------------------------------------------------
 
         Parameters
@@ -392,18 +392,28 @@ class vcf():
     def split_csq(self, vcf_df, csq_fields) -> pd.DataFrame:
         """
         Split out CSQ string from other values in the INFO column to separate
-        fields to get annotation, transforms as:
+        fields to get annotation. Column headers taken from format stored by
+        VEP in the header, read from self.parse_csq_fields(). Transforms as:
 
         -----------------------------------------------------------------------
         INFO
         -----------------------------------------------------------------------
         ...;CSQ=SIK1|SNV|missense_variant|13/14|NM_173354.5:c.1844C>T|...
-        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_001379500.1:c.846G>T...
-        ...;CSQ=C|26040|SETBP1|XM_005258243.1||missense_variant
-
-
-
-
+        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_0013750.1:c.846G>T...
+        ...;CSQ=NSD1|SNV|missense_variant|6/24|NM_001384.1:c.1369T>C|...
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+        SYMBOL | VAR_CLASS | Consequence      | EXON  | HGVSc 
+        -----------------------------------------------------------------------
+        SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
+        -----------------------------------------------------------------------
+        OL18A1 | SNV       | synonymous_variant | 6/42  | NM_0013750.1:c.846G>T
+        -----------------------------------------------------------------------
+        NSD1   | SNV       | missense_variant   | 6/24  | NM_001384.1:c.1369T>C
+        -----------------------------------------------------------------------
 
 
         Parameters
@@ -419,15 +429,8 @@ class vcf():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with separated CSQ fields
         """
-        pd.set_option('display.max_columns', None) 
-        pd.set_option('display.max_rows', None)  
-        # pd.set_option('display.max_colwidth', None)
-
         df_rows = len(vcf_df.index)
         vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-        print(vcf_df['CSQ'])
-
-        sys.exit()
 
         # variants with multiple transcript annotation will have duplicate CSQ
         # data that is comma sepparated => expand this to multiple rows, if no
@@ -441,28 +444,8 @@ class vcf():
             lambda x: x.str.split(',').explode()
         ).reset_index()
 
-        print(vcf_df['CSQ'])
-
-        sys.exit()
-
-
-
-        vcf_df.to_csv('exploded.vcf', sep='\t')
-
-
-        print(len(vcf_df['CSQ']))
-
-        df = vcf_df.CSQ.str.split('|', expand=True)
-
-        df.to_csv('split.vcf', sep='\t')
-
-
         # split each CSQ value to own columns
         vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
-
-        print(len(vcf_df))
-
-        sys.exit()
 
         if 'COSMIC' in vcf_df.columns:
             # handle known bug in VEP annotation where it duplicates COSMIC
