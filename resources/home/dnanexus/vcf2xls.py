@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 import re
 from string import ascii_uppercase as uppercase
@@ -1174,6 +1175,10 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        '--out_dir', required=False,
+        help="path to where to output report"
+    )
+    parser.add_argument(
         '-m', '--merge', action='store_true',
         help='Merge multiple vcfs into one dataframe of variants to display'
     )
@@ -1219,6 +1224,9 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
+    if not args.out_dir:
+        args.out_dir = os.getcwd()
+
     if not args.output:
         if len(args.vcfs) > 1:
             raise RuntimeError((
@@ -1229,7 +1237,7 @@ def parse_args() -> argparse.Namespace:
             args.output = Path(args.vcfs[0]).name.replace(
                 '.vcf', '').replace('.gz', '')
 
-    args.output += ".xlsx"
+    args.output = f"{Path(args.out_dir)}/{args.output}.xlsx"
 
     if not args.sheets:
         if len(args.vcfs) > 1 and not args.merge:
