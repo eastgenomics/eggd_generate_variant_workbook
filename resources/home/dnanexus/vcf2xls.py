@@ -125,6 +125,7 @@ class vcf():
         - self.parse_csq_fields()
         - self.split_info()
         - self.split_csq()
+        - self.split_format_fields()
 
         Parameters
         ------
@@ -406,7 +407,7 @@ class vcf():
                                       |
                                       ▼
         -----------------------------------------------------------------------
-        SYMBOL | VAR_CLASS | Consequence      | EXON  | HGVSc 
+        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc 
         -----------------------------------------------------------------------
         SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
         -----------------------------------------------------------------------
