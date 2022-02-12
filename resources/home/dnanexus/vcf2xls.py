@@ -251,7 +251,25 @@ class vcf():
     def split_format_fields(self, vcf_df) -> pd.DataFrame:
         """
         Get format fields from FORMAT column to split out sample values to
-        individual columns
+        individual columns, this transforms the data as such:
+
+        -----------------------------------------------------------------------
+        FORMAT                  |  SAMPLE
+        -----------------------------------------------------------------------
+        GT:AD:DP:GQ:PL          |  0/1:83,88:171:99:2136,0,1880
+        GT:AD:DP:GQ:PL          |  0/1:128,128:256:99:3163,0,3015
+        GT:AD:DP:GQ:PGT:PID:PL  |  0/1:120,93:213:99:0|1:46896303_C_G:3367,0,6381
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+        GT  |  AD     |  DP   |   GQ   |  PGT  |   PID         |  PL
+        ----------------------------------------------------------------------
+        0/1 |  83,88  |  171  |   99   |  na   |  na           |  2136,0,1880
+        0/1 |  128,128|  256  |   99   |  na   |  na           |  3163,0,3015
+        0/1 |  120,93 |  213  |   99   |  0|1  |  46896303_C_G |  3367,0,6381
+        -----------------------------------------------------------------------
 
         Parameters
         ----------
@@ -295,7 +313,29 @@ class vcf():
 
     def split_info(self, vcf_df) -> pd.DataFrame:
         """
-        Splits out the INFO column of vcf to all separate values
+        Splits out the INFO column of vcf to all separate values, excluding
+        the CSQ values. This transforms as:
+
+        -----------------------------------------------------------------------
+        INFO
+        -----------------------------------------------------------------------
+        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.244;DB;DP=215;......
+        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.291;;DB;DP=207;.....
+        AC=2;AF=1;AN=2;DB;DP=310;ExcessHet=3.0103;FS=0;......
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+        AC  |  AF  |  AN  |  DB  |  DP  |  ExcessHet  |  BaseQRankSum  |  FS
+        -----------------------------------------------------------------------
+        1   |  0.5 |  2   | True |  215 |             |  -0.244        |
+        -----------------------------------------------------------------------
+        1   |  0.5 |  2   | True |  207 |             |  -0.291        |
+        -----------------------------------------------------------------------
+        2   |  1   |  2   | True |  310 |  3.0103     |                |  0
+        -----------------------------------------------------------------------
+
 
         Parameters
         ----------
@@ -351,7 +391,20 @@ class vcf():
 
     def split_csq(self, vcf_df, csq_fields) -> pd.DataFrame:
         """
-        Split out CSQ string to separate fields to get annotation
+        Split out CSQ string from other values in the INFO column to separate
+        fields to get annotation, transforms as:
+
+        -----------------------------------------------------------------------
+        INFO
+        -----------------------------------------------------------------------
+        ...;CSQ=SIK1|SNV|missense_variant|13/14|NM_173354.5:c.1844C>T|...
+        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_001379500.1:c.846G>T...
+        ...;CSQ=C|26040|SETBP1|XM_005258243.1||missense_variant
+
+
+
+
+
 
         Parameters
         ----------
@@ -366,8 +419,15 @@ class vcf():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with separated CSQ fields
         """
+        pd.set_option('display.max_columns', None) 
+        pd.set_option('display.max_rows', None)  
+        # pd.set_option('display.max_colwidth', None)
+
         df_rows = len(vcf_df.index)
         vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
+        print(vcf_df['CSQ'])
+
+        sys.exit()
 
         # variants with multiple transcript annotation will have duplicate CSQ
         # data that is comma sepparated => expand this to multiple rows, if no
@@ -381,8 +441,28 @@ class vcf():
             lambda x: x.str.split(',').explode()
         ).reset_index()
 
+        print(vcf_df['CSQ'])
+
+        sys.exit()
+
+
+
+        vcf_df.to_csv('exploded.vcf', sep='\t')
+
+
+        print(len(vcf_df['CSQ']))
+
+        df = vcf_df.CSQ.str.split('|', expand=True)
+
+        df.to_csv('split.vcf', sep='\t')
+
+
         # split each CSQ value to own columns
         vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
+
+        print(len(vcf_df))
+
+        sys.exit()
 
         if 'COSMIC' in vcf_df.columns:
             # handle known bug in VEP annotation where it duplicates COSMIC
@@ -707,10 +787,13 @@ class vcf():
             f"{self.expanded_vcf_rows}"
         ))
         print(f"\tTotal rows filtered with --filter: {len(self.filtered_rows)}")
-        if not self.args.keep:
+        if not self.args.keep and self.args.filter:
             print("\t\t--keep not passed, these filtered rows will be dropped")
-        else:
+        elif self.args.keep and self.args.filter:
             print("\t\t--keep passed, filtered variants will be written to file")
+        else:
+            print("\t\tNo variants excluded as --filter not specified")
+
         print(f"\tTotal rows going to write to file: {total_rows_to_write}")
         print(f"\tTotal rows we have tracked: {tracked_total}")
 
