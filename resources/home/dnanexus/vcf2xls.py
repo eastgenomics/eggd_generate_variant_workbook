@@ -15,6 +15,7 @@ import pandas as pd
 THIN = Side(border_style="thin", color="000000")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
+
 class vcf():
     """
     Functions to handle reading and manipulating vcf data
@@ -85,7 +86,10 @@ class vcf():
         # read in the vcfs
         self.vcfs = [self.read(x) for x in args.vcfs]
 
-        print(f"\nTotal variants from {len(self.vcfs)} vcf(s): {self.total_vcf_rows}\n")
+        print((
+            f"\nTotal variants from {len(self.vcfs)} "
+            f"vcf(s): {self.total_vcf_rows}\n"
+        ))
         if self.expanded_vcf_rows > 0:
             print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
 
@@ -218,7 +222,7 @@ class vcf():
             iter([x for x in header if x.startswith('##reference')]), None
         )
         if ref:
-            if not ref in self.refs:
+            if ref not in self.refs:
                 # add reference file if found and same not already in list
                 self.refs.append(Path(ref).name)
 
@@ -255,11 +259,11 @@ class vcf():
         individual columns, this transforms the data as such:
 
         -----------------------------------------------------------------------
-        FORMAT                  |  SAMPLE
+        FORMAT                 | SAMPLE
         -----------------------------------------------------------------------
-        GT:AD:DP:GQ:PL          |  0/1:83,88:171:99:2136,0,1880
-        GT:AD:DP:GQ:PL          |  0/1:128,128:256:99:3163,0,3015
-        GT:AD:DP:GQ:PGT:PID:PL  |  0/1:120,93:213:99:0|1:46896303_C_G:3367,0,6381
+        GT:AD:DP:GQ:PL         | 0/1:83,88:171:99:2136,0,1880
+        GT:AD:DP:GQ:PL         | 0/1:128,128:256:99:3163,0,3015
+        GT:AD:DP:GQ:PGT:PID:PL | 0/1:120,93:213:99:0|1:46896303_C_G:3367,0,6381
         -----------------------------------------------------------------------
                                       |
                                       |
@@ -287,16 +291,16 @@ class vcf():
 
         # split out FORMAT and SAMPLE columns a list of ':' joined pairs
         tmp_df = pd.DataFrame()
-        tmp_df['tmp'] = vcf_df.apply(
-            lambda x: {
-                '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
-            }, axis=1
-        )
+        tmp_df['tmp'] = vcf_df.apply(lambda x: {
+            '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
+        }, axis=1)
         tmp_df = tmp_df.astype(str)
 
         # split every row to a dict of key value pairs and build df
         format_cols = tmp_df.join(pd.DataFrame([
-            dict(l) for l in tmp_df.pop('tmp').str.findall((r'(\w+)=([^,\}]+)'))
+            dict(val) for val in tmp_df.pop('tmp').str.findall((
+                r'(\w+)=([^,\}]+)'
+            ))
         ]))
 
         # some columns have an extra quote added for some reason...
@@ -393,8 +397,8 @@ class vcf():
     def split_csq(self, vcf_df, csq_fields) -> pd.DataFrame:
         """
         Split out CSQ string from other values in the INFO column to separate
-        fields to get annotation. Column headers taken from format stored by
-        VEP in the header, read from self.parse_csq_fields(). Transforms as:
+        fields to get annotation.  Column headers taken from format stored by
+        VEP in the header, read from self.parse_csq_fields().  Transforms as:
 
         -----------------------------------------------------------------------
         INFO
@@ -407,7 +411,7 @@ class vcf():
                                       |
                                       ▼
         -----------------------------------------------------------------------
-        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc 
+        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc
         -----------------------------------------------------------------------
         SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
         -----------------------------------------------------------------------
@@ -582,7 +586,7 @@ class vcf():
                     # check column we're filtering is numeric and set types
                     value = float(value)
                 else:
-                    # string values have to be wrapped in quotes from np.where()
+                    # string values have to be wrapped in quotes from np.where
                     value = f"'{value}'"
 
                 # get row indices to filter
@@ -706,10 +710,13 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             if self.args.rename:
                 # sense check given reorder keys are in the vcfs
-                assert [x for x in vcf.columns for x in self.args.rename.keys()], (
+                assert [
+                    x for x in vcf.columns for x in self.args.rename.keys()
+                ], (
                     f"Column(s) specified with --rename not present in one or "
-                    f"more of the given vcfs. Valid column names: {vcf.columns}."
-                    f"Column names passed to --rename: {self.args.rename.keys()}"
+                    f"more of the given vcfs. Valid column names: "
+                    f"{vcf.columns}. Column names passed to --rename: "
+                    f"{self.args.rename.keys()}"
                 )
                 self.vcfs[idx].rename(columns=dict(self.args.rename.items()))
 
@@ -770,11 +777,17 @@ class vcf():
             f"\tTotal rows expanded: "
             f"{self.expanded_vcf_rows}"
         ))
-        print(f"\tTotal rows filtered with --filter: {len(self.filtered_rows)}")
+        print(
+            f"\tTotal rows filtered with --filter: {len(self.filtered_rows)}"
+        )
         if not self.args.keep and self.args.filter:
-            print("\t\t--keep not passed, these filtered rows will be dropped")
+            print(
+                "\t\t--keep not passed, these filtered rows will be dropped"
+            )
         elif self.args.keep and self.args.filter:
-            print("\t\t--keep passed, filtered variants will be written to file")
+            print(
+                "\t\t--keep passed, filtered variants will be written to file"
+            )
         else:
             print("\t\tNo variants excluded as --filter not specified")
 
@@ -784,7 +797,7 @@ class vcf():
 
         if not self.args.keep:
             # not keeping filtered rows => check that total we would write if
-            # they were included is what we expect from reading in and expanding
+            # they were included is what we expect from reading in & expanding
             total_rows_to_write += int(len(self.filtered_rows))
 
         assert tracked_total == total_rows_to_write, (
@@ -891,18 +904,23 @@ class excel():
         self.summary.cell(28, 4).value = "Date"
 
         # merge some title columns that have longer text
-        self.summary.merge_cells(start_row=9, end_row=9, start_column=2, end_column=5)
-        self.summary.merge_cells(start_row=21, end_row=21, start_column=2, end_column=8)
-        self.summary.merge_cells(start_row=16, end_row=16, start_column=4, end_column=5)
-        self.summary.merge_cells(start_row=28, end_row=28, start_column=2, end_column=3)
-        self.summary.merge_cells(start_row=28, end_row=28, start_column=4, end_column=6)
+        self.summary.merge_cells(
+            start_row=9, end_row=9, start_column=2, end_column=5)
+        self.summary.merge_cells(
+            start_row=21, end_row=21, start_column=2, end_column=8)
+        self.summary.merge_cells(
+            start_row=16, end_row=16, start_column=4, end_column=5)
+        self.summary.merge_cells(
+            start_row=28, end_row=28, start_column=2, end_column=3)
+        self.summary.merge_cells(
+            start_row=28, end_row=28, start_column=4, end_column=6)
 
         # set titles to bold
         title_cells = [
-            "A1", "A40", "A41", "A43", "A44", "B1", "B9", "B16", "B21", "B22",
-            "B28", "B40", "B41", "B43", "B44", "C16", "C22", "D16", "D22",
-            "D28", "E1", "E2", "E22", "F1", "F2", "F16", "F22", "G16", "G22",
-            "H16", "H22", "I16"
+            "A1", "A40", "A41", "A43", "A44", "B1", "B9", "B16",
+            "B21", "B22", "B28", "B40", "B41", "B43", "B44", "C16",
+            "C22", "D16", "D22", "D28", "E1", "E2", "E22", "F1", "F2",
+            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in title_cells:
             self.summary[cell].font = Font(bold=True)
@@ -918,10 +936,9 @@ class excel():
         self.summary.column_dimensions['H'].width = 16
 
         # colour title cells
-        blueFill = PatternFill(
-            patternType="solid", start_color="0CABA8")
+        blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
-        colour_cells =[
+        colour_cells = [
             "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
             "D28", "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
@@ -936,7 +953,7 @@ class excel():
             'B28:F28', 'B29:F29', 'B30:F30', 'B31:F31', 'B32:F32'
         ]
         for row in row_ranges:
-            for cells in  self.summary[row]:
+            for cells in self.summary[row]:
                 for cell in cells:
                     cell.border = THIN_BORDER
 
@@ -1196,7 +1213,7 @@ def parse_args() -> argparse.Namespace:
         '--print-columns', required=False, action='store_true',
         help=(
             'Print total columns of all vcfs that will be output to the xlsx. '
-            'Useful to identify what will be in the output to include / exclude'
+            'Useful to identify what will be in the output to include/exclude'
         )
     )
 
@@ -1223,9 +1240,9 @@ def parse_args() -> argparse.Namespace:
             args.sheets = ["variants"]
     else:
         assert len(args.vcfs) == len(args.sheets), (
-            "Different number of sheets specified to total vcfs passed. Number of "
-            f"vcf passed: {len(args.vcfs)}. Number of sheet names passed: "
-            f"{len(args.sheets)}"
+            "Different number of sheets specified to total vcfs passed. "
+            f"Number of vcf passed: {len(args.vcfs)}. Number of sheet names "
+            f"passed: {len(args.sheets)}"
         )
 
     return args
