@@ -8,51 +8,13 @@ _download_files () {
     xargs -n1 -P"${CPU}" "$file_list"
 }
 
-
-
-main() {
-    echo "Value of raw_vcf: '$raw_vcf'"
-    echo "Value of annotated_vcf: '$annotated_vcf'"
-    echo "Value of sample_coverage_file: '$sample_coverage_file'"
-    echo "Value of sample_coverage_index: '$sample_coverage_index'"
-    echo "Value of flagstat_file: '$flagstat_file'"
-
-    # total cores available for cmds that make use of them
-    CPU=$(grep -c ^processor /proc/cpuinfo)
-
-    mark-section "Downloading inputs"
-    _download_files "${raw_vcf} ${annotated_vcf} ${sample_coverage_file}" \
-        "${sample_coverage_index} ${flagstat_file} ${genepanels_file}" \
-        "${bioinformatic_manifest} ${nirvana_genes2transcripts}"
-
-
+_dias_report () {
+    # function to handle parsing values and reading
+    # manifest / g2t etc. for Dias sampels
     mark-section "Parsing values"
     if [ ! -z ${list_panel_names_genes+x} ]; then
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
     fi
-
-    if [ ! -z ${annotations+x} ]; then
-        echo "Value of annotations: '$annotations'"
-        parsed_annotations=""
-        default_IFS=$IFS
-        IFS=";"
-
-        # parse annotations and for custom renamed annotations i.e. NEW_NAME:=NAME, keep only the new_name bit
-        for ele in $annotations; do
-            if [[ $ele =~ .*:=.* ]]; then
-                annotation_to_add=$(echo $ele | sed s/:=.*//)
-            else
-                annotation_to_add=$(echo $ele)
-            fi
-
-            parsed_annotations+="$annotation_to_add;"
-        done
-
-        IFS=$default_IFS
-        echo "Adjusted annotations names for vcf2xls: '$parsed_annotations'"
-    fi
-
-    mkdir -p /home/dnanexus/out/xls_reports
 
     single_genes=""
 
@@ -83,19 +45,6 @@ main() {
         done
     fi
 
-    # filter annotated vcf to include regions in the flanked panel bed using bedtools
-    if [ ! -z ${panel_bed+x} ]; then
-        dx download "$panel_bed" -o inputs/
-        echo $panel_bed_name
-
-        # If panel bed is provided, filter the vcf
-        bedtools intersect -header -a inputs/annotated_vcf -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
-    else
-        # Create sliced annotated vcf to be the same as the annotated vcf if the bed is not provided
-        echo "VCF not filtered as panel bed not provided"
-        cp inputs/annotated_vcf inputs/sliced_annotated_vcf
-    fi
-
     # Boolean to detect if workflow id has been found
     found_workflow_id=false
 
@@ -108,7 +57,7 @@ main() {
     # get file id of vcf annotator input raw vcf
     nirvana_annotated_vcf_id=$(dx describe --delim "_" $gnomad_annotation_job_id | grep _dest_vcf | cut -d= -f2)
 
-    # get workflow id and analysis name of nirvana annotated vcf
+    # get workflow id and analysis name of annotated vcf
     if dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- ; then
         job_id=$(dx describe --delim "_" $nirvana_annotated_vcf_id | grep job- | cut -d_ -f2)
         analysis=$(dx describe --delim "_" $job_id)
@@ -125,22 +74,73 @@ main() {
         fi
     fi
 
-    # get read stats from flagstat file
-    total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
-
-
     project_id=$DX_PROJECT_CONTEXT_ID
 
     version=0
     matching_files=1
     if [ -z "$output_prefix" ]; then
-        output_name=${sample_id}_${version}.xlsx
+        output_name=${sample_id}_${version}
     else
-        output_name="${output_prefix}.xlsx"
+        output_name="${output_prefix}"
     fi
+}
+
+_panel_filter () {
+    # Filters with bedtools intersect if panel bed file given
+    
+    # filter annotated vcf to include regions in the flanked panel bed using bedtools
+    if [ ! -z ${panel_bed+x} ]; then
+        dx download "$panel_bed" -o inputs/
+        echo $panel_bed_name
+
+        # If panel bed is provided, filter the vcf
+        bedtools intersect -header -a inputs/annotated_vcf -b inputs/$panel_bed_name > inputs/sliced_annotated_vcf
+    else
+        # Create sliced annotated vcf to be the same as the annotated vcf if the bed is not provided
+        echo "VCF not filtered as panel bed not provided"
+        cp inputs/annotated_vcf inputs/sliced_annotated_vcf
+    fi
+}
+
+
+main() {
+    echo "Value of raw_vcf: '$raw_vcf'"
+    echo "Value of annotated_vcf: '$annotated_vcf'"
+    echo "Value of sample_coverage_file: '$sample_coverage_file'"
+    echo "Value of sample_coverage_index: '$sample_coverage_index'"
+    echo "Value of flagstat_file: '$flagstat_file'"
+
+    # total cores available for cmds that make use of them
+    CPU=$(grep -c ^processor /proc/cpuinfo)
+
+    mark-section "Downloading inputs"
+    _download_files "${raw_vcf} ${annotated_vcf} ${sample_coverage_file}" \
+        "${sample_coverage_index} ${flagstat_file} ${genepanels_file}" \
+        "${bioinformatic_manifest} ${nirvana_genes2transcripts}"
+
+
+    mkdir -p /home/dnanexus/out/xls_reports
+
+    if [ "$summary" == "dias" ]; then
+        # generating report for Dias workflow, call function to get appropriate things
+        # for Dias report
+        _dias_report
+    fi
+
+
+    if [ "$panel_bed" ]; then
+        # filter with bed file if given
+        _panel_filter
+    fi
+
+    if [ "$flagstat_file" ]; then
+        # get read stats from flagstat file
+        total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
+        nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
+        nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
+        nb_usable_reads=$(expr $nb_aligned_reads - $nb_duplicates_reads)
+    fi
+
 
     # build string of input arguments
     optional_args=""
@@ -181,6 +181,6 @@ main() {
 
     echo "Output name: $output_name"
 
-    output_file=$(dx upload /home/dnanexus/out/xls_reports/${output_name} --brief)
+    output_file=$(dx upload /home/dnanexus/out/xls_reports/* --brief)
     dx-jobutil-add-output xls_report "$output_file" --class=file
 }
