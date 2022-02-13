@@ -19,21 +19,16 @@
       "label": "List of comma-separated panels or comma-separated genes (prefixed with \"_\")",
       "class": "string",
       "optional": true,
-      "help": ""
-    },
-    {
-      "name": "annotations",
-      "label": "List of comma-separated names of fields in the vcf to annotate the report with",
-      "class": "string",
-      "optional": true,
-      "help": ""
+      "help": "",
+      "group": "app"
     },
     {
       "name": "annotated_vcfs",
       "label": "VEP annotated vcf(s)",
       "class": "array:file",
       "optional": false,
-      "help": ""
+      "help": "",
+      "group": "app"
     },
     {
       "name": "raw_vcf",
@@ -43,42 +38,48 @@
       "patterns": [
         "*.vcf", "*.vcf.gz"
       ],
-      "help": ""
+      "help": "",
+      "group": "app"
     },
     {
       "name": "exclude_cols",
       "label": "Exclude columns",
       "class": "string",
       "optional": true,
-      "help": "Columns of VCF to exclude from output xlsx"
+      "help": "Columns of VCF to exclude from output xlsx",
+      "group": "vcf2xls.py"
     },
     {
       "name": "include_cols",
       "label": "Include columns",
       "class": "string",
       "optional": true,
-      "help": "Columns of VCF to only include in output xlsx"
+      "help": "Columns of VCF to only include in output xlsx",
+      "group": "vcf2xls.py"
     },
     {
       "name": "reorder_cols",
       "label": "Reorder columns",
       "class": "string",
       "optional": true,
-      "help": "Order of fields from VCF in output xlsx columns"
+      "help": "Order of fields from VCF in output xlsx columns",
+      "group": "vcf2xls.py"
     },
     {
       "name": "rename_cols",
       "label": "Rename columns",
       "class": "string",
       "optional": true,
-      "help": "= separated key value pairs of VCF fields to rename in output xlsx"
+      "help": "= separated key value pairs of VCF fields to rename in output xlsx",
+      "group": "vcf2xls.py"
     },
     {
       "name": "filter",
       "label": "Filter",
       "class": "string",
       "optional": true,
-      "help": "Filters to apply to variants"
+      "help": "Filters to apply to variants",
+      "group": "vcf2xls.py"
     },
     {
       "name": "keep",
@@ -86,7 +87,8 @@
       "class": "bool",
       "optional": true,
       "default": true,
-      "help": "Determines if to keep filtered variants in separate 'filtered' tab"
+      "help": "Determines if to keep filtered variants in separate 'filtered' tab",
+      "group": "vcf2xls.py"
     },
     {
       "name": "add_name",
@@ -94,26 +96,37 @@
       "class": "boolean",
       "optional": true,
       "default": true,
-      "help": "Determines if to add samplename as first column in each sheet"
+      "help": "Determines if to add samplename as first column in each sheet",
+      "group": "vcf2xls.py"
     },
     {
       "name": "sheets",
       "label": "Sheet names",
       "optional": true,
-      "help": "Names to use for sheets where multiple VCFs are passed"
+      "help": "Names to use for sheets where multiple VCFs are passed",
+      "group": "vcf2xls.py"
     },
     {
-      "name": "output",
+      "name": "output_prefix",
       "label": "Output prefix",
       "optional": true,
-      "help": "Prefix for naming output xlsx file"
+      "help": "Prefix for naming output xlsx file",
+      "group": "vcf2xls.py"
     },
     {
       "name": "merge",
       "label": "Merge",
       "optional": true,
       "default": false,
-      "help": "Determines if to merge multiplke VCFs to one sheet"
+      "help": "Determines if to merge multiple VCFs to one sheet",
+      "group": "vcf2xls.py"
+    },
+    {
+      "name": "summary",
+      "label": "Summary",
+      "optional": true,
+      "help": "If to include summary sheet, specify key of assay",
+      "group": "vcf2xls.py"
     },
     {
       "name": "flagstat_file",
@@ -123,7 +136,8 @@
       "patterns": [
         "*.flagstat"
       ],
-      "help": ""
+      "help": "",
+      "group": "app"
     },
     {
       "name": "genepanels_file",
@@ -136,7 +150,8 @@
       ],
       "class": "file",
       "optional": false,
-      "help": "File with all panels and their genes. Contains panel name, panel_id, gene_symbol tab-separated"
+      "help": "File with all panels and their genes. Contains panel name, panel_id, gene_symbol tab-separated",
+      "group": "app"
     },
     {
       "name": "bioinformatic_manifest",
@@ -149,7 +164,8 @@
       ],
       "class": "file",
       "optional": false,
-      "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated"
+      "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated",
+      "group": "app"
     },
     {
       "name": "nirvana_genes2transcripts",
@@ -162,7 +178,8 @@
       ],
       "class": "file",
       "optional": false,
-      "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated"
+      "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated",
+      "group": "app"
     },
     {
       "name": "panel_bed",
@@ -172,7 +189,8 @@
       "patterns": [
         "*.bed"
       ],
-      "help": ""
+      "help": "",
+      "group": "app"
     }
   ],
   "outputSpec": [
@@ -202,7 +220,7 @@
     "interpreter": "bash",
     "release": "20.04",
     "distribution": "Ubuntu",
-    "file": "src/vcf2xls_nirvana.sh"
+    "file": "src/vcf2xls.sh"
   },
   "assetDepends": [
     {
