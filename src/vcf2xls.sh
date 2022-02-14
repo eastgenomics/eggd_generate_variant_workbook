@@ -129,7 +129,7 @@ main() {
     #--output $output_prefix
 
     python3 vcf2xls.py --vcfs vcfs/*  \
-        --out_dir "/home/dnanexus/out/xls_reports" $args
+        --out_dir "/home/dnanexus/out/xls_reports" $optional_args
 
 
     echo "Output name: ${output_prefix}.xlsx"
