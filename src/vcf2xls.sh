@@ -18,35 +18,6 @@ _dias_report_setup () {
         echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
     fi
 
-    single_genes=""
-
-    # get single genes from manifest/given list
-    if [ ! -z ${list_panel_names_genes+x} ]; then
-        default_IFS=$IFS
-        IFS=";"
-        single_genes=$(for ele in $list_panel_names_genes; do if [[ $ele =~ ^_ ]]; then echo $ele | sed s/_//; fi; done)
-        IFS=$default_IFS
-    else
-        sample_in_manifest=$(grep $sample_id BioinformaticManifest)
-        single_genes=$(awk -v id=$sample_id '{if(id == $1 && $2 ~ /^_/){print $4}}' BioinformaticManifest)
-
-        # also check if sample is present in the bioinformatic manifest
-        if [[ ! $sample_in_manifest ]]; then
-            echo "${sample_id} is not present in the bioinformatic manifest, exiting..."
-            exit
-        fi
-    fi
-
-    # Check if single genes are present in g2t
-    if [[ $single_genes ]]; then
-        for gene in $single_genes; do
-            if ! grep -q $gene nirvana_genes2transcripts; then
-                echo "${gene} not found in nirvana g2t"
-                exit
-            fi
-        done
-    fi
-
     # Boolean to detect if workflow id has been found
     found_workflow_id=false
 
@@ -80,8 +51,6 @@ _dias_report_setup () {
     matching_files=1
     if [ -z "$output_prefix" ]; then
         output_name=${sample_id}_${version}
-    else
-        output_name="${output_prefix}"
     fi
 
     # Tiny chance of race conditions leading to two files with the same name here
@@ -93,9 +62,9 @@ _dias_report_setup () {
 
     # Add text to report name if workflow id hasn't been found
     if [ $found_workflow_id = true ]; then
-        output_name="${sample_id}_${version}.xls"
+        output_prefix="${sample_id}_${version}"
     else
-        output_name="${sample_id}_${version}_FOR_DEV_USE_ONLY.xls"
+        output_prefix="${sample_id}_${version}_FOR_DEV_USE_ONLY"
     fi
 }
 
@@ -168,11 +137,11 @@ main() {
     if [ "$merge" ]; then args+="--merge "; fi
     if [ "$keep" ]; then args+="--keep "; fi
 
-    python3 vcf2xls.py --vcfs vcfs/* --output $output_name \
+    python3 vcf2xls.py --vcfs vcfs/* --output $output_prefix \
         --out_dir "/home/dnanexus/out/xls_reports" $optional_args
 
 
-    echo "Output name: $output_name"
+    echo "Output name: ${output_prefix}.xlsx"
 
     output_file=$(dx upload /home/dnanexus/out/xls_reports/* --brief)
     dx-jobutil-add-output xls_report "$output_file" --class=file
