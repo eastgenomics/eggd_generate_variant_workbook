@@ -6,6 +6,7 @@ import re
 from string import ascii_uppercase as uppercase
 import sys
 from typing import Union
+import urllib.parse
 
 import Levenshtein as levenshtein
 import numpy as np
@@ -505,11 +506,15 @@ class vcf():
     def remove_nan(self) -> None:
         """
         Remove NaN values from all dataframes, cast everything to a string
-        first as this method is called before writing and it reliably allows
-        us to identify and replace all NaN values
+        first as this method is called before writing and it reliably
+        allows us to identify and replace all NaN values.
         """
         for idx, vcf in enumerate(self.vcfs):
             vcf = vcf.astype(str)
+            # pass through urllib unqoute and UTF-8 to fix any weird symbols
+            vcf = vcf.applymap(
+                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
+            )
 
             for col in vcf.columns:
                 vcf[col] = vcf[col].apply(
@@ -997,7 +1002,9 @@ class excel():
 
     def set_widths(self, current_sheet, sheet_columns) -> None:
         """
-        Set widths for variant sheets off common names to be more readable
+        Set widths for variant sheets off common names to be more readable,
+        calls get_closest_match() method to determine appropriate column
+        width to use.
 
         Parameters
         ----------
@@ -1024,8 +1031,8 @@ class excel():
             "exon": 9,
             "variant class": 15,
             "consequence": 25,
-            "hgvsc": 24,
-            "hgvsp": 24,
+            "hgvsc": 27,
+            "hgvsp": 27,
             "gnomad": 13,
             "existing variation": 18,
             "clinvar": 10,
@@ -1258,6 +1265,7 @@ def parse_args() -> argparse.Namespace:
     # in case multiple columns passed as one string, split them out to one list
     if args.exclude:
         args.exclude = list(chain(*[x.split() for x in args.exclude]))
+
     if args.include:
         args.include = list(chain(*[x.split() for x in args.include]))
 
