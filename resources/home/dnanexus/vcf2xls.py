@@ -1,4 +1,5 @@
 import argparse
+from itertools import chain
 import os
 from pathlib import Path
 import re
@@ -145,7 +146,7 @@ class vcf():
             vcf header lines
         """
         sample = Path(vcf).stem.split('_')[0]
-        print(f"\nReading in vcf {vcf}\n")
+        print(f"\n\nReading in vcf {vcf}\n")
 
         header, columns = self.parse_header(vcf)
         self.get_reference(header)
@@ -662,11 +663,12 @@ class vcf():
                 to_drop = self.args.exclude
 
             # sense check given exclude columns is in the vcfs
-            assert [x for x in vcf.columns for x in to_drop], (
-                "Column '{x}' specified with --exclude/--include not "
-                "present in one or more of the given vcfs. Valid column "
-                f"names: {vcf.columns}"
+            assert all(column in vcf.columns for column in to_drop), (
+                "Column(s) specified with --exclude/--include not present in "
+                "one or more of the given vcfs. \n\nValid column names: "
+                f"{vcf.columns.tolist()}. \n\nColumns specified: {to_drop}"
             )
+
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
@@ -764,7 +766,7 @@ class vcf():
             # haven't merged to one df => count all
             total_rows_to_write = sum([len(df.index) for df in self.vcfs])
         else:
-            total_rows_to_write = len(self.vcf[0])
+            total_rows_to_write = len(self.vcfs[0])
 
         if self.args.filter:
             total_filtered_rows = len(self.filtered_rows)
@@ -1252,6 +1254,12 @@ def parse_args() -> argparse.Namespace:
             f"Number of vcf passed: {len(args.vcfs)}. Number of sheet names "
             f"passed: {len(args.sheets)}"
         )
+
+    # in case multiple columns passed as one string, split them out to one list
+    if args.exclude:
+        args.exclude = list(chain(*[x.split() for x in args.exclude]))
+    if args.include:
+        args.include = list(chain(*[x.split() for x in args.include]))
 
     return args
 
