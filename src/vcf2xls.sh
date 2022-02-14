@@ -113,6 +113,7 @@ main() {
     if [ "$include_cols" ]; then args+="--include ${include_cols} "; fi
     if [ "$reorder_cols" ]; then args+="--reorder ${reorder_cols} "; fi
     if [ "$rename_cols" ]; then args+="--rename ${rename_cols} "; fi
+    if [ "$print_columns" ]; then args+="--print-columns "; fi
     if [ "$flagstat_file" ]; then args+="--reads ${total_nb_reads} "; fi
     if [ "$output_prefix" ]; then args+="--sample ${output_prefix} "; fi
     if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi

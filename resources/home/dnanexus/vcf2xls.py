@@ -638,7 +638,7 @@ class vcf():
             print(f"Columns for {Path(name).name}: ")
             print(f"\n\t{list(vcf.columns)}\n\n")
 
-        sys.exit()
+        sys.exit(0)
 
 
     def drop_columns(self) -> None:
@@ -1224,7 +1224,7 @@ def parse_args() -> argparse.Namespace:
         help='usable reads from flagstat'
     )
     parser.add_argument(
-        '--print-columns', required=False, action='store_true',
+        '--print_columns', required=False, action='store_true',
         help=(
             'Print total columns of all vcfs that will be output to the xlsx. '
             'Useful to identify what will be in the output to include/exclude'
@@ -1261,13 +1261,6 @@ def parse_args() -> argparse.Namespace:
             f"Number of vcf passed: {len(args.vcfs)}. Number of sheet names "
             f"passed: {len(args.sheets)}"
         )
-
-    # in case multiple columns passed as one string, split them out to one list
-    if args.exclude:
-        args.exclude = list(chain(*[x.split() for x in args.exclude]))
-
-    if args.include:
-        args.include = list(chain(*[x.split() for x in args.include]))
 
     return args
 
