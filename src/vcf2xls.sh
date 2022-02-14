@@ -103,7 +103,12 @@ _dias_report_setup () {
 _panel_filter () {
     # Filters with bedtools intersect if panel bed file given
     vcf=$1
-    eccho "Filtering ${vcf} agaist ${panel_bed_name}"
+    echo "Filtering ${vcf} agaist ${panel_bed_name}"
+
+    # get nicely formatted name of bed file for report
+    panel=$(sed 's/_\([0-9]\{2\}\)bp_b\([0-9]\{2\}\).bed//g' <<< $bed)  # remove generate_bed suffix
+    panel=${bed//_/}
+    panel=${bed//&&/ & }
 
     bedtools intersect -header -a $vcf -b inputs/$panel_bed_name > vcfs/$vcf
 }
