@@ -1,25 +1,11 @@
 #!/bin/bash
 
-set -euxo pipefail
-
-_download_files () {
-    # downloads input files with xargs parallel for speed
-    local dir=$1
-    local file_list=$2
-    xargs -n1 -P"${CPU}" dx download --output "$dir" "$file_list"
-}
-
+set -exo pipefail
 
 _dias_report_setup () {
     # function to handle parsing values and reading
     # manifest / g2t etc. for Dias sampels
     mark-section "Parsing values"
-    if [ ! -z ${list_panel_names_genes+x} ]; then
-        echo "Value of list_panel_names_genes: '$list_panel_names_genes'"
-    fi
-
-    # Boolean to detect if workflow id has been found
-    found_workflow_id=false
 
     # get job id creating the annotated vcf
     annotation_job_id=$(dx describe --json ${vcfs[0]} | jq -r '.createdBy.job')
@@ -30,19 +16,19 @@ _dias_report_setup () {
 
 
     # Placeholder text if the workflow id is not found
-    if [ -z $annotation_job_name ]; then
+    if [ -z "$annotation_job_name" ]; then
         analysis_name="No workflow id found for this report."
     fi
-    if [ -z $workflow_name ]; then
+    if [ -z "$workflow_name" ]; then
         workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
     fi
 
 
     # get read stats from flagstat file
-    total_nb_reads=$(grep total inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_duplicates_reads=$(grep duplicate inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_aligned_reads=$(grep "mapped (" inputs/$flagstat_file_name | cut -d+ -f1)
-    nb_usable_reads=$(( $nb_aligned_reads - $nb_duplicates_reads ))
+    total_nb_reads=$(grep total inputs/"$flagstat_file_name" | cut -d+ -f1)
+    nb_duplicates_reads=$(grep duplicate inputs/"$flagstat_file_name" | cut -d+ -f1)
+    nb_aligned_reads=$(grep "mapped (" inputs/"$flagstat_file_name" | cut -d+ -f1)
+    nb_usable_reads=$(( "$nb_aligned_reads" - "$nb_duplicates_reads" ))
 
 
     project_id=$DX_PROJECT_CONTEXT_ID
@@ -50,18 +36,18 @@ _dias_report_setup () {
     version=0
     matching_files=1
     if [ -z "$output_prefix" ]; then
-        output_name=${sample_id}_${version}
+        output_name="${sample_id}_${version}"
     fi
 
     # Tiny chance of race conditions leading to two files with the same name here
     while [ $matching_files -ne 0 ]; do
         version=$((version+1))
-        output_name=${sample_id}_${version}*.xls
-        matching_files=$(dx find data --path ${project_id}:/ --name $output_name --brief | wc -l)
+        output_name="${sample_id}_${version}*"
+        matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
     done;
 
     # Add text to report name if workflow id hasn't been found
-    if [ $found_workflow_id = true ]; then
+    if [[ $workflow_id ]]; then
         output_prefix="${sample_id}_${version}"
     else
         output_prefix="${sample_id}_${version}_FOR_DEV_USE_ONLY"
@@ -84,7 +70,7 @@ _panel_filter () {
 
 
 main() {
-    echo "Value of vcf(s): $vcfs"
+    echo "Value of vcf(s): ${vcfs[*]}"
     echo "Value of flagstat_file: $flagstat_file"
 
     # total cores available for cmds that make use of them
@@ -92,13 +78,12 @@ main() {
 
     mark-section "Downloading inputs"
     mkdir vcfs
-    _download_files --output "vcfs/" "$vcfs"
+    dx-download-all-inputs --parallel
+    find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
 
     if [ "$assay" == "dias" ]; then
         # download and do dias specific things
-        _download_files "$flagstat_file" "$genepanels_file" \
-            "$bioinformatic_manifest" "$nirvana_genes2transcripts"
-
+        dx download "$flagstat_file"
         _dias_report_setup
     fi
 
@@ -109,7 +94,7 @@ main() {
         # filtered ones to vcfs dir
         dx download "$panel_bed"
 
-        mkdir full_vcfs
+        mkdir unfiltered_vcfs
         mv vcfs/* unfiltered_vcfs/
 
         for vcf in unfiltered_vcfs/*; do
@@ -117,8 +102,11 @@ main() {
         done
     fi
 
+    # install required python packages
+    python3 -m pip install --no-index --no-deps packages/*
+
     # build string of input arguments
-    optional_args=""
+    args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication}"; fi
     if [ "$flagstat_file" ]; then args+="--usable_reads ${nb_usable_reads} "; fi
     if [ "$exclude_cols" ]; then args+="--exclude ${exclude_cols} "; fi
@@ -127,6 +115,7 @@ main() {
     if [ "$rename_cols" ]; then args+="--rename ${rename_cols} "; fi
     if [ "$flagstat_file" ]; then args+="--reads ${total_nb_reads} "; fi
     if [ "$output_prefix" ]; then args+="--sample ${output_prefix} "; fi
+    if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_id} ${analysis_name} "; fi
     if [ "$analysis" ]; then args+="--analysis ${analyis} "; fi
     if [ "$summary" ]; then args+="summary ${summary} "; fi
@@ -137,8 +126,10 @@ main() {
     if [ "$merge" ]; then args+="--merge "; fi
     if [ "$keep" ]; then args+="--keep "; fi
 
-    python3 vcf2xls.py --vcfs vcfs/* --output $output_prefix \
-        --out_dir "/home/dnanexus/out/xls_reports" $optional_args
+    #--output $output_prefix
+
+    python3 vcf2xls.py --vcfs vcfs/*  \
+        --out_dir "/home/dnanexus/out/xls_reports" $args
 
 
     echo "Output name: ${output_prefix}.xlsx"

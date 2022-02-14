@@ -1,7 +1,7 @@
 {
-  "name": "eggd_vcf2xls_nirvana",
-  "title": "eggd_vcf2xls_nirvana",
-  "summary": "Create xls from Nirvana annotated vcf",
+  "name": "eggd_vcf2xls",
+  "title": "eggd_vcf2xls",
+  "summary": "Create xlsx from VEP annotated vcf",
   "dxapi": "1.0.0",
   "version": "2.0.0",
   "authorizedUsers": [
@@ -15,11 +15,11 @@
   },
   "inputSpec": [
     {
-      "name": "list_panel_names_genes",
-      "label": "List of comma-separated panels or comma-separated genes (prefixed with \"_\")",
+      "name": "assay",
+      "label": "Type of assay to generate report for, determines what is downloaded and run in-app",
       "class": "string",
       "optional": true,
-      "help": "",
+      "help": "Lowercase string of assay report is for (i.e. dias)",
       "group": "app"
     },
     {
@@ -73,7 +73,7 @@
     {
       "name": "keep",
       "label": "Keep",
-      "class": "bool",
+      "class": "boolean",
       "optional": true,
       "default": true,
       "help": "Determines if to keep filtered variants in separate 'filtered' tab",
@@ -91,6 +91,7 @@
     {
       "name": "sheets",
       "label": "Sheet names",
+      "class": "string",
       "optional": true,
       "help": "Names to use for sheets where multiple VCFs are passed",
       "group": "vcf2xls.py"
@@ -98,6 +99,7 @@
     {
       "name": "output_prefix",
       "label": "Output prefix",
+      "class": "string",
       "optional": true,
       "help": "Prefix for naming output xlsx file",
       "group": "vcf2xls.py"
@@ -105,6 +107,7 @@
     {
       "name": "merge",
       "label": "Merge",
+      "class": "boolean",
       "optional": true,
       "default": false,
       "help": "Determines if to merge multiple VCFs to one sheet",
@@ -113,6 +116,7 @@
     {
       "name": "summary",
       "label": "Summary",
+      "class": "string",
       "optional": true,
       "help": "If to include summary sheet, specify key of assay",
       "group": "vcf2xls.py"
@@ -121,53 +125,11 @@
       "name": "flagstat_file",
       "label": "Flagstat file for displaying number of reads in the report",
       "class": "file",
-      "optional": false,
+      "optional": true,
       "patterns": [
         "*.flagstat"
       ],
       "help": "",
-      "group": "app"
-    },
-    {
-      "name": "genepanels_file",
-      "label": "Genepanels file",
-      "suggestions": [
-        {
-          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/dynamic_files/gene_panels/"
-        }
-      ],
-      "class": "file",
-      "optional": false,
-      "help": "File with all panels and their genes. Contains panel name, panel_id, gene_symbol tab-separated",
-      "group": "app"
-    },
-    {
-      "name": "bioinformatic_manifest",
-      "label": "Bioinformatic manifest",
-      "suggestions": [
-        {
-          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/dynamic_files/BioinformaticManifest/"
-        }
-      ],
-      "class": "file",
-      "optional": false,
-      "help": "File with record of samples ran with which panels. Contains sample_id, panel name, panel_id, gene_symbol tab-separated",
-      "group": "app"
-    },
-    {
-      "name": "genes2transcripts",
-      "label": "genes2transcripts",
-      "suggestions": [
-        {
-          "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-          "path": "/dynamic_files/nirvana_genes2transcripts/"
-        }
-      ],
-      "class": "file",
-      "optional": false,
-      "help": "File with the genes and their transcripts chosen by the team to match nirvana. Contains gene_symbol, transcript_id (NM) tab-separated",
       "group": "app"
     },
     {
@@ -180,13 +142,6 @@
       ],
       "help": "",
       "group": "app"
-    },
-    {
-      "name": "assay",
-      "label": "Type of assay to generate report for, determines what is downloaded and run in-app",
-      "class": "string",
-      "optional": true,
-      "help": "Lowercase string of assay report is for (i.e. dias)"
     }
   ],
   "outputSpec": [
@@ -206,15 +161,9 @@
         "hours": 6
       }
     },
-    "execDepends": [
-      {
-        "name": "pysam",
-       "package_manager": "pip",
-       "version": "0.12.0"
-      }
-    ],
     "interpreter": "bash",
     "release": "20.04",
+    "version": "0",
     "distribution": "Ubuntu",
     "file": "src/vcf2xls.sh"
   },
@@ -224,12 +173,6 @@
       "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
       "folder": "/app_assets/bedtools/bedtools_v2.30.0",
       "version": "2.30.0"
-    },
-    {
-      "name": "htslib",
-      "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-      "folder": "/app_assets/htslib/htslib_v1.12.0",
-      "version": "1.14.0"
     }
   ],
   "access": {
