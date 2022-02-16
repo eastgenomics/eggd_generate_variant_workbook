@@ -740,7 +740,11 @@ class vcf():
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
-        self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
+        if not self.args.keep:
+            self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
+        else:
+            # keep filtered df seperate to write to seperate sheet
+            self.vcfs[:-1] = [pd.concat(self.vcfs).reset_index(drop=True)]
 
 
     def verify_totals(self) -> None:
@@ -1253,7 +1257,7 @@ def parse_args() -> argparse.Namespace:
             # sheet names not specified for > 1 vcf passed => use vcf names
             args.sheets = [Path(x).name.split('_')[0] for x in args.vcfs]
         else:
-            # one vcf => name it variants
+            # one vcf (or merged) => name it variants
             args.sheets = ["variants"]
     else:
         assert len(args.vcfs) == len(args.sheets), (
