@@ -105,6 +105,9 @@ main() {
     # install required python packages
     python3 -m pip install --no-index --no-deps packages/*
 
+    echo "keep passed: ${keep}"
+    echo "merg passed: ${merge}"
+
     # build string of input arguments
     args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication}"; fi
@@ -115,23 +118,19 @@ main() {
     if [ "$rename_cols" ]; then args+="--rename ${rename_cols} "; fi
     if [ "$print_columns" ]; then args+="--print-columns "; fi
     if [ "$flagstat_file" ]; then args+="--reads ${total_nb_reads} "; fi
-    if [ "$output_prefix" ]; then args+="--sample ${output_prefix} "; fi
-    if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
+    if [ "$output" ]; then args+="--sample ${output} "; fi
+    if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_id} ${analysis_name} "; fi
     if [ "$analysis" ]; then args+="--analysis ${analyis} "; fi
     if [ "$summary" ]; then args+="summary ${summary} "; fi
     if [ "$sheets" ]; then args+="--sheets ${sheets} "; fi
+    if [ "$filter" ]; then args+="--filter ${filter} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
-    if [ "$add_name" ]; then args+="--add_name "; fi
-    if [ "$filter" ]; then args+="--filter "; fi
-    if [ "$merge" ]; then args+="--merge "; fi
-    if [ "$keep" ]; then args+="--keep "; fi
+    if [ "$add_name" == "true" ]; then args+="--add_name "; fi
+    if [ "$merge" == true ]; then args+="--merge "; fi
+    if [ "$keep" == true ]; then args+="--keep "; fi
 
-    #--output $output_prefix
-
-    python3 vcf2xls.py --vcfs vcfs/*  \
-        --out_dir "/home/dnanexus/out/xls_reports" $optional_args
-
+    time python3 vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
 
     echo "Output name: ${output_prefix}.xlsx"
 
