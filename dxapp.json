@@ -75,7 +75,7 @@
       "label": "Keep",
       "class": "boolean",
       "optional": true,
-      "default": true,
+      "default": false,
       "help": "Determines if to keep filtered variants in separate 'filtered' tab",
       "group": "vcf2xls.py"
     },
@@ -84,7 +84,7 @@
       "label": "Add sample name",
       "class": "boolean",
       "optional": true,
-      "default": true,
+      "default": false,
       "help": "Determines if to add samplename as first column in each sheet",
       "group": "vcf2xls.py"
     },
@@ -97,7 +97,7 @@
       "group": "vcf2xls.py"
     },
     {
-      "name": "output_prefix",
+      "name": "output",
       "label": "Output prefix",
       "class": "string",
       "optional": true,
@@ -119,6 +119,14 @@
       "class": "string",
       "optional": true,
       "help": "If to include summary sheet, specify key of assay",
+      "group": "vcf2xls.py"
+    },
+    {
+      "name": "print_columns",
+      "label": "Print columns",
+      "class": "boolean",
+      "optional": true,
+      "help": "Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.",
       "group": "vcf2xls.py"
     },
     {
@@ -186,7 +194,7 @@
     "aws:eu-central-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem1_ssd1_v2_x4"
+          "instanceType": "mem1_ssd1_v2_x2"
         }
       }
     }
