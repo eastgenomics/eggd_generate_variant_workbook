@@ -135,10 +135,10 @@ class vcf():
         Reads given vcf into pd.DataFrame, calls following methods:
 
         - self.parse_header()
-        - self.parse_csq_fields()
-        - self.split_info()
-        - self.split_csq()
-        - self.split_format_fields()
+        - splitColumns.parse_csq_fields()
+        - splitColumns.info()
+        - splitColumns.csq()
+        - splitColumns.format_fields()
 
         Parameters
         ------
@@ -173,12 +173,12 @@ class vcf():
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
         # split out INFO column values and CSQ
-        csq_fields = annotation.parse_csq_fields(header)
-        vcf_df = annotation.split_info(vcf_df)
-        vcf_df, self.expanded_vcf_rows = annotation.split_csq(
+        csq_fields = splitColumns.parse_csq_fields(header)
+        vcf_df = splitColumns.info(vcf_df)
+        vcf_df, self.expanded_vcf_rows = splitColumns.csq(
             vcf_df, csq_fields
         )
-        vcf_df = annotation.split_format_fields(vcf_df)
+        vcf_df = splitColumns.format_fields(vcf_df)
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO', 'CSQ'], axis=1, inplace=True)
@@ -482,7 +482,7 @@ class vcf():
         )
 
 
-class annotation():
+class splitColumns():
     """
     Functions for spliting and checing of variant annotation and
     attribute columns (FORMAT, SAMPLE, INFO, CSQ), called during reading
@@ -518,7 +518,7 @@ class annotation():
         return csq_fields
 
     @staticmethod
-    def split_format_fields(vcf_df) -> pd.DataFrame:
+    def format_fields(vcf_df) -> pd.DataFrame:
         """
         Get format fields from FORMAT column to split out sample values to
         individual columns, this transforms the data as such:
@@ -582,7 +582,7 @@ class annotation():
         return vcf_df
 
     @staticmethod
-    def split_info(vcf_df) -> pd.DataFrame:
+    def info(vcf_df) -> pd.DataFrame:
         """
         Splits out the INFO column of vcf to all separate values, excluding
         the CSQ values. This transforms as:
@@ -660,7 +660,7 @@ class annotation():
         return vcf_df
 
     @staticmethod
-    def split_csq(vcf_df, csq_fields) -> Union[pd.DataFrame, list]:
+    def csq(vcf_df, csq_fields) -> Union[pd.DataFrame, list]:
         """
         Split out CSQ string from other values in the INFO column to separate
         fields to get annotation.  Column headers taken from format stored by
