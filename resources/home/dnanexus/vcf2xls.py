@@ -103,8 +103,8 @@ class vcf():
             # filter dfs of variants against cmd line specified filters
             filters = filter(self.args, self.vcfs)
 
-            filters.validate_filters()
-            filters.build_filters()
+            filters.validate()
+            filters.build()
             filters.filter()
 
             # update class with any changes from filtering
@@ -152,11 +152,14 @@ class vcf():
         header : list
             vcf header lines
         """
-        sample = Path(vcf).stem.split('_')[0]
+        sample = Path(vcf).stem
+        if '_' in vcf:
+            sample = sample.split('_')[0]
+
         print(f"\n\nReading in vcf {vcf}\n")
 
         header, columns = self.parse_header(vcf)
-        self.get_reference(header)
+        self.parse_reference(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
@@ -179,9 +182,6 @@ class vcf():
             vcf_df, csq_fields
         )
         vcf_df = splitColumns.format_fields(vcf_df)
-
-        # drop INFO and CSQ as we fully split them out
-        vcf_df.drop(['INFO', 'CSQ'], axis=1, inplace=True)
 
         vcf_df = self.set_types(vcf_df)
 
@@ -220,7 +220,7 @@ class vcf():
         return header, columns
 
 
-    def get_reference(self, header) -> None:
+    def parse_reference(self, header) -> None:
         """
         Parse reference file used from VCF header
 
@@ -488,9 +488,6 @@ class splitColumns():
     attribute columns (FORMAT, SAMPLE, INFO, CSQ), called during reading
     of VCFs from file in vcf.read()
     """
-    def __init__():
-        pass
-
     @staticmethod
     def parse_csq_fields(header) -> list:
         """
@@ -657,6 +654,9 @@ class splitColumns():
             # add all info values to main vcf df
             vcf_df[col] = info_df[col]
 
+        # drop INFO and CSQ as we fully split them out
+        vcf_df.drop(['INFO'], axis=1, inplace=True)
+
         return vcf_df
 
     @staticmethod
@@ -664,7 +664,13 @@ class splitColumns():
         """
         Split out CSQ string from other values in the INFO column to separate
         fields to get annotation.  Column headers taken from format stored by
-        VEP in the header, read from self.parse_csq_fields().  Transforms as:
+        VEP in the header, read from self.parse_csq_fields().
+
+        Variants with multiple transcript annotation will have duplicate CSQ
+        data that is comma sepparated => expand this to multiple rows, if no
+        ',' present rows will remain unaffacted (i.e. one transcript)
+
+        Transforms as:
 
         -----------------------------------------------------------------------
         INFO
@@ -706,9 +712,7 @@ class splitColumns():
         df_rows = len(vcf_df.index)
         vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
 
-        # variants with multiple transcript annotation will have duplicate CSQ
-        # data that is comma sepparated => expand this to multiple rows, if no
-        # ',' present rows will remain unaffacted (i.e. one transcript)
+        # get list of all columns minus CSQ to allow exploding on just CSQ
         columns = list(vcf_df.columns)
         columns.remove('CSQ')
 
@@ -726,6 +730,9 @@ class splitColumns():
             vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
                 lambda x: '&'.join(set(x.split('&')))
             )
+
+        # drop INFO and CSQ as we fully split them out
+        vcf_df.drop(['CSQ'], axis=1, inplace=True)
 
         if df_rows != len(vcf_df.index):
             # total rows has changed => we must have multiple transcripts
@@ -756,7 +763,7 @@ class filter():
         self.filtered_rows = pd.DataFrame()
 
 
-    def validate_filters(self) -> None:
+    def validate(self) -> None:
         """
         Validate filters passed for filtering variants down.
 
@@ -782,7 +789,7 @@ class filter():
                 )
 
 
-    def build_filters(self) -> None:
+    def build(self) -> None:
         """
         Formats cmd line passed filters as list of lists of each filter
         expression for filtering df of variants.
@@ -867,7 +874,10 @@ class filter():
     def retain_variants(self, vcf_df, filter_idxs) -> list:
         """
         Given a vcf and list of indices, check if any to filter are in the
-        given list of variants to never filter and remove if so
+        given list of variants to never filter and remove if so.
+
+        Regions to not apply filters to are taken from tsv file passed with
+        self.args.always_keep, and coordinates in file are inclusive.
 
         Parameters
         ----------
