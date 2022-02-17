@@ -18,7 +18,6 @@ This app may be executed as a standalone app.
 - `--flagstat_file`: Flagstat file (optional)
 - `--panel_bed`: flanked bed file used to filter vcf (optional)
 
-
 **Other Inputs:**
 
 `--assay` (string):  type of assay to generate report for, determines assay specific things in-app (currently only supports `dias`)
@@ -49,9 +48,7 @@ This app may be executed as a standalone app.
 
 `--panel_bed` (file): Panel bed to filter VCF with before parsing to xlsx file.
 
-`--print-columns` (bool): Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.
-
-
+`--print_columns` (bool): Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.
 
 Example:
 

@@ -3,3 +3,4 @@
 *.vcf
 *.vcf.gz
 *.bed
+*.pyc
