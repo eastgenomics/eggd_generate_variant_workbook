@@ -44,11 +44,16 @@ class excel():
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
 
+
+    def generate(self) -> None:
+        """
+        Calls all methods in excel() to generate output file
+        """
         self.write_summary()
         self.write_variants()
         self.set_font()
 
-        self.workbook.save(args.output)
+        self.workbook.save(self.args.output)
 
 
     def write_summary(self) -> None:

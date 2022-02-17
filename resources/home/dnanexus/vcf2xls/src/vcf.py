@@ -77,8 +77,14 @@ class vcf():
             "Prev_NS": pd.Int16Dtype()
         }
 
+
+    def process(self) -> None:
+        """
+        Function to call all methods in vcf() for processing given VCFs and
+        formatting ready to write to output file
+        """
         # read in the vcfs
-        self.vcfs = [self.read(x) for x in args.vcfs]
+        self.vcfs = [self.read(x) for x in self.args.vcfs]
 
         print((
             f"\nTotal variants from {len(self.vcfs)} "
@@ -87,10 +93,10 @@ class vcf():
         if self.expanded_vcf_rows > 0:
             print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
 
-        if args.print_columns:
+        if self.args.print_columns:
             self.print_columns()
 
-        if args.filter:
+        if self.args.filter:
             # filter dfs of variants against cmd line specified filters
             filters = filter(self.args, self.vcfs)
 
@@ -102,13 +108,13 @@ class vcf():
             self.vcfs, self.args, self.filtered_rows = filters.vcfs, \
                 filters.args, filters.filtered_rows
 
-        if args.exclude or args.include:
+        if self.args.exclude or self.args.include:
             self.drop_columns()
 
-        if args.reorder:
+        if self.args.reorder:
             self.order_columns()
 
-        if args.merge:
+        if self.args.merge:
             self.merge()
 
         self.rename_columns()
