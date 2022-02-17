@@ -588,8 +588,8 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             all_filter_idxs = []
             for filter in self.filters:
-                col, operator, value = filter[0], filter[1], filter[2]
-                if pd.api.types.is_numeric_dtype(vcf[f'{filter[0]}']):
+                column, operator, value = filter[0], filter[1], filter[2]
+                if pd.api.types.is_numeric_dtype(vcf[column]):
                     # check column we're filtering is numeric and set types
                     value = float(value)
                 else:
@@ -598,7 +598,7 @@ class vcf():
 
                 # get row indices to filter
                 filter_idxs = eval((
-                    f"np.where(vcf['{col}'].apply("
+                    f"np.where(vcf['{column}'].apply("
                     f"lambda x: x {operator} {value}))[0]"
                 ))
                 all_filter_idxs.extend(filter_idxs)
@@ -606,7 +606,10 @@ class vcf():
             # get unique list of indexes matching filters
             all_filter_idxs = sorted(list(set(all_filter_idxs)))
 
-            # if self.args.al
+            if not self.args.always_keep.empty:
+                # a list of variants / positions specified to never filter,
+                # check for these in our filter list and remove if any present
+                all_filter_idxs = self.retain_variants(vcf, all_filter_idxs)
 
             # apply the filter, assign back to the filtered df
             self.filtered_rows = self.filtered_rows.append(
@@ -629,6 +632,42 @@ class vcf():
         if self.args.keep:
             self.vcfs.append(self.filtered_rows)
             self.args.sheets.append("filtered")
+
+
+    def retain_variants(self, vcf_df, filter_idxs) -> list:
+        """
+        Given a vcf and list of indices, check if any to filter are in the
+        given list of variants to never filter and remove if so
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of variants from VCF
+        filter_idxs : list
+            list of df indices selected to filter out
+
+        Returns:
+        filter_idxs : list
+            list of df indices selected to filter out
+        """
+        retain_idxs = []
+
+        for _, row in self.args.always_keep.iterrows():
+            # get indices of df of any variants to always retain, then
+            # drop these from the list of filter indices
+            retain_idxs.extend(
+                np.where((
+                        vcf_df['CHROM'] == row['chrom']
+                    ) & (
+                        vcf_df['POS'] >= row['start']
+                    ) & (
+                        vcf_df['POS'] <= row['end']
+                ))[0]
+            )
+
+        filter_idxs = list(set(filter_idxs) - set(retain_idxs))
+
+        return filter_idxs
 
 
     def print_columns(self) -> None:
@@ -1123,7 +1162,10 @@ class arguments():
         """
         def __call__(self, parser, namespace, values, option_string=None):
             keep_list = pd.read_csv(
-                Path(values), sep='\t', names=['chrom', 'pos', 'ref', 'alt']
+                Path(values), delimiter=r"\s+",
+                names=['chrom', 'start', 'end'], dtype={
+                    'chrom': str, 'start': int, 'end': int
+                }
             )
             setattr(namespace, self.dest, keep_list)
 
@@ -1140,69 +1182,6 @@ class arguments():
         self.parse_output()
         self.set_sheet_names()
         self.verify_sheets()
-
-
-    def check_output(self) -> None:
-        """
-        Check if args.output specified where multiple VCFs passed, if not
-        raise RuntimeError
-
-        Raises
-        ------
-        RuntimeError
-            Raised when multiple VCFs passed with no output name specified
-        """
-        if len(self.args.vcfs) > 1 and not self.args.output:
-            raise RuntimeError((
-                "More than one vcf passed but no output name "
-                "specified with --output"
-            ))
-
-
-    def parse_output(self) -> None:
-        """
-        Strip potential messy extensions from input VCF name, then set output
-        to include outdir for writing output file
-        """
-        if not self.args.output:
-            self.args.output = Path(
-                self.args.vcfs[0]).name.replace('.vcf', '').replace('.gz', '')
-
-        self.args.output = (
-            f"{Path(self.args.out_dir)}/{self.args.output}.xlsx"
-        )
-
-    def verify_sheets(self) -> None:
-        """
-        Check if total number of sheets matches number of VCFs where
-        args.sheets is passed
-
-        Raises
-        ------
-        AssertionError
-            Raised when number of VCFs does not match the number of sheets
-            given with args.sheets
-        """
-        assert len(self.args.vcfs) == len(self.args.sheets), (
-                "Different number of sheets specified to total vcfs passed. "
-                f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
-                f"sheet names passed: {len(self.args.sheets)}"
-            )
-
-
-    def set_sheet_names(self) -> None:
-        """
-        Sets list of names for naming output sheets in Excel file
-        """
-        if not self.args.sheets:
-            if len(self.args.vcfs) > 1 and not self.args.merge:
-                # sheet names not specified for > 1 vcf passed => use vcf names
-                self.args.sheets = [
-                    Path(x).name.split('_')[0] for x in self.args.vcfs
-                ]
-            else:
-                # one vcf (or merged) => name it variants
-                self.args.sheets = ["variants"]
 
 
     def parse_args(self) -> argparse.Namespace:
@@ -1224,6 +1203,7 @@ class arguments():
         )
         parser.add_argument(
             '--always_keep', required=False, action=self.readList,
+            default=pd.DataFrame(),
             help='tsv of variants to never filter out, in format chrom pos ref alt'
         )
         parser.add_argument(
@@ -1340,6 +1320,69 @@ class arguments():
         )
 
         self.args = parser.parse_args()
+
+
+    def check_output(self) -> None:
+        """
+        Check if args.output specified where multiple VCFs passed, if not
+        raise RuntimeError
+
+        Raises
+        ------
+        RuntimeError
+            Raised when multiple VCFs passed with no output name specified
+        """
+        if len(self.args.vcfs) > 1 and not self.args.output:
+            raise RuntimeError((
+                "More than one vcf passed but no output name "
+                "specified with --output"
+            ))
+
+
+    def parse_output(self) -> None:
+        """
+        Strip potential messy extensions from input VCF name, then set output
+        to include outdir for writing output file
+        """
+        if not self.args.output:
+            self.args.output = Path(
+                self.args.vcfs[0]).name.replace('.vcf', '').replace('.gz', '')
+
+        self.args.output = (
+            f"{Path(self.args.out_dir)}/{self.args.output}.xlsx"
+        )
+
+    def verify_sheets(self) -> None:
+        """
+        Check if total number of sheets matches number of VCFs where
+        args.sheets is passed
+
+        Raises
+        ------
+        AssertionError
+            Raised when number of VCFs does not match the number of sheets
+            given with args.sheets
+        """
+        assert len(self.args.vcfs) == len(self.args.sheets), (
+                "Different number of sheets specified to total vcfs passed. "
+                f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
+                f"sheet names passed: {len(self.args.sheets)}"
+            )
+
+
+    def set_sheet_names(self) -> None:
+        """
+        Sets list of names for naming output sheets in Excel file
+        """
+        if not self.args.sheets:
+            if len(self.args.vcfs) > 1 and not self.args.merge:
+                # sheet names not specified for > 1 vcf passed => use vcf names
+                self.args.sheets = [
+                    Path(x).name.split('_')[0] for x in self.args.vcfs
+                ]
+            else:
+                # one vcf (or merged) => name it variants
+                self.args.sheets = ["variants"]
 
 
 def main():
