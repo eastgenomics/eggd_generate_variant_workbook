@@ -130,7 +130,7 @@ main() {
     if [ "$merge" == true ]; then args+="--merge "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 
-    time python3 vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
+    time python3 vcf2xls/bin/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
 
     echo "Output name: ${output_prefix}.xlsx"
 
