@@ -100,10 +100,16 @@ class vcf():
             self.print_columns()
 
         if args.filter:
-            # filters vcfs against passed parameters
-            self.validate_filters()
-            self.build_filters()
-            self.filter()
+            # filter dfs of variants against cmd line specified filters
+            filters = filter(self.args, self.vcfs)
+
+            filters.validate_filters()
+            filters.build_filters()
+            filters.filter()
+
+            # update class with any changes from filtering
+            self.vcfs, self.args, self.filtered_rows = filters.vcfs, \
+                filters.args, filters.filtered_rows
 
         if args.exclude or args.include:
             self.drop_columns()
@@ -151,7 +157,6 @@ class vcf():
 
         header, columns = self.parse_header(vcf)
         self.get_reference(header)
-        csq_fields = self.parse_csq_fields(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
@@ -168,9 +173,12 @@ class vcf():
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
         # split out INFO column values and CSQ
-        vcf_df = self.split_info(vcf_df)
-        vcf_df = self.split_csq(vcf_df, csq_fields)
-        vcf_df = self.split_format_fields(vcf_df)
+        csq_fields = annotation.parse_csq_fields(header)
+        vcf_df = annotation.split_info(vcf_df)
+        vcf_df, self.expanded_vcf_rows = annotation.split_csq(
+            vcf_df, csq_fields
+        )
+        vcf_df = annotation.split_format_fields(vcf_df)
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO', 'CSQ'], axis=1, inplace=True)
@@ -230,247 +238,6 @@ class vcf():
                 self.refs.append(Path(ref).name)
 
 
-    def parse_csq_fields(self, header) -> list:
-        """
-        Parse out csq field names from vcf header.
-
-        Kind of horrible way to parse the CSQ field names but this is how VEP
-        seems to have always stored them (6+ years +) in the header as:
-        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
-        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
-
-        Parameters
-        ----------
-        header : list
-            list of header lines read from vcf
-
-        Returns
-        -------
-        csq_fields : list
-            list of CSQ field names parsed from vcf header, used to assign as
-            column headings when splitting out CSQ data for each variant
-        """
-        csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
-        csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
-
-        return csq_fields
-
-
-    def split_format_fields(self, vcf_df) -> pd.DataFrame:
-        """
-        Get format fields from FORMAT column to split out sample values to
-        individual columns, this transforms the data as such:
-
-        -----------------------------------------------------------------------
-        FORMAT                 | SAMPLE
-        -----------------------------------------------------------------------
-        GT:AD:DP:GQ:PL         | 0/1:83,88:171:99:2136,0,1880
-        GT:AD:DP:GQ:PL         | 0/1:128,128:256:99:3163,0,3015
-        GT:AD:DP:GQ:PGT:PID:PL | 0/1:120,93:213:99:0|1:46896303_C_G:3367,0,6381
-        -----------------------------------------------------------------------
-                                      |
-                                      |
-                                      ▼
-        -----------------------------------------------------------------------
-          GT  | AD      |  DP   |  GQ  |  PGT  |   PID         |  PL
-        -----------------------------------------------------------------------
-          0/1 | 83,88   |  171  |  99  |  na   |  na           |  2136,0,1880
-          0/1 | 128,128 |  256  |  99  |  na   |  na           |  3163,0,3015
-          0/1 | 120,93  |  213  |  99  |  0|1  |  46896303_C_G |  3367,0,6381
-        -----------------------------------------------------------------------
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf
-
-        Returns
-        -------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf with split out FORMAT fields
-        """
-        # get unique list of FORMAT fields from all rows
-        fields = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
-
-        # split out FORMAT and SAMPLE columns a list of ':' joined pairs
-        tmp_df = pd.DataFrame()
-        tmp_df['tmp'] = vcf_df.apply(lambda x: {
-            '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
-        }, axis=1)
-        tmp_df = tmp_df.astype(str)
-
-        # split every row to a dict of key value pairs and build df
-        format_cols = tmp_df.join(pd.DataFrame([
-            dict(val) for val in tmp_df.pop('tmp').str.findall((
-                r'(\w+)=([^,\}]+)'
-            ))
-        ]))
-
-        # some columns have an extra quote added for some reason...
-        for col in format_cols.columns:
-            format_cols[col] = format_cols[col].apply(
-                lambda x: x.rstrip("'") if type(x) == str else x
-            )
-
-        # add split out columns to main df
-        vcf_df = vcf_df.join(format_cols, rsuffix=" (FMT)")
-        vcf_df.drop(['FORMAT', 'SAMPLE'], axis=1, inplace=True)
-
-        return vcf_df
-
-
-    def split_info(self, vcf_df) -> pd.DataFrame:
-        """
-        Splits out the INFO column of vcf to all separate values, excluding
-        the CSQ values. This transforms as:
-
-        -----------------------------------------------------------------------
-        INFO
-        -----------------------------------------------------------------------
-        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.244;DB;DP=215;......
-        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.291;;DB;DP=207;.....
-        AC=2;AF=1;AN=2;DB;DP=310;ExcessHet=3.0103;FS=0;......
-        -----------------------------------------------------------------------
-                                      |
-                                      |
-                                      ▼
-        -----------------------------------------------------------------------
-         AC  |  AF  |  AN  |  DB  |  DP  |  ExcessHet  |  BaseQRankSum  |  FS
-        -----------------------------------------------------------------------
-         1   |  0.5 |  2   | True |  215 |             |  -0.244        |
-        -----------------------------------------------------------------------
-         1   |  0.5 |  2   | True |  207 |             |  -0.291        |
-        -----------------------------------------------------------------------
-         2   |  1   |  2   | True |  310 |  3.0103     |                |  0
-        -----------------------------------------------------------------------
-
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf
-
-        Returns
-        -------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf with separated INFO fields
-        """
-        # get the key value pairs of INFO data
-        info_pairs = [
-            x.split('CSQ=')[0].split(';') for x in vcf_df['INFO'].tolist()
-        ]
-        info_pairs = [[x for x in lst if x] for lst in info_pairs]
-
-        # get unique list of keys from key=value pairs in INFO
-        info_keys = sorted(list(set([
-            x.split('=')[0] if '=' in x else x for pair in info_pairs for x in pair
-        ])))
-        info_keys = [x for x in info_keys if x]  # can end up with empty string
-
-        info_values = []
-
-        for variant in info_pairs:
-            # for every variants values, split them out to dict to add to df
-            pair_values = {}
-
-            for value in variant:
-                if '=' in value:
-                    # key value pair
-                    key, value = value.split('=')
-                else:
-                    # Flag value present (e.g RU, STR)
-                    key, value = key, True
-
-                pair_values[key] = value
-
-            info_values.append(pair_values)
-
-        # build df of values to add to main df
-        info_df = pd.DataFrame(
-            info_values, columns=info_keys
-        )
-
-        for col in info_keys:
-            # add all info values to main vcf df
-            vcf_df[col] = info_df[col]
-
-        return vcf_df
-
-
-    def split_csq(self, vcf_df, csq_fields) -> pd.DataFrame:
-        """
-        Split out CSQ string from other values in the INFO column to separate
-        fields to get annotation.  Column headers taken from format stored by
-        VEP in the header, read from self.parse_csq_fields().  Transforms as:
-
-        -----------------------------------------------------------------------
-        INFO
-        -----------------------------------------------------------------------
-        ...;CSQ=SIK1|SNV|missense_variant|13/14|NM_173354.5:c.1844C>T|...
-        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_0013750.1:c.846G>T...
-        ...;CSQ=NSD1|SNV|missense_variant|6/24|NM_001384.1:c.1369T>C|...
-        -----------------------------------------------------------------------
-                                      |
-                                      |
-                                      ▼
-        -----------------------------------------------------------------------
-        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc
-        -----------------------------------------------------------------------
-        SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
-        -----------------------------------------------------------------------
-        OL18A1 | SNV       | synonymous_variant | 6/42  | NM_0013750.1:c.846G>T
-        -----------------------------------------------------------------------
-        NSD1   | SNV       | missense_variant   | 6/24  | NM_001384.1:c.1369T>C
-        -----------------------------------------------------------------------
-
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf
-        csq_fields : list
-            list of CSQ field names parsed from vcf header, used to assign as
-            column headings when splitting out CSQ data for each variant
-
-        Returns
-        -------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf with separated CSQ fields
-        """
-        df_rows = len(vcf_df.index)
-        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-
-        # variants with multiple transcript annotation will have duplicate CSQ
-        # data that is comma sepparated => expand this to multiple rows, if no
-        # ',' present rows will remain unaffacted (i.e. one transcript)
-        columns = list(vcf_df.columns)
-        columns.remove('CSQ')
-
-        # set index to be everything except CSQ, expand this to multiple rows
-        # then set index back
-        vcf_df = vcf_df.set_index(columns).apply(
-            lambda x: x.str.split(',').explode()
-        ).reset_index()
-
-        # split each CSQ value to own columns
-        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
-
-        if 'COSMIC' in vcf_df.columns:
-            # handle known bug in VEP annotation where it duplicates COSMIC
-            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
-                lambda x: '&'.join(set(x.split('&')))
-            )
-
-        if df_rows != len(vcf_df.index):
-            # total rows has changed => we must have multiple transcripts
-            print(f"Total rows of VCF changed on splitting CSQ values")
-            print(f"Total rows before: {df_rows}")
-            print(f"Total rows after: {len(vcf_df.index)}")
-            self.expanded_vcf_rows += len(vcf_df.index) - df_rows
-
-        return vcf_df
-
-
     def set_types(self, vcf_df) -> pd.DataFrame:
         """
         Sets appropriate dtypes on given df of variants
@@ -522,152 +289,6 @@ class vcf():
                 )
 
             self.vcfs[idx] = vcf
-
-
-    def validate_filters(self) -> None:
-        """
-        Validate filters passed for filtering variants down.
-
-        These come from args.filter and wil be in the format
-        <column><operator><value> (i.e. "Consequence!=synonymous"), currently
-        supports the operators >, <, >=, <=, == and !=
-
-        Method will check that a valid operator has been passed, and that the
-        given column is present in all columns of all vcfs
-        """
-        for filter in self.args.filter:
-            # check a valid operand passed
-            assert len(re.findall('>|<|>=|<=|==|!=', filter)) == 1, (
-                f"invalid operand passed in filter: {filter}"
-            )
-
-        for vcf in self.vcfs:
-            # for each filter, check the specified column is in all the vcfs
-            for filter in self.args.filter:
-                assert re.split(r'>|<|>=|<=|==|!=', filter)[0] in vcf.columns, (
-                    f"Column specified in filter '{filter}' not in vcf "
-                    f"columns: {vcf.columns}"
-                )
-
-
-    def build_filters(self) -> None:
-        """
-        Formats cmd line passed filters as list of lists of each filter
-        expression for filtering df of variants.
-
-        This will separate out the passed filters from the format
-        "Consequence!=synonymous" -> ["Consequence", "!=", "synonymous"]
-        """
-        field_value = [
-            re.split(r'>|<|>=|<=|==|!=', x) for x in self.args.filter
-        ]
-        operator = [
-            re.findall('>|<|>=|<=|==|!=', x) for x in self.args.filter
-        ]
-
-        self.filters = [
-            [x[0], y[0], x[1]] for x, y in zip(field_value, operator)
-        ]
-
-
-    def filter(self) -> None:
-        """
-        Apply filters passed to ech dataframe of variants.
-
-        Filters first checked in self.validate_filters then formatted in
-        self.build filters ready to be passed to np.where()
-
-        Currently wrapped in an eval() call which is not ideal but works for
-        interpreting the operator passed as a string from the cmd line
-        """
-        # build list of indices of variants to filter out against specified
-        # filters, then apply filter to df, retain filtered rows if --keep set
-        if self.args.keep:
-            self.filtered_rows = pd.DataFrame()
-
-        for idx, vcf in enumerate(self.vcfs):
-            all_filter_idxs = []
-            for filter in self.filters:
-                column, operator, value = filter[0], filter[1], filter[2]
-                if pd.api.types.is_numeric_dtype(vcf[column]):
-                    # check column we're filtering is numeric and set types
-                    value = float(value)
-                else:
-                    # string values have to be wrapped in quotes from np.where
-                    value = f"'{value}'"
-
-                # get row indices to filter
-                filter_idxs = eval((
-                    f"np.where(vcf['{column}'].apply("
-                    f"lambda x: x {operator} {value}))[0]"
-                ))
-                all_filter_idxs.extend(filter_idxs)
-
-            # get unique list of indexes matching filters
-            all_filter_idxs = sorted(list(set(all_filter_idxs)))
-
-            if not self.args.always_keep.empty:
-                # a list of variants / positions specified to never filter,
-                # check for these in our filter list and remove if any present
-                all_filter_idxs = self.retain_variants(vcf, all_filter_idxs)
-
-            # apply the filter, assign back to the filtered df
-            self.filtered_rows = self.filtered_rows.append(
-                    vcf.loc[all_filter_idxs], ignore_index=True
-                )
-
-            # drop from current vcf dataframe
-            self.vcfs[idx] = vcf.drop(all_filter_idxs)
-
-            filter_string = ', '.join([' '.join(x) for x in self.filters])
-
-            print((
-                f"\nApplied the following filters: {filter_string} to vcf(s)\n"
-                f"Filtered out {len(all_filter_idxs)} rows\n"
-                f"Total rows remaining: {len(self.vcfs[idx].index)}\n\n"
-            ))
-
-        self.filtered_rows = self.filtered_rows.reset_index()
-
-        if self.args.keep:
-            self.vcfs.append(self.filtered_rows)
-            self.args.sheets.append("filtered")
-
-
-    def retain_variants(self, vcf_df, filter_idxs) -> list:
-        """
-        Given a vcf and list of indices, check if any to filter are in the
-        given list of variants to never filter and remove if so
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of variants from VCF
-        filter_idxs : list
-            list of df indices selected to filter out
-
-        Returns:
-        filter_idxs : list
-            list of df indices selected to filter out
-        """
-        retain_idxs = []
-
-        for _, row in self.args.always_keep.iterrows():
-            # get indices of df of any variants to always retain, then
-            # drop these from the list of filter indices
-            retain_idxs.extend(
-                np.where((
-                        vcf_df['CHROM'] == row['chrom']
-                    ) & (
-                        vcf_df['POS'] >= row['start']
-                    ) & (
-                        vcf_df['POS'] <= row['end']
-                ))[0]
-            )
-
-        filter_idxs = list(set(filter_idxs) - set(retain_idxs))
-
-        return filter_idxs
 
 
     def print_columns(self) -> None:
@@ -859,6 +480,424 @@ class vcf():
             "Total rows to be written to file don't appear to equal what has "
             "been tracked, this suggests we have dropped some variants..."
         )
+
+
+class annotation():
+    """
+    Functions for spliting and checing of variant annotation and
+    attribute columns (FORMAT, SAMPLE, INFO, CSQ), called during reading
+    of VCFs from file in vcf.read()
+    """
+    def __init__():
+        pass
+
+    @staticmethod
+    def parse_csq_fields(header) -> list:
+        """
+        Parse out csq field names from vcf header.
+
+        Kind of horrible way to parse the CSQ field names but this is how VEP
+        seems to have always stored them (6+ years +) in the header as:
+        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
+        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
+
+        Parameters
+        ----------
+        header : list
+            list of header lines read from vcf
+
+        Returns
+        -------
+        csq_fields : list
+            list of CSQ field names parsed from vcf header, used to assign as
+            column headings when splitting out CSQ data for each variant
+        """
+        csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
+        csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
+
+        return csq_fields
+
+    @staticmethod
+    def split_format_fields(vcf_df) -> pd.DataFrame:
+        """
+        Get format fields from FORMAT column to split out sample values to
+        individual columns, this transforms the data as such:
+
+        -----------------------------------------------------------------------
+        FORMAT                 | SAMPLE
+        -----------------------------------------------------------------------
+        GT:AD:DP:GQ:PL         | 0/1:83,88:171:99:2136,0,1880
+        GT:AD:DP:GQ:PL         | 0/1:128,128:256:99:3163,0,3015
+        GT:AD:DP:GQ:PGT:PID:PL | 0/1:120,93:213:99:0|1:46896303_C_G:3367,0,6381
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+          GT  | AD      |  DP   |  GQ  |  PGT  |   PID         |  PL
+        -----------------------------------------------------------------------
+          0/1 | 83,88   |  171  |  99  |  na   |  na           |  2136,0,1880
+          0/1 | 128,128 |  256  |  99  |  na   |  na           |  3163,0,3015
+          0/1 | 120,93  |  213  |  99  |  0|1  |  46896303_C_G |  3367,0,6381
+        -----------------------------------------------------------------------
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with split out FORMAT fields
+        """
+        print(vcf_df)
+        # get unique list of FORMAT fields from all rows
+        fields = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
+
+        # split out FORMAT and SAMPLE columns a list of ':' joined pairs
+        tmp_df = pd.DataFrame()
+        tmp_df['tmp'] = vcf_df.apply(lambda x: {
+            '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
+        }, axis=1)
+        tmp_df = tmp_df.astype(str)
+
+        # split every row to a dict of key value pairs and build df
+        format_cols = tmp_df.join(pd.DataFrame([
+            dict(val) for val in tmp_df.pop('tmp').str.findall((
+                r'(\w+)=([^,\}]+)'
+            ))
+        ]))
+
+        # some columns have an extra quote added for some reason...
+        for col in format_cols.columns:
+            format_cols[col] = format_cols[col].apply(
+                lambda x: x.rstrip("'") if type(x) == str else x
+            )
+
+        # add split out columns to main df
+        vcf_df = vcf_df.join(format_cols, rsuffix=" (FMT)")
+        vcf_df.drop(['FORMAT', 'SAMPLE'], axis=1, inplace=True)
+
+        return vcf_df
+
+    @staticmethod
+    def split_info(vcf_df) -> pd.DataFrame:
+        """
+        Splits out the INFO column of vcf to all separate values, excluding
+        the CSQ values. This transforms as:
+
+        -----------------------------------------------------------------------
+        INFO
+        -----------------------------------------------------------------------
+        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.244;DB;DP=215;......
+        AC=1;AF=0.5;AN=2;BaseQRankSum=-0.291;;DB;DP=207;.....
+        AC=2;AF=1;AN=2;DB;DP=310;ExcessHet=3.0103;FS=0;......
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+         AC  |  AF  |  AN  |  DB  |  DP  |  ExcessHet  |  BaseQRankSum  |  FS
+        -----------------------------------------------------------------------
+         1   |  0.5 |  2   | True |  215 |             |  -0.244        |
+        -----------------------------------------------------------------------
+         1   |  0.5 |  2   | True |  207 |             |  -0.291        |
+        -----------------------------------------------------------------------
+         2   |  1   |  2   | True |  310 |  3.0103     |                |  0
+        -----------------------------------------------------------------------
+
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with separated INFO fields
+        """
+        # get the key value pairs of INFO data
+        info_pairs = [
+            x.split('CSQ=')[0].split(';') for x in vcf_df['INFO'].tolist()
+        ]
+        info_pairs = [[x for x in lst if x] for lst in info_pairs]
+
+        # get unique list of keys from key=value pairs in INFO
+        info_keys = sorted(list(set([
+            x.split('=')[0] if '=' in x else x for pair in info_pairs for x in pair
+        ])))
+        info_keys = [x for x in info_keys if x]  # can end up with empty string
+
+        info_values = []
+
+        for variant in info_pairs:
+            # for every variants values, split them out to dict to add to df
+            pair_values = {}
+
+            for value in variant:
+                if '=' in value:
+                    # key value pair
+                    key, value = value.split('=')
+                else:
+                    # Flag value present (e.g RU, STR)
+                    key, value = key, True
+
+                pair_values[key] = value
+
+            info_values.append(pair_values)
+
+        # build df of values to add to main df
+        info_df = pd.DataFrame(
+            info_values, columns=info_keys
+        )
+
+        for col in info_keys:
+            # add all info values to main vcf df
+            vcf_df[col] = info_df[col]
+
+        return vcf_df
+
+    @staticmethod
+    def split_csq(vcf_df, csq_fields) -> Union[pd.DataFrame, list]:
+        """
+        Split out CSQ string from other values in the INFO column to separate
+        fields to get annotation.  Column headers taken from format stored by
+        VEP in the header, read from self.parse_csq_fields().  Transforms as:
+
+        -----------------------------------------------------------------------
+        INFO
+        -----------------------------------------------------------------------
+        ...;CSQ=SIK1|SNV|missense_variant|13/14|NM_173354.5:c.1844C>T|...
+        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_0013750.1:c.846G>T...
+        ...;CSQ=NSD1|SNV|missense_variant|6/24|NM_001384.1:c.1369T>C|...
+        -----------------------------------------------------------------------
+                                      |
+                                      |
+                                      ▼
+        -----------------------------------------------------------------------
+        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc
+        -----------------------------------------------------------------------
+        SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
+        -----------------------------------------------------------------------
+        OL18A1 | SNV       | synonymous_variant | 6/42  | NM_0013750.1:c.846G>T
+        -----------------------------------------------------------------------
+        NSD1   | SNV       | missense_variant   | 6/24  | NM_001384.1:c.1369T>C
+        -----------------------------------------------------------------------
+
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf
+        csq_fields : list
+            list of CSQ field names parsed from vcf header, used to assign as
+            column headings when splitting out CSQ data for each variant
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of all variants from a vcf with separated CSQ fields
+        expanded_vcf_rows : int
+            total number of extra rows from expanding multiple transcript
+            annotations to individual rows
+        """
+        df_rows = len(vcf_df.index)
+        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
+
+        # variants with multiple transcript annotation will have duplicate CSQ
+        # data that is comma sepparated => expand this to multiple rows, if no
+        # ',' present rows will remain unaffacted (i.e. one transcript)
+        columns = list(vcf_df.columns)
+        columns.remove('CSQ')
+
+        # set index to be everything except CSQ, expand this to multiple rows
+        # then set index back
+        vcf_df = vcf_df.set_index(columns).apply(
+            lambda x: x.str.split(',').explode()
+        ).reset_index()
+
+        # split each CSQ value to own columns
+        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
+
+        if 'COSMIC' in vcf_df.columns:
+            # handle known bug in VEP annotation where it duplicates COSMIC
+            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
+                lambda x: '&'.join(set(x.split('&')))
+            )
+
+        if df_rows != len(vcf_df.index):
+            # total rows has changed => we must have multiple transcripts
+            print(f"Total rows of VCF changed on splitting CSQ values")
+            print(f"Total rows before: {df_rows}")
+            print(f"Total rows after: {len(vcf_df.index)}")
+            expanded_vcf_rows = len(vcf_df.index) - df_rows
+
+        return vcf_df, expanded_vcf_rows
+
+
+class filter():
+    """"
+    Functions related to filtering dataframes of variants from args.filter
+
+    Attributes
+    ----------
+    args : argparse.Namespace
+        arguments passed from command line
+    vcfs : list of pd.DataFrame
+        list of dataframes read in from self.args.vcfs
+    filtered_rows : pd.DataFrame
+        dataframe of all rows dropped from all vcfs
+    """
+    def __init__(self, args, vcfs):
+        self.args = args
+        self.vcfs = vcfs
+        self.filtered_rows = pd.DataFrame()
+
+
+    def validate_filters(self) -> None:
+        """
+        Validate filters passed for filtering variants down.
+
+        These come from args.filter and wil be in the format
+        <column><operator><value> (i.e. "Consequence!=synonymous"), currently
+        supports the operators >, <, >=, <=, == and !=
+
+        Method will check that a valid operator has been passed, and that the
+        given column is present in all columns of all vcfs
+        """
+        for filter in self.args.filter:
+            # check a valid operand passed
+            assert len(re.findall('>|<|>=|<=|==|!=', filter)) == 1, (
+                f"invalid operand passed in filter: {filter}"
+            )
+
+        for vcf in self.vcfs:
+            # for each filter, check the specified column is in all the vcfs
+            for filter in self.args.filter:
+                assert re.split(r'>|<|>=|<=|==|!=', filter)[0] in vcf.columns, (
+                    f"Column specified in filter '{filter}' not in vcf "
+                    f"columns: {vcf.columns}"
+                )
+
+
+    def build_filters(self) -> None:
+        """
+        Formats cmd line passed filters as list of lists of each filter
+        expression for filtering df of variants.
+
+        This will separate out the passed filters from the format
+        "Consequence!=synonymous" -> ["Consequence", "!=", "synonymous"]
+        """
+        field_value = [
+            re.split(r'>|<|>=|<=|==|!=', x) for x in self.args.filter
+        ]
+        operator = [
+            re.findall('>|<|>=|<=|==|!=', x) for x in self.args.filter
+        ]
+
+        self.filters = [
+            [x[0], y[0], x[1]] for x, y in zip(field_value, operator)
+        ]
+
+
+    def filter(self) -> None:
+        """
+        Apply filters passed to ech dataframe of variants.
+
+        Filters first checked in self.validate_filters then formatted in
+        self.build filters ready to be passed to np.where()
+
+        Currently wrapped in an eval() call which is not ideal but works for
+        interpreting the operator passed as a string from the cmd line
+        """
+        # build list of indices of variants to filter out against specified
+        # filters, then apply filter to df, retain filtered rows if --keep set
+        for idx, vcf in enumerate(self.vcfs):
+            all_filter_idxs = []
+            for filter in self.filters:
+                column, operator, value = filter[0], filter[1], filter[2]
+                if pd.api.types.is_numeric_dtype(vcf[column]):
+                    # check column we're filtering is numeric and set types
+                    value = float(value)
+                else:
+                    # string values have to be wrapped in quotes from np.where
+                    value = f"'{value}'"
+
+                # get row indices to filter
+                filter_idxs = eval((
+                    f"np.where(vcf['{column}'].apply("
+                    f"lambda x: x {operator} {value}))[0]"
+                ))
+                all_filter_idxs.extend(filter_idxs)
+
+            # get unique list of indexes matching filters
+            all_filter_idxs = sorted(list(set(all_filter_idxs)))
+
+            if not self.args.always_keep.empty:
+                # a list of variants / positions specified to never filter,
+                # check for these in our filter list and remove if any present
+                all_filter_idxs = self.retain_variants(vcf, all_filter_idxs)
+
+            # apply the filter, assign back to the filtered df
+            self.filtered_rows = self.filtered_rows.append(
+                    vcf.loc[all_filter_idxs], ignore_index=True
+                )
+
+            # drop from current vcf dataframe
+            self.vcfs[idx] = vcf.drop(all_filter_idxs)
+
+            filter_string = ', '.join([' '.join(x) for x in self.filters])
+
+            print((
+                f"\nApplied the following filters: {filter_string} to vcf(s)\n"
+                f"Filtered out {len(all_filter_idxs)} rows\n"
+                f"Total rows remaining: {len(self.vcfs[idx].index)}\n\n"
+            ))
+
+        self.filtered_rows = self.filtered_rows.reset_index()
+
+        if self.args.keep:
+            # keeping filtered variants to write to file
+            self.vcfs.append(self.filtered_rows)
+            self.args.sheets.append("filtered")
+
+
+    def retain_variants(self, vcf_df, filter_idxs) -> list:
+        """
+        Given a vcf and list of indices, check if any to filter are in the
+        given list of variants to never filter and remove if so
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of variants from VCF
+        filter_idxs : list
+            list of df indices selected to filter out
+
+        Returns:
+        filter_idxs : list
+            list of df indices selected to filter out
+        """
+        retain_idxs = []
+
+        for _, row in self.args.always_keep.iterrows():
+            # get indices of df of any variants to always retain, then
+            # drop these from the list of filter indices
+            retain_idxs.extend(
+                np.where((
+                        vcf_df['CHROM'] == row['chrom']
+                    ) & (
+                        vcf_df['POS'] >= row['start']
+                    ) & (
+                        vcf_df['POS'] <= row['end']
+                ))[0]
+            )
+
+        filter_idxs = list(set(filter_idxs) - set(retain_idxs))
+
+        return filter_idxs
 
 
 class excel():
