@@ -6,8 +6,8 @@ import urllib.parse
 import numpy as np
 import pandas as pd
 
-from columns import splitColumns
-from filters import filter
+from .columns import splitColumns
+from .filters import filter
 
 
 class vcf():

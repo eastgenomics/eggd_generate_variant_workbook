@@ -1,7 +1,6 @@
-from concurrent.futures import process
-from arguments import arguments
-from excel import excel
-from vcf import vcf
+from utils.arguments import arguments
+from utils.excel import excel
+from utils.vcf import vcf
 
 
 def main():
