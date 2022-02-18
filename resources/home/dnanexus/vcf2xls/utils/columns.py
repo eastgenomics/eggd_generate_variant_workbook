@@ -131,17 +131,23 @@ class splitColumns():
 
         info_values = []
 
-        for variant in info_pairs:
+        # print(info_keys)
+        # print(info_pairs)
+        # sys.exit()
+
+        # info_pairs -> list of list of pairs, one list per variant
+
+        for variant_pairs in info_pairs:
             # for every variants values, split them out to dict to add to df
             pair_values = {}
 
-            for value in variant:
-                if '=' in value:
+            for pair in variant_pairs:
+                if '=' in pair:
                     # key value pair
-                    key, value = value.split('=')
+                    key, value = pair.split('=')
                 else:
-                    # Flag value present (e.g RU, STR)
-                    key, value = key, True
+                    # Flag value present (e.g STR)
+                    key, value = pair, True
 
                 pair_values[key] = value
 
@@ -151,6 +157,7 @@ class splitColumns():
         info_df = pd.DataFrame(
             info_values, columns=info_keys
         )
+
 
         for col in info_keys:
             # add all info values to main vcf df

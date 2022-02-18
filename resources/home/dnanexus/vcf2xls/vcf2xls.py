@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import sys
 
 import pandas as pd
 
@@ -263,6 +264,9 @@ class arguments():
 
 def main():
     parser = arguments()
+
+    print(parser.args)
+    sys.exit()
 
     # read in and process vcf(s)
     vcf_handler = vcf(parser.args)
