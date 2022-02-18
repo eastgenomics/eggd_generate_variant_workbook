@@ -22,8 +22,12 @@ class vcf():
     ----------
     args : argparse.Namespace
         arguments passed from command line
+    vcfs : list
+        list of dataframe(s) of vcf data read in and formatted
     refs : list
         list of genome reference files used for given VCFs
+    csq_fields : list
+        list of VEP CSQ fields parsed from header
     total_vcf_rows : int
         value to keep total number of rows read in to ensure we don't drop
         any unless --filter is used and --keep is not and => intentionally
@@ -42,7 +46,9 @@ class vcf():
 
     def __init__(self, args) -> None:
         self.args = args
+        self.vcfs = []
         self.refs = []
+        self.csq_fields = []
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
         self.filtered_rows = pd.DataFrame()
@@ -82,9 +88,42 @@ class vcf():
         """
         Function to call all methods in vcf() for processing given VCFs and
         formatting ready to write to output file
+
+        Calls methods in following order:
+
+            - self.read()
+            - splitColumns.info()
+            - splitColumns.csq()
+            - splitColumns.format_fields()
+            - self.filter()
+            - self.drop_columns()
+            - self.reorder()
+            - self.merge()
+            - self.rename()
+            - self.remove_nan()
         """
-        # read in the vcfs
-        self.vcfs = [self.read(x) for x in self.args.vcfs]
+        # read in the each vcf and apply formatting
+        for vcf in self.args.vcfs:
+            vcf_df, csq_fields = self.read(vcf)
+
+            # split out INFO column, CSQ fields and FORMAT/SAMPLE column values
+            # to individual columns in dataframe
+            vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
+            vcf_df = splitColumns.info(vcf_df)
+            vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
+            vcf_df = splitColumns.format_fields(vcf_df)
+
+            # TO REMOVE
+            vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
+            vcf_df = vcf_df.reset_index()
+
+            self.expanded_vcf_rows += expanded_vcf_rows
+
+            # set correct dtypes, required for setting numeric & object types
+            # to ensure correct filtering filtering
+            vcf_df = self.set_types(vcf_df)
+
+            self.vcfs.append(vcf_df)
 
         print((
             f"\nTotal variants from {len(self.vcfs)} "
@@ -122,20 +161,14 @@ class vcf():
         self.remove_nan()
 
         # run checks to ensure we haven't unintentionally dropped variants
-        self.verify_totals()
+        # self.verify_totals()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
 
     def read(self, vcf) -> pd.DataFrame:
         """
-        Reads given vcf into pd.DataFrame, calls following methods:
-
-        - self.parse_header()
-        - splitColumns.parse_csq_fields()
-        - splitColumns.info()
-        - splitColumns.csq()
-        - splitColumns.format_fields()
+        Reads given vcf into pd.DataFrame and parses header
 
         Parameters
         ------
@@ -146,8 +179,8 @@ class vcf():
         -------
         vcf_df : pandas.DataFrame
             dataframe of all variants
-        header : list
-            vcf header lines
+        csq_fields : list
+            VEP CSQ fields read from header
         """
         sample = Path(vcf).stem
         if '_' in vcf:
@@ -156,6 +189,7 @@ class vcf():
         print(f"\n\nReading in vcf {vcf}\n")
 
         header, columns = self.parse_header(vcf)
+        csq_fields = self.parse_csq_fields(header)
         self.parse_reference(header)
 
         # read vcf into pandas df
@@ -172,18 +206,7 @@ class vcf():
             # add sample name from filename as 1st column
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
-        # split out INFO column values and CSQ
-        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-        csq_fields = splitColumns.parse_csq_fields(header)
-        vcf_df = splitColumns.info(vcf_df)
-        vcf_df, self.expanded_vcf_rows = splitColumns.csq(
-            vcf_df, csq_fields
-        )
-        vcf_df = splitColumns.format_fields(vcf_df)
-
-        vcf_df = self.set_types(vcf_df)
-
-        return vcf_df
+        return vcf_df, csq_fields
 
 
     def parse_header(self, vcf) -> Union[list, list]:
@@ -234,6 +257,32 @@ class vcf():
             if ref not in self.refs:
                 # add reference file if found and same not already in list
                 self.refs.append(Path(ref).name)
+
+
+    def parse_csq_fields(self, header) -> None:
+        """
+        Parse out csq field names from vcf header.
+
+        Kind of horrible way to parse the CSQ field names but this is how VEP
+        seems to have always stored them (6+ years +) in the header as:
+        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
+        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
+
+        Parameters
+        ----------
+        header : list
+            list of header lines read from vcf
+
+        Returns
+        -------
+        csq_fields : list
+            list of CSQ field names parsed from vcf header, used to assign as
+            column headings when splitting out CSQ data for each variant
+        """
+        csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
+        csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
+
+        return csq_fields
 
 
     def set_types(self, vcf_df) -> pd.DataFrame:
@@ -354,11 +403,12 @@ class vcf():
             vcf_columns = list(vcf.columns)
 
             # sense check given exclude columns is in the vcfs
-            assert [x for x in vcf.columns for x in self.args.reorder], (
-                "Column '{x}' specified with --reorder not "
-                "present in one or more of the given vcfs. Valid column "
-                f"names: {vcf.columns}"
-            )
+            for x in self.args.reorder:
+                assert x in vcf_columns, (
+                    f"\n\nColumn '{x}' specified with --reorder not "
+                    "present in one or more of the given vcfs. Valid column "
+                    f"names: \n{vcf.columns}"
+                )
 
             [vcf_columns.remove(x) for x in self.args.reorder]
             column_order = self.args.reorder + vcf_columns

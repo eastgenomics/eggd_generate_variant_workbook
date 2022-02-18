@@ -16,33 +16,6 @@ class splitColumns():
     of VCFs from file in vcf.read()
     """
     @staticmethod
-    def parse_csq_fields(header) -> list:
-        """
-        Parse out csq field names from vcf header.
-
-        Kind of horrible way to parse the CSQ field names but this is how VEP
-        seems to have always stored them (6+ years +) in the header as:
-        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
-        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
-
-        Parameters
-        ----------
-        header : list
-            list of header lines read from vcf
-
-        Returns
-        -------
-        csq_fields : list
-            list of CSQ field names parsed from vcf header, used to assign as
-            column headings when splitting out CSQ data for each variant
-        """
-        csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
-        csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
-
-        return csq_fields
-
-
-    @staticmethod
     def format_fields(vcf_df) -> pd.DataFrame:
         """
         Get format fields from FORMAT column to split out sample values to
@@ -194,7 +167,7 @@ class splitColumns():
         """
         Split out CSQ string from other values in the INFO column to separate
         fields to get annotation.  Column headers taken from format stored by
-        VEP in the header, read from self.parse_csq_fields().
+        VEP in the header, read from vcf.parse_csq_fields().
 
         Variants with multiple transcript annotation will have duplicate CSQ
         data that is comma sepparated => expand this to multiple rows, if no
