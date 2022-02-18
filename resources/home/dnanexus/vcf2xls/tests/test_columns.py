@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 import numpy as np
+import pandas as pd
 
 import pytest
 
@@ -15,28 +16,33 @@ from utils.vcf import vcf
 from utils.columns import splitColumns
 from tests import TEST_DATA_DIR
 
-# test data vcf
-columns_vcf = os.path.join(TEST_DATA_DIR, "column_methods_test.vcf")
 
-# initialise vcf class with a valid argparse input to allow calling .read()
-vcf_handler = vcf(argparse.Namespace(
-    add_name=False, analysis='', clinical_indication='', exclude=None,
-    filter=None, include=None, keep=False, merge=False,
-    out_dir='/home/jethro/Projects/eggd_vcf2xls_nirvana',
-    output='/home/jethro/Projects/eggd_vcf2xls_nirvana/NA12878_R29.1_ID.xlsx',
-    panel='', print_columns=False, reads='', rename=None, reorder=None,
-    sample='', sheets=['variants'], summary=None, usable_reads='',
-    vcfs=[columns_vcf], workflow=('', '')
-))
+def read_test_vcf(vcf_file):
+    """
+    Read in test vcf to dataframe using methods from vcf()
+    """
+    # test data vcf
+    columns_vcf = os.path.join(TEST_DATA_DIR, vcf_file)
 
-vcf_df, csq_fields = vcf_handler.read(columns_vcf)
+    # initialise vcf class with a valid argparse input to allow calling .read()
+    vcf_handler = vcf(argparse.Namespace(
+        add_name=False, analysis='', clinical_indication='', exclude=None,
+        filter=None, include=None, keep=False, merge=False,
+        out_dir='/home/jethro/Projects/eggd_vcf2xls_nirvana',
+        output='/home/jethro/Projects/eggd_vcf2xls_nirvana/NA12878_R29.1_ID.xlsx',
+        panel='', print_columns=False, reads='', rename=None, reorder=None,
+        sample='', sheets=['variants'], summary=None, usable_reads='',
+        vcfs=[columns_vcf], workflow=('', '')
+    ))
+    vcf_df, csq_fields = vcf_handler.read(columns_vcf)
 
+    return vcf_df, csq_fields
 
 
 class TestInfoColumn():
     """
-    Tests for columns.info() that splits out key value pairs from INFO column
-    to separate columns in dataframe
+    Tests for splitColumns.info() that splits out key value pairs
+    from INFO column to separate columns in dataframe
 
     INFO values from test vcf:
 
@@ -72,9 +78,9 @@ class TestInfoColumn():
 
     ['STR', 'POP_AF', 'RPA', 'TLOD', 'P_GERMLINE', 'ECNT', 'DP', 'RU']
     """
-
     # run dataframe through splitColumns.info() to split out INFO column
-    vcf_df_split_info = splitColumns.info(vcf_df)
+    vcf_df, _ = read_test_vcf(vcf_file="column_methods_test.vcf")
+    vcf_df = splitColumns.info(vcf_df)
 
 
     def test_parsed_correct_columns_from_info_records(self) -> None:
@@ -88,7 +94,7 @@ class TestInfoColumn():
             'ECNT', 'DP', 'RU'
         ]
 
-        assert sorted(correct_columns) == sorted(vcf_df.columns.tolist()), (
+        assert sorted(correct_columns) == sorted(self.vcf_df.columns.tolist()), (
             "Number of columns after spliting INFO is incorrect"
         )
 
@@ -103,7 +109,7 @@ class TestInfoColumn():
             '3077','2943', '2917', '1907', '1892', '2358'
         ]
 
-        assert correct_dp_values == vcf_df['DP'].tolist()
+        assert correct_dp_values == self.vcf_df['DP'].tolist()
 
 
     def test_parsed_correct_ECNT_values(self):
@@ -115,7 +121,7 @@ class TestInfoColumn():
             '5', '5', '5', '2', '1', '2', '2', '2', '1', '1', '1', '1'
         ]
 
-        assert correct_ecnt_values == vcf_df['ECNT'].tolist()
+        assert correct_ecnt_values == self.vcf_df['ECNT'].tolist()
 
 
     def test_parsed_correct_pop_af_values(self):
@@ -128,7 +134,7 @@ class TestInfoColumn():
             '0.001', '0.001', '0.001', '0.001', '0.001', '0.001',
         ]
 
-        assert correct_pop_af_values == vcf_df['POP_AF'].tolist()
+        assert correct_pop_af_values == self.vcf_df['POP_AF'].tolist()
 
 
     def test_parsed_correct_p_germline_values(self):
@@ -141,7 +147,7 @@ class TestInfoColumn():
             '-0.001', '-0.002', '-0', '-0', '-0', '-0'
         ]
 
-        assert correct_p_germline_values == vcf_df['P_GERMLINE'].tolist()
+        assert correct_p_germline_values == self.vcf_df['P_GERMLINE'].tolist()
 
 
     def test_parsed_correct_rpa_values(self):
@@ -155,7 +161,7 @@ class TestInfoColumn():
         ]
 
 
-        assert correct_rpa_values == vcf_df['RPA'].tolist()
+        assert correct_rpa_values == self.vcf_df['RPA'].tolist()
 
 
     def test_parsed_correct_ru_values(self):
@@ -168,7 +174,7 @@ class TestInfoColumn():
             np.nan, 'CAC', np.nan, 'T', np.nan
         ]
 
-        assert correct_ru_values == vcf_df['RU'].tolist()
+        assert correct_ru_values == self.vcf_df['RU'].tolist()
 
 
     def test_parsed_correct_str_values(self):
@@ -182,7 +188,7 @@ class TestInfoColumn():
             np.nan, np.nan, True, np.nan, True, np.nan
         ]
 
-        assert correct_str_values == vcf_df['STR'].tolist()
+        assert correct_str_values == self.vcf_df['STR'].tolist()
 
 
     def test_parsed_correct_tlod_values(self):
@@ -195,7 +201,7 @@ class TestInfoColumn():
             '5.47', '5.02', '36.68', '2904.48', '19.45', '74.01'
         ]
 
-        assert correct_tlod_values == vcf_df['TLOD'].tolist()
+        assert correct_tlod_values == self.vcf_df['TLOD'].tolist()
 
 
     def test_info_column_dropped(self):
@@ -203,9 +209,44 @@ class TestInfoColumn():
         Tests if INFO column dropped from dataframe after it is expanded to
         separate columns
         """
-        assert "INFO" not in vcf_df.columns.tolist(), 'INFO column not dropped'
+        assert "INFO" not in self.vcf_df.columns.tolist(), 'INFO column not dropped'
+
+
+class TestCSQ():
+    """
+    Tests for splitColumns.csq that splits out CSQ string to separate
+    columns as defined from header
+    """
+    # read in test vcf with multiple transcript of annotation for each variant
+    vcf_df, csq_fields = read_test_vcf(vcf_file="multi_transcript_annotation.vcf")
+
+    # count total number of transcript annotation across all variants
+    # number of transcripts will equal number of ',' + 1 for each string
+    transcript_count = 0
+    tmp_df = pd.DataFrame()
+    tmp_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
+
+    for idx, row in tmp_df.iterrows():
+        transcript_count += row['CSQ'].count(',') + 1
+
+    # call method to split out CSQ column to test from
+    split_csq_vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
+
+
+    def test_correct_total_number_rows_after_csq_explode(self):
+        """
+        Test that when we call .explode() on CSQ column to split out multiple
+        transcripts to separate rows that this results in the correct number
+        of rows
+        """
+        assert len(self.split_csq_vcf_df.index) == self.transcript_count, (
+            "Differing total of rows after .explode() on CSQ column"
+        )
+
 
 if __name__ == "__main__":
-    column = TestInfoColumn()
-    column.test_parsed_correct_columns_from_info_records()
+    info = TestInfoColumn()
+    csq = TestCSQ()
+
+    # column.test_parsed_correct_columns_from_info_records()
 

@@ -123,7 +123,7 @@ class splitColumns():
         ]
         info_pairs = [[x for x in lst if x] for lst in info_pairs]
 
-        # get unique list of keys from key=value pairs in INFO
+        # get unique list of keys from key=value pairs in INFO from all rows
         info_keys = sorted(list(set([
             x.split('=')[0] if '=' in x else x for pair in info_pairs for x in pair
         ])))
@@ -131,12 +131,7 @@ class splitColumns():
 
         info_values = []
 
-        # print(info_keys)
-        # print(info_pairs)
-        # sys.exit()
-
         # info_pairs -> list of list of pairs, one list per variant
-
         for variant_pairs in info_pairs:
             # for every variants values, split them out to dict to add to df
             pair_values = {}
@@ -220,10 +215,10 @@ class splitColumns():
             annotations to individual rows
         """
         df_rows = len(vcf_df.index)
-
-        # get list of all columns minus CSQ to allow exploding on just CSQ
         columns = list(vcf_df.columns)
-        columns.remove('CSQ')
+
+        # split out CSQ string from INFO col from each row
+        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
 
         # set index to be everything except CSQ, expand this to multiple rows
         # then set index back
@@ -243,12 +238,16 @@ class splitColumns():
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['CSQ'], axis=1, inplace=True)
 
+        print(vcf_df)
+
         if df_rows != len(vcf_df.index):
             # total rows has changed => we must have multiple transcripts
             print(f"Total rows of VCF changed on splitting CSQ values")
             print(f"Total rows before: {df_rows}")
             print(f"Total rows after: {len(vcf_df.index)}")
             expanded_vcf_rows = len(vcf_df.index) - df_rows
+        else:
+            expanded_vcf_rows = 0
 
         return vcf_df, expanded_vcf_rows
 
