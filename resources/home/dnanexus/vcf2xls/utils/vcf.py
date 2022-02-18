@@ -113,7 +113,7 @@ class vcf():
             vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
             vcf_df = splitColumns.format_fields(vcf_df)
 
-            # TO REMOVE
+            # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS
             vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
             vcf_df = vcf_df.reset_index()
 

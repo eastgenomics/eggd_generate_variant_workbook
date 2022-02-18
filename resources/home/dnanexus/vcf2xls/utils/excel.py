@@ -54,12 +54,14 @@ class excel():
         self.set_font()
 
         self.workbook.save(self.args.output)
+        print('Done!')
 
 
     def write_summary(self) -> None:
         """
         Write summary sheet to excel file
         """
+        print('Writing summary sheet')
         if self.args.summary == 'dias':
             # generate summary sheet in format for RD/dias
             self.summary = self.workbook.create_sheet('summary')
@@ -89,6 +91,14 @@ class excel():
         self.summary.cell(41, 2).value = self.args.usable_reads
         self.summary.cell(43, 2).value = self.args.workflow[0]
         self.summary.cell(44, 2).value = self.args.workflow[1]
+
+        # write args passed to script to generate report
+        self.summary.cell(46, 1).value = "Filters applied:"
+        if self.args.filter:
+            for idx, filter in enumerate(self.args.filter):
+                self.summary.cell(46 + idx, 2).value = filter
+        else:
+            self.summary.cell(46, 2).value = "None"
 
         # write center reporting section tables
         self.summary.cell(9, 2).value = "Phenotype:"
