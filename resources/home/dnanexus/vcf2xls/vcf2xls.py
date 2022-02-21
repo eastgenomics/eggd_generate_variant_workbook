@@ -13,6 +13,20 @@ class arguments():
     """
     Functions for handling and parsing of command line arguments
     """
+    def __init__(self):
+        """
+        Parse command line arguments with argparse, do some sense checking
+        and formatting of arguments passed
+        """
+        self.args = self.parse_args()
+
+        # sense checking and setting / formatting of arguments
+        self.check_output()
+        self.parse_output()
+        self.set_sheet_names()
+        self.verify_sheets()
+
+
     class parsePairs(argparse.Action):
         """
         Simple class method for enabling passing of key value pairs to argparse
@@ -43,20 +57,6 @@ class arguments():
                 }
             )
             setattr(namespace, self.dest, keep_list)
-
-
-    def __init__(self):
-        """
-        Parse command line arguments with argparse, do some sense checking
-        and formatting of arguments passed
-        """
-        self.args = self.parse_args()
-
-        # sense checking and setting / formatting of arguments
-        self.check_output()
-        self.parse_output()
-        self.set_sheet_names()
-        self.verify_sheets()
 
 
     def parse_args(self) -> argparse.Namespace:
@@ -264,9 +264,6 @@ class arguments():
 
 def main():
     parser = arguments()
-
-    print(parser.args)
-    sys.exit()
 
     # read in and process vcf(s)
     vcf_handler = vcf(parser.args)

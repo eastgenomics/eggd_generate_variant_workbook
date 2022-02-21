@@ -6,7 +6,8 @@ import pandas as pd
 
 class filter():
     """"
-    Functions related to filtering dataframes of variants from args.filter
+    Functions related to filtering dataframes of variants from args.filter,
+    called during processing of variants in vcf.process()
 
     Attributes
     ----------

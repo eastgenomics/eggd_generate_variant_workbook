@@ -108,9 +108,8 @@ class vcf():
 
             # split out INFO column, CSQ fields and FORMAT/SAMPLE column values
             # to individual columns in dataframe
-            vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-            vcf_df = splitColumns.info(vcf_df)
             vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
+            vcf_df = splitColumns.info(vcf_df)
             vcf_df = splitColumns.format_fields(vcf_df)
 
             # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS

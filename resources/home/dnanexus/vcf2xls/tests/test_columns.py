@@ -247,6 +247,3 @@ class TestCSQ():
 if __name__ == "__main__":
     info = TestInfoColumn()
     csq = TestCSQ()
-
-    # column.test_parsed_correct_columns_from_info_records()
-
