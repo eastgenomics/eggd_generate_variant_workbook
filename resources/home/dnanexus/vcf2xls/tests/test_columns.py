@@ -244,6 +244,19 @@ class TestCSQ():
         )
 
 
+    def test_all_csq_fields_present_in_dataframe(self):
+        """
+        Tests that the csq fields parsed from header are all present in the
+        resultant dataframe
+        """
+        assert all(map(
+            lambda v: v in self.split_csq_vcf_df.columns.tolist(), self.csq_fields
+        )), "CSQ columns parsed from header not present in df after splitColumns.csq()"
+
+
+
+
+
 if __name__ == "__main__":
     info = TestInfoColumn()
     csq = TestCSQ()
