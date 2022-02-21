@@ -53,25 +53,26 @@ class splitColumns():
         # get unique list of FORMAT fields from all rows
         fields = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
 
-        # split out FORMAT and SAMPLE columns a list of ':' joined pairs
+        # join respective pairs from FORMAT and SAMPLE columns to list of
+        # '=' joined pairs
+        # before -> GT:AD:DP:GQ:PL  1/1:0,41:41:99:1442,123,0
+        # after  -> [GT=1/1, AD=0,41, DP=41, GQ=99, PL=1442,123,0]
         tmp_df = pd.DataFrame()
-        tmp_df['tmp'] = vcf_df.apply(lambda x: {
-            '='.join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
-        }, axis=1)
-        tmp_df = tmp_df.astype(str)
+        tmp_df['tmp'] = vcf_df.apply(lambda x: [
+            "=".join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
+        ], axis=1)
+
+        # join everything with a '|', this allows us to split and cast the
+        # pairs to dict to turn into a list of values => pd.DataFrame
+        # can't use ',' since some SAMPLE values may contain them
+        tmp_df['tmp'] = tmp_df['tmp'].apply(lambda x: '|'.join(x))
 
         # split every row to a dict of key value pairs and build df
         format_cols = tmp_df.join(pd.DataFrame([
             dict(val) for val in tmp_df.pop('tmp').str.findall((
-                r'(\w+)=([^,\}]+)'
+                r'(\w+)=([^|\}]+)'
             ))
         ]))
-
-        # some columns have an extra quote added for some reason...
-        for col in format_cols.columns:
-            format_cols[col] = format_cols[col].apply(
-                lambda x: x.rstrip("'") if type(x) == str else x
-            )
 
         # add split out columns to main df
         vcf_df = vcf_df.join(format_cols, rsuffix=" (FMT)")

@@ -29,8 +29,8 @@ def read_test_vcf(vcf_file):
     vcf_handler = vcf(argparse.Namespace(
         add_name=False, analysis='', clinical_indication='', exclude=None,
         filter=None, include=None, keep=False, merge=False,
-        out_dir='/home/jethro/Projects/eggd_vcf2xls_nirvana',
-        output='/home/jethro/Projects/eggd_vcf2xls_nirvana/NA12878_R29.1_ID.xlsx',
+        out_dir='',
+        output='',
         panel='', print_columns=False, reads='', rename=None, reorder=None,
         sample='', sheets=['variants'], summary=None, usable_reads='',
         vcfs=[columns_vcf], workflow=('', '')
@@ -38,6 +38,7 @@ def read_test_vcf(vcf_file):
     vcf_df, csq_fields = vcf_handler.read(columns_vcf)
 
     return vcf_df, csq_fields
+
 
 
 def read_csq_from_vcf() -> list:
@@ -61,6 +62,26 @@ def read_csq_from_vcf() -> list:
     csq_strings = [x.split('CSQ=')[-1] for x in info_strings]
 
     return csq_strings
+
+
+def read_sample_from_vcf() -> list:
+    """
+    Reads values from SAMPLE column direct from VCF to compare against VCF
+    using subprocess with grep and cut
+
+    Returns
+    -------
+    csq_strings : list
+        list of each variants/transcript csq string
+    """
+    # read in INFO column from VCF to list of records, split the multiple
+    # transcripts to separate lines by splitting with sed on commas
+    sample_strings = subprocess.run((
+        f"grep -v '^#' {TEST_DATA_DIR}/multi_transcript_annotation.vcf | "
+        "cut -f10")
+        , shell=True, capture_output=True).stdout.decode().rstrip('\n').split('\n')
+
+    return sample_strings
 
 
 
@@ -370,8 +391,34 @@ class TestCSQ():
         )), "CSQ columns parsed from header not present in df after splitColumns.csq()"
 
 
+class TestFormatSample():
+    """
+    Tests for splitColumns.format_fields() that creates new columns from FORMAT
+    fields, combining with respective values from SAMPLE column
+    """
+    # run dataframe through splitColumns.info() to split out INFO column
+    vcf_df, _ = read_test_vcf(vcf_file="multi_transcript_annotation.vcf")
+    vcf_df = splitColumns.format_fields(vcf_df)
+
+    # turn columns of format sample values back to ':' joined strings as in vcf
+    format_columns = ['GT', 'AD', 'DP', 'GQ', 'PL']
+    sample_strings = vcf_df[format_columns].agg(':'.join, axis=1).tolist()
+
+    # read sample strings from test vcf directly
+    vcf_sample_strings = read_sample_from_vcf()
+
+
+    def test_format_sample_values_are_correct(self):
+        """
+        Tests if the FORMAT / SAMPLE values in dataframe match values in vcf
+        """
+        assert self.sample_strings == self.vcf_sample_strings, (
+            "SAMPLE values in dataframe do not match those in test vcf"
+        )
+
 
 
 if __name__ == "__main__":
-    info = TestInfoColumn()
-    csq = TestCSQ()
+    # info = TestInfoColumn()
+    # csq = TestCSQ()
+    TestFormatSample()
