@@ -112,6 +112,12 @@ class vcf():
             vcf_df = splitColumns.info(vcf_df)
             vcf_df = splitColumns.format_fields(vcf_df)
 
+            if 'COSMIC' in vcf_df.columns:
+                # handle known bug in VEP annotation where it duplicates COSMIC
+                vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
+                    lambda x: '&'.join(set(x.split('&')))
+                )
+
             # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS
             vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
             vcf_df = vcf_df.reset_index()

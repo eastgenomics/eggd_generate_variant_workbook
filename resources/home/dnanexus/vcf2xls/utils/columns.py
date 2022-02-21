@@ -229,12 +229,6 @@ class splitColumns():
         # split each CSQ value to own columns
         vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
 
-        if 'COSMIC' in vcf_df.columns:
-            # handle known bug in VEP annotation where it duplicates COSMIC
-            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
-                lambda x: '&'.join(set(x.split('&')))
-            )
-
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['CSQ'], axis=1, inplace=True)
 

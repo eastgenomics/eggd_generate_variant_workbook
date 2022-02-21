@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 import numpy as np
@@ -37,6 +38,30 @@ def read_test_vcf(vcf_file):
     vcf_df, csq_fields = vcf_handler.read(columns_vcf)
 
     return vcf_df, csq_fields
+
+
+def read_csq_from_vcf() -> list:
+    """
+    Reads CSQ strings direct from VCF to compare against VCF using
+    subprocess with grep, cut and sed
+
+    Returns
+    -------
+    csq_strings : list
+        list of each variants/transcript csq string
+    """
+    # read in INFO column from VCF to list of records, split the multiple
+    # transcripts to separate lines by splitting with sed on commas
+    info_strings = subprocess.run((
+        f"grep -v '^#' {TEST_DATA_DIR}/multi_transcript_annotation.vcf | "
+        "cut -f8 | sed 's/,/\\n/g'")
+        , shell=True, capture_output=True).stdout.decode().rstrip('\n').split('\n')
+
+    # retain just CSQ part, results in one item with all CSQ joined by '|'
+    csq_strings = [x.split('CSQ=')[-1] for x in info_strings]
+
+    return csq_strings
+
 
 
 class TestInfoColumn():
@@ -215,7 +240,82 @@ class TestInfoColumn():
 class TestCSQ():
     """
     Tests for splitColumns.csq that splits out CSQ string to separate
-    columns as defined from header
+    columns as defined from header. CSQ fields to split out from test vcf:
+
+    ['SYMBOL', 'VARIANT_CLASS', 'Consequence', 'EXON', 'HGVSc', 'HGVSp',
+    'gnomAD_AF', 'gnomADg_AF', 'CADD_PHRED', 'Existing_variation', 'ClinVar',
+    'ClinVar_CLNDN', 'ClinVar_CLNSIG', 'COSMIC', 'Feature']
+
+    Data transforms as:
+
+    5 variants with multiple comma separated CSQ annotation as:
+
+    CSQ=LEPR|SNV|intron_variant||NM_001003679.3:c.370+16G>T||0.9999|...
+    CSQ=LEPR|SNV|missense_variant|6/20|NM_001003679.3:c.668A>G|...
+    CSQ=LEPR|SNV|intron_variant||NM_001003679.3:c.850-50A>C||0.4683|...
+    CSQ=LEPR|SNV|synonymous_variant|9/20|NM_001003679.3:c.1029T>C|...
+    CSQ=CEP170|SNV|upstream_gene_variant||||0.5003|4.16591e-01|16.36|...
+
+
+    Multiple transcripts split to separate rows if present:
+
+    LEPR|SNV|intron_variant||NM_001003679.3:c.370+16G>T||...
+    LEPR|SNV|intron_variant||NM_001003680.3:c.370+16G>T||...
+    LEPR|SNV|intron_variant||NM_001198687.2:c.370+16G>T||...
+    LEPR|SNV|intron_variant||NM_001198688.1:c.370+16G>T||...
+    LEPR|SNV|intron_variant||NM_001198689.2:c.370+16G>T||...2
+    LEPR|SNV|intron_variant||NM_002303.6:c.370+16G>T||...
+
+
+    LEPR|SNV|missense_variant|6/20|NM_001003679.3:c.668A>G|...
+    LEPR|SNV|missense_variant|6/20|NM_001003680.3:c.668A>G|...
+    LEPR|SNV|missense_variant|5/19|NM_001198687.2:c.668A>G|...
+    LEPR|SNV|missense_variant|5/19|NM_001198688.1:c.668A>G|...
+    LEPR|SNV|missense_variant|5/19|NM_001198689.2:c.668A>G|.
+    LEPR|SNV|missense_variant|6/20|NM_002303.6:c.668A>G|...
+
+
+    LEPR|SNV|intron_variant||NM_001003679.3:c.850-50A>C||0.4683|...
+    LEPR|SNV|intron_variant||NM_001003680.3:c.850-50A>C||0.4683|...
+    LEPR|SNV|intron_variant||NM_001198687.2:c.850-50A>C||0.4683|...
+    LEPR|SNV|intron_variant||NM_001198688.1:c.850-50A>C||0.4683|...
+    LEPR|SNV|intron_variant||NM_001198689.2:c.850-50A>C||0.4683|...
+    LEPR|SNV|intron_variant||NM_002303.6:c.850-50A>C||0.4683|...
+
+
+    LEPR|SNV|synonymous_variant|9/20|NM_001003679.3:c.1029T>C|...
+    LEPR|SNV|synonymous_variant|9/20|NM_001003680.3:c.1029T>C|...
+    LEPR|SNV|synonymous_variant|8/19|NM_001198687.2:c.1029T>C|...
+    LEPR|SNV|synonymous_variant|8/19|NM_001198688.1:c.1029T>C|...
+    LEPR|SNV|synonymous_variant|8/19|NM_001198689.2:c.1029T>C|...
+    LEPR|SNV|synonymous_variant|9/20|NM_002303.6:c.1029T>C|...
+
+
+    CEP170|SNV|upstream_gene_variant||||0.5003|4.16591e-01|16.36|...
+    CEP170|SNV|upstream_gene_variant||||0.5003|4.16591e-01|16.36|...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/20|NM_001350246.2:c.-1159T>A||...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/19|NM_001350247.2:c.-1047T>A||...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/19|NM_001350248.2:c.-47T>A||...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/18|NM_001350249.2:c.-354T>A||...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/21|NM_001350251.2:c.-1420T>A||...
+    SDCCAG8|SNV|5_prime_UTR_variant|1/18|NM_006642.5:c.-47T>A||0.5003|...
+    CEP170|SNV|upstream_gene_variant||||0.5003|4.16591e-01|16.36|...
+
+
+    Example split out annotation for one variant / transcript:
+
+    SYMBOL | VARIANT_CLASS | Consequence    | EXON | HGVSc \
+    ------------------------------------------------------
+    LEPR   | SNV           | intron_variant |      | NM_001003679.3:c.850-50A>C \
+
+    HGVSp | gnomAD_AF | gnomADg_AF  | CADD_PHRED | Existing_variation \
+    -----------------------------------------------------------------
+          | 0.4683    | 4.99514e-01 | 7.575      | rs3762273 \
+
+    ClinVar | ClinVar_CLNDN | ClinVar_CLNSIG | COSMIC | Feature
+    -----------------------------------------------------------
+    1263741 | not_provided  | Benign         |        | NM_001003679.3
+
     """
     # read in test vcf with multiple transcript of annotation for each variant
     vcf_df, csq_fields = read_test_vcf(vcf_file="multi_transcript_annotation.vcf")
@@ -229,8 +329,24 @@ class TestCSQ():
     for idx, row in tmp_df.iterrows():
         transcript_count += row['CSQ'].count(',') + 1
 
-    # call method to split out CSQ column to test from
+    # call splitColumns.csq() method to split out CSQ column to test against
     split_csq_vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
+
+    # read csq strings direct from vcf to compare against dataframe columns
+    csq_strings = read_csq_from_vcf()
+
+
+    def test_correct_csq(self):
+        """
+        Test the columns in the dataframe of expanded CSQ match what is read in
+        from file
+        """
+        # dump out all csq columns from dataframe as a '|' joined list
+        df_csq_values = self.split_csq_vcf_df[self.csq_fields].agg('|'.join, axis=1).tolist()
+
+        assert df_csq_values == self.csq_strings, (
+            "CSQ values from dataframe do not match what is in file"
+        )
 
 
     def test_correct_total_number_rows_after_csq_explode(self):
@@ -252,7 +368,6 @@ class TestCSQ():
         assert all(map(
             lambda v: v in self.split_csq_vcf_df.columns.tolist(), self.csq_fields
         )), "CSQ columns parsed from header not present in df after splitColumns.csq()"
-
 
 
 
