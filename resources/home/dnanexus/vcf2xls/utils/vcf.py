@@ -320,15 +320,22 @@ class vcf():
 
     def add_hyperlinks(self) -> None:
         """
-        Add hyperlinks to ClinVar and Cosmic IDs if present in df.columns
+        Format column value as an Excel hyperlink, currently supports:
+            - ClinVar
+            - Cosmic
         """
+        urls = {
+            "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
+            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q="
+        }
+
         for idx, vcf in enumerate(self.vcfs):
             for col in vcf.columns:
-                if col.lower() == 'clinvar':
-                    # clinvar column => add appropriate hyperlink
+                if urls.get(col.lower(), None):
+                    # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx][col].apply(
                         lambda x: self.make_hyperlink(
-                            f"https://www.ncbi.nlm.nih.gov/clinvar/variation/", x
+                            urls.get(col.lower()), x
                         )
                     )
 
