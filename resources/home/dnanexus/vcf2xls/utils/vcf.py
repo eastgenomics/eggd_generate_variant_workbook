@@ -159,6 +159,8 @@ class vcf():
 
         self.remove_nan()
 
+        self.add_hyperlinks()
+
         # run checks to ensure we haven't unintentionally dropped variants
         # self.verify_totals()
 
@@ -314,6 +316,41 @@ class vcf():
         }
 
         return vcf_df.astype(df_dtypes, errors='ignore')
+
+
+    def add_hyperlinks(self) -> None:
+        """
+        Add hyperlinks to ClinVar and Cosmic IDs if present in df.columns
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            for col in vcf.columns:
+                if col.lower() == 'clinvar':
+                    # clinvar column => add appropriate hyperlink
+                    self.vcfs[idx][col] = self.vcfs[idx][col].apply(
+                        lambda x: self.make_hyperlink(
+                            f"https://www.ncbi.nlm.nih.gov/clinvar/variation/", x
+                        )
+                    )
+
+
+    def make_hyperlink(self, url, value):
+        """
+        Return Excel formatted hyperlink from given url and value
+
+        Parameters
+        ----------
+        url : string
+            url string to add value to
+        value : string
+            dataframe value to add to url as hyperlink
+
+        Returns
+        -------
+        str
+            url string formatted as Excel hyperlink
+        """
+        if value:
+            return f'=HYPERLINK("{url}{value}", "{value}")'
 
 
     def remove_nan(self) -> None:
