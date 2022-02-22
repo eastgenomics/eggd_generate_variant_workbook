@@ -49,7 +49,6 @@ class splitColumns():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with split out FORMAT fields
         """
-        print(vcf_df)
         # get unique list of FORMAT fields from all rows
         fields = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
 
@@ -232,8 +231,6 @@ class splitColumns():
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['CSQ'], axis=1, inplace=True)
-
-        print(vcf_df)
 
         if df_rows != len(vcf_df.index):
             # total rows has changed => we must have multiple transcripts
