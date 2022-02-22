@@ -427,7 +427,7 @@ class vcf():
             else:
                 to_drop = self.args.exclude
 
-            # sense check given exclude columns is in the vcfs
+            # sense check given exclude columns are in the vcfs
             assert all(column in vcf.columns for column in to_drop), (
                 "Column(s) specified with --exclude/--include not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
@@ -487,7 +487,9 @@ class vcf():
                     f"{vcf.columns}. Column names passed to --rename: "
                     f"{self.args.rename.keys()}"
                 )
-                self.vcfs[idx].rename(columns=dict(self.args.rename.items()))
+                self.vcfs[idx].rename(
+                    columns=dict(self.args.rename.items()), inplace=True
+                )
 
             # remove underscores from all names
             self.vcfs[idx].columns = [

@@ -40,7 +40,6 @@ def read_test_vcf(vcf_file):
     return vcf_df, csq_fields
 
 
-
 def read_csq_from_vcf() -> list:
     """
     Reads CSQ strings direct from VCF to compare against VCF using
@@ -82,7 +81,6 @@ def read_sample_from_vcf() -> list:
         , shell=True, capture_output=True).stdout.decode().rstrip('\n').split('\n')
 
     return sample_strings
-
 
 
 class TestInfoColumn():
@@ -396,7 +394,8 @@ class TestFormatSample():
     Tests for splitColumns.format_fields() that creates new columns from FORMAT
     fields, combining with respective values from SAMPLE column
     """
-    # run dataframe through splitColumns.info() to split out INFO column
+    # run dataframe through splitColumns.format_fields() to split out FORMAT/
+    # SAMPLE columns
     vcf_df, _ = read_test_vcf(vcf_file="multi_transcript_annotation.vcf")
     vcf_df = splitColumns.format_fields(vcf_df)
 
@@ -419,6 +418,6 @@ class TestFormatSample():
 
 
 if __name__ == "__main__":
-    # info = TestInfoColumn()
-    # csq = TestCSQ()
+    info = TestInfoColumn()
+    csq = TestCSQ()
     TestFormatSample()
