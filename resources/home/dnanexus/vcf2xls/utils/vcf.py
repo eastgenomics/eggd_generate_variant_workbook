@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 from typing import Union
 import urllib.parse
@@ -61,26 +62,6 @@ class vcf():
             "QUAL": str,
             "FILTER": str,
             "FORMAT": str,
-            "DP": int,
-            "SYMBOL": str,
-            "VARIANT_CLASS": str,
-            "Consequence": str,
-            "EXON": str,
-            "HGVSc": str,
-            "HGVSp": str,
-            "gnomAD_AF": float,
-            "gnomADg_AF": float,
-            "CADD_PHRED": float,
-            "Existing_variation": str,
-            "ClinVar": str,
-            "ClinVar_CLNDN": str,
-            "ClinVar_CLNSIG": str,
-            "COSMIC": str,
-            "Feature": str,
-            "STR": bool,
-            "RU": bool,
-            "Prev_AC": pd.Int16Dtype(),
-            "Prev_NS": pd.Int16Dtype()
         }
 
 
@@ -125,7 +106,7 @@ class vcf():
             self.expanded_vcf_rows += expanded_vcf_rows
 
             # set correct dtypes, required for setting numeric & object types
-            # to ensure correct filtering filtering
+            # to ensure correct filtering
             vcf_df = self.set_types(vcf_df)
 
             self.vcfs.append(vcf_df)
@@ -198,6 +179,7 @@ class vcf():
         header, columns = self.parse_header(vcf)
         csq_fields = self.parse_csq_fields(header)
         self.parse_reference(header)
+        self.parse_field_types(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
@@ -266,7 +248,7 @@ class vcf():
                 self.refs.append(Path(ref).name)
 
 
-    def parse_csq_fields(self, header) -> None:
+    def parse_csq_fields(self, header) -> list:
         """
         Parse out csq field names from vcf header.
 
@@ -292,6 +274,34 @@ class vcf():
         return csq_fields
 
 
+    def parse_field_types(self, header) -> None:
+        """
+        Parse the types from the vcf header for INFO and FORMAT fields, used to
+        update self.dtypes object used to correctly set types on dataframe(s)
+
+        Parameters
+        ----------
+        header : list
+            list of header lines read from vcf
+        """
+        dtypes = {
+            "Integer": int,
+            "Float": float,
+            "Flag": bool,
+            "String": str,
+            "Character": object
+        }
+
+        for line in header:
+            if line.startswith('##INFO') or line.startswith('##FORMAT'):
+                name = re.search(
+                    "ID=.+?(?=,)", line).group().replace("ID=", "")
+                type = re.search(
+                    "Type=.+?(?=,)", line).group().replace("Type=", "")
+
+                self.dtypes[name] = dtypes[type]
+
+
     def set_types(self, vcf_df) -> pd.DataFrame:
         """
         Sets appropriate dtypes on given df of variants
@@ -306,22 +316,24 @@ class vcf():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with dtypes set
         """
-        # first set any empty strings to pd.NA values to not break types
-        vcf_df = vcf_df.replace('', np.nan)
+        # # first set any empty strings to np.nan values to not break types
+        # vcf_df = vcf_df.replace('', np.nan)
 
-        # get any AF and AC columns that should be floats
-        int_columns = [
-            x for x in vcf_df.columns if '_AF' in x or '_AC' in x
-        ]
-        for col in int_columns:
-            self.dtypes[col] = float
+        # # get any AF and AC columns that should be floats
+        # int_columns = [
+        #     x for x in vcf_df.columns if '_AF' in x or '_AC' in x
+        # ]
+        # for col in int_columns:
+        #     self.dtypes[col] = float
 
         # filter all dtypes to just those columns in current df
         df_dtypes = {
             k: v for k, v in self.dtypes.items() if k in list(vcf_df.columns)
         }
 
-        return vcf_df.astype(df_dtypes, errors='ignore')
+        vcf_df = vcf_df.astype(df_dtypes, errors='ignore')
+
+        return vcf_df
 
 
     def add_hyperlinks(self) -> None:
