@@ -344,6 +344,7 @@ class vcf():
         urls = {
                 "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
                 "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
+                "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc="
             }
 
         # some URLs are build specific, infer which to use from build in header
