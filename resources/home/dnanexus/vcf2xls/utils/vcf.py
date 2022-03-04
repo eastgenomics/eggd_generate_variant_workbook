@@ -3,9 +3,7 @@ import re
 import sys
 from typing import Union
 import urllib.parse
-from weakref import ref
 
-import numpy as np
 import pandas as pd
 
 from .columns import splitColumns
@@ -344,7 +342,8 @@ class vcf():
         urls = {
                 "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
                 "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
-                "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc="
+                "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
+                "mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
             }
 
         # some URLs are build specific, infer which to use from build in header
