@@ -101,8 +101,8 @@ class vcf():
                 )
 
             # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS
-            vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
-            vcf_df = vcf_df.reset_index()
+            # vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
+            # vcf_df = vcf_df.reset_index(drop=True)
 
             self.expanded_vcf_rows += expanded_vcf_rows
 
@@ -350,13 +350,13 @@ class vcf():
         reference = self.refs[0].lower()
         if 'grch37' in reference or 'hg19' in reference:
             urls.update({
-                "gnomad_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r2_1",
-                "gnomadg_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r2_1"
+                "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1",
+                "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1"
             })
         elif 'grch38' in reference or 'hg38' in reference:
             urls.update({
-                "gnomad_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r3",
-                "gnomadg_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r3"
+                "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3",
+                "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3"
             })
 
         for idx, vcf in enumerate(self.vcfs):
@@ -390,10 +390,13 @@ class vcf():
         """
         if value[column]:
             if 'gnomad' in column.lower():
-                # handle gnomad differently as it requires chrom and pos in URL
-                # instead of just the value adding to the end
+                # handle gnomad differently as it requires chrom, pos, ref and
+                # alt in URL instead of just the value adding to the end
                 chrom = str(value.CHROM.replace('chr', ''))
-                url = url.replace('CHROM', chrom).replace('POS', str(value.POS))
+                url = url.replace('CHROM', chrom)
+                url = url.replace('POS', str(value.POS))
+                url = url.replace('REF', value.REF)
+                url = url.replace('ALT', value.ALT)
             else:
                 # other URLs with value appended to end
                 url = f'{url}{value[column]}'
