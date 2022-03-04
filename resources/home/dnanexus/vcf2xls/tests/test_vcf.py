@@ -97,8 +97,8 @@ class TestDataFrameActions():
         # test data vcf
         columns_vcf = os.path.join(TEST_DATA_DIR, "column_methods_test.vcf")
 
-        # initialise vcf class with a valid argparse input to allow calling .read()
-        # pass
+        # initialise vcf class with a valid argparse input to
+        # allow calling .read()
         vcf_handler = vcf(argparse.Namespace(
             add_name=True, analysis='',
             filter=None, keep=False, merge=False,
@@ -118,7 +118,10 @@ class TestDataFrameActions():
         # set correct dtypes, required for setting numeric & object types
         # to ensure correct filtering filtering
         vcf_df = vcf_handler.set_types(vcf_df)
+
         vcf_handler.vcfs.append(vcf_df)
+        vcf_handler.add_hyperlinks()
+
 
         return vcf_handler
 
@@ -265,11 +268,10 @@ class TestDataFrameActions():
         )
 
 
-
-
 if __name__=="__main__":
     header = TestHeader()
     header.test_column_names()
 
     df_actions = TestDataFrameActions()
-    df_actions.test_exclude()
+    df_actions.read_vcf()
+    # df_actions.test_exclude()
