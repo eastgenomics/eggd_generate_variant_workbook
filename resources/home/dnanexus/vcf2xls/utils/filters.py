@@ -59,10 +59,10 @@ class filter():
         "Consequence!=synonymous" -> ["Consequence", "!=", "synonymous"]
         """
         field_value = [
-            re.split(r'>|<|>=|<=|==|!=', x) for x in self.args.filter
+            re.split(r'>=|<=|<|>|==|!=', x) for x in self.args.filter
         ]
         operator = [
-            re.findall('>|<|>=|<=|==|!=', x) for x in self.args.filter
+            re.findall('>=|<=|<|>|==|!=', x) for x in self.args.filter
         ]
 
         self.filters = [
@@ -95,13 +95,18 @@ class filter():
 
                 # get row indices to filter
                 filter_idxs = eval((
-                    f"np.where(vcf['{column}'].apply("
+                    f"np.where(vcf['{column}'].apply(" 
                     f"lambda x: x {operator} {value}))[0]"
                 ))
                 all_filter_idxs.extend(filter_idxs)
 
             # get unique list of indexes matching filters
             all_filter_idxs = sorted(list(set(all_filter_idxs)))
+
+            # get the inverse of the filter indices to retain those that meet
+            # the filters
+            all_filter_idxs = list(set(vcf.index.values) - set(all_filter_idxs))
+
 
             if not self.args.always_keep.empty:
                 # a list of variants / positions specified to never filter,
