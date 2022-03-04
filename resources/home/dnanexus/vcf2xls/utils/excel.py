@@ -1,15 +1,16 @@
 from pathlib import Path
 from string import ascii_uppercase as uppercase
+from unicodedata import name
 
 import Levenshtein as levenshtein
-from openpyxl.styles import Border, Font, Side
+from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
 
 # openpyxl style settings
 THIN = Side(border_style="thin", color="000000")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-
+DEFAULT_FONT.name = 'Calibri'
 
 class excel():
     """
@@ -51,7 +52,6 @@ class excel():
         """
         self.write_summary()
         self.write_variants()
-        self.set_font()
 
         self.workbook.save(self.args.output)
         print('Done!')
@@ -143,7 +143,7 @@ class excel():
             "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in title_cells:
-            self.summary[cell].font = Font(bold=True)
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
         # set column widths for readability
         self.summary.column_dimensions['A'].width = 13
@@ -197,19 +197,45 @@ class excel():
                 )
                 curr_worksheet = self.writer.sheets[sheet]
                 self.set_widths(curr_worksheet, vcf.columns)
+                self.set_font(curr_worksheet)
+                self.colour_hyperlinks(curr_worksheet)
+
                 self.workbook.save(self.args.output)
 
 
-    def set_font(self) -> None:
+    def set_font(self, worksheet) -> None:
         """
-        Set font to all cells in sheet to Calibri
+        Set font to all cells in variant sheet to Calibri
 
         Default is Times New Roman and it is ugly
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        """
+        # for ws in self.workbook:
+        for cells in worksheet.rows:
+            for cell in cells:
+                cell.font = Font(name=DEFAULT_FONT.name)
+
+
+    def colour_hyperlinks(self, worksheet) -> None:
+        """
+        Set text colour to blue if text contains hyperlink
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
         """
         for ws in self.workbook:
             for cells in ws.rows:
                 for cell in cells:
-                    cell.font = Font(name="Calibri")
+                    if 'HYPERLINK' in str(cell.value):
+                        print(cell.font.name)
+                        cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
+                        print(cell.font.name)
 
 
     def set_widths(self, current_sheet, sheet_columns) -> None:
