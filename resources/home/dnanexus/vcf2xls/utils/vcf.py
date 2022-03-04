@@ -144,10 +144,8 @@ class vcf():
             self.merge()
 
         self.add_hyperlinks()
-
         self.rename_columns()
-
-        self.remove_nan()
+        self.format_strings()
 
         # run checks to ensure we haven't unintentionally dropped variants
         # self.verify_totals()
@@ -403,23 +401,20 @@ class vcf():
             return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
-    def remove_nan(self) -> None:
+    def format_strings(self) -> None:
         """
-        Remove NaN values from all dataframes, cast everything to a string
-        first as this method is called before writing and it reliably
-        allows us to identify and replace all NaN values.
+        Fix formatting of string values with different encoding and nans
         """
         for idx, vcf in enumerate(self.vcfs):
-            vcf = vcf.astype(str)
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
-                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
+                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode() if type(x) == str else x
             )
 
-            for col in vcf.columns:
-                vcf[col] = vcf[col].apply(
-                    lambda x: x.replace('nan', '') if x == 'nan' else x
-                )
+            # remove any nans that are strings
+            vcf = vcf.applymap(
+                lambda x: x.replace('nan', '') if x == 'nan' and type(x) == str else x
+            )
 
             self.vcfs[idx] = vcf
 
