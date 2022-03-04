@@ -3,6 +3,7 @@ import re
 import sys
 from typing import Union
 import urllib.parse
+from weakref import ref
 
 import numpy as np
 import pandas as pd
@@ -142,11 +143,11 @@ class vcf():
         if self.args.merge:
             self.merge()
 
+        self.add_hyperlinks()
+
         self.rename_columns()
 
         self.remove_nan()
-
-        self.add_hyperlinks()
 
         # run checks to ensure we haven't unintentionally dropped variants
         # self.verify_totals()
@@ -343,39 +344,63 @@ class vcf():
             - Cosmic
         """
         urls = {
-            "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q="
-        }
+                "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
+                "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
+            }
+
+        # some URLs are build specific, infer which to use from build in header
+        reference = self.refs[0].lower()
+        if 'grch37' in reference or 'hg19' in reference:
+            urls.update({
+                "gnomad_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r2_1",
+                "gnomadg_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r2_1"
+            })
+        elif 'grch38' in reference or 'hg38' in reference:
+            urls.update({
+                "gnomad_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r3",
+                "gnomadg_af": "https://gnomad.broadinstitute.org/region/CHROM-POS?dataset=gnomad_r3"
+            })
 
         for idx, vcf in enumerate(self.vcfs):
             for col in vcf.columns:
                 if urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
-                    self.vcfs[idx][col] = self.vcfs[idx][col].apply(
+                    self.vcfs[idx][col] = self.vcfs[idx].apply(
                         lambda x: self.make_hyperlink(
-                            urls.get(col.lower()), x
-                        )
+                            col, urls.get(col.lower()), x
+                        ), axis=1
                     )
 
 
-    def make_hyperlink(self, url, value):
+    def make_hyperlink(self, column, url, value):
         """
         Return Excel formatted hyperlink from given url and value
 
         Parameters
         ----------
+        column : string
+            current column for adding URL to
         url : string
-            url string to add value to
-        value : string
-            dataframe value to add to url as hyperlink
+            URL string to add value(s) to
+        value : pd.Series
+            current row values to use for formatting of URL
 
         Returns
         -------
         str
             url string formatted as Excel hyperlink
         """
-        if value:
-            return f'=HYPERLINK("{url}{value}", "{value}")'
+        if value[column]:
+            if 'gnomad' in column.lower():
+                # handle gnomad differently as it requires chrom and pos in URL
+                # instead of just the value adding to the end
+                chrom = str(value.CHROM.replace('chr', ''))
+                url = url.replace('CHROM', chrom).replace('POS', str(value.POS))
+            else:
+                # other URLs with value appended to end
+                url = f'{url}{value[column]}'
+
+            return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def remove_nan(self) -> None:
