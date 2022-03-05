@@ -1,4 +1,5 @@
 import re
+import sys
 
 import numpy as np
 import pandas as pd
@@ -70,6 +71,32 @@ class filter():
         ]
 
 
+    def apply_filter(self, vcf, column, operator, value) -> list:
+        """
+        Apply given filter to vcf, returns list of indices matching filter
+
+        Parameters
+        ----------
+        vcf : pd.DataFrame
+            dataframe of variants to filter
+        column : str
+            column name of dataframe to filter on
+        operator : str
+            operator to use for filtering
+        value : str or float
+            value to filter column against
+
+        Returns
+        -------
+        filter_idxs : list
+            list of dataframe indices matching given filter
+        """
+        filter = f"np.where(vcf['{column}'] {operator} {value})"
+        filter_idxs = eval(filter)[0]  # returns array in tuple
+
+        return filter_idxs
+
+
     def filter(self) -> None:
         """
         Apply filters passed to ech dataframe of variants.
@@ -89,16 +116,23 @@ class filter():
                 if pd.api.types.is_numeric_dtype(vcf[column]):
                     # check column we're filtering is numeric and set types
                     value = float(value)
+
+                    # NaN values will always evaluate to false when filtering
+                    # with np.where on numeric columns => store the NaN indices
+                    # for current column and set values to zero for filtering,
+                    # then set to NaN back after filtering
+                    na_indices = np.isnan(vcf[column])
+                    vcf[column][na_indices] = 0
+
+                    filter_idxs = self.apply_filter(vcf, column, operator, value)
+
+                    vcf[column][na_indices] = np.nan  # reset NaNs back
                 else:
                     # string values have to be wrapped in quotes from np.where
                     value = f"'{value}'"
+                    filter_idxs = self.apply_filter(vcf, column, operator, value)
 
-                # get row indices to filter
-                filter_idxs = eval((
-                    f"np.where(vcf['{column}'].apply(" 
-                    f"lambda x: x {operator} {value}))[0]"
-                ))
-                all_filter_idxs.extend(filter_idxs)
+            all_filter_idxs.extend(filter_idxs)
 
             # get unique list of indexes matching filters
             all_filter_idxs = sorted(list(set(all_filter_idxs)))
@@ -119,7 +153,7 @@ class filter():
                 )
 
             # drop from current vcf dataframe
-            self.vcfs[idx] = vcf.drop(all_filter_idxs)
+            self.vcfs[idx] = vcf.drop(all_filter_idxs).reset_index(drop=True)
 
             filter_string = ', '.join([' '.join(x) for x in self.filters])
 
@@ -129,7 +163,7 @@ class filter():
                 f"Total rows remaining: {len(self.vcfs[idx].index)}\n\n"
             ))
 
-        self.filtered_rows = self.filtered_rows.reset_index()
+        self.filtered_rows.reset_index(inplace=True, drop=True)
 
         if self.args.keep:
             # keeping filtered variants to write to file
