@@ -59,7 +59,7 @@ class vcf():
             "ID": str,
             "REF": str,
             "ALT": str,
-            "QUAL": str,
+            "QUAL": float,
             "FILTER": str,
             "FORMAT": str,
         }
@@ -177,13 +177,13 @@ class vcf():
         header, columns = self.parse_header(vcf)
         csq_fields = self.parse_csq_fields(header)
         self.parse_reference(header)
-        self.parse_field_types(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
             vcf, sep='\t', comment='#', names=columns,
-            dtype=self.dtypes, compression='infer'
-        )
+            compression='infer'
+        ).convert_dtypes()
+
 
         self.total_vcf_rows += len(vcf_df.index)  # update our total count
         print(f"Total rows in current VCF: {len(vcf_df.index)}")
@@ -270,38 +270,6 @@ class vcf():
         csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
 
         return csq_fields
-
-
-    def parse_field_types(self, header) -> None:
-        """
-        Parse the types from the vcf header for INFO and FORMAT fields, used to
-        update self.dtypes object used to correctly set types on dataframe(s)
-
-        Parameters
-        ----------
-        header : list
-            list of header lines read from vcf
-        """
-        dtypes = {
-            "Integer": int,
-            "Float": float,
-            "Flag": bool,
-            "String": str,
-            "Character": object
-        }
-
-        for line in header:
-            if line.startswith('##INFO') or line.startswith('##FORMAT'):
-                name = re.search(
-                    "ID=.+?(?=,)", line).group().replace("ID=", "")
-                type = re.search(
-                    "Type=.+?(?=,)", line).group().replace("Type=", "")
-
-                if '_AF' in name:
-                    # force AFs to be floats if wrongly defined as strings
-                    type='Float'
-
-                self.dtypes[name] = dtypes[type]
 
 
     def set_types(self, vcf_df) -> pd.DataFrame:
@@ -397,20 +365,23 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if value[column] and not pd.isna(value[column]):
-            if 'gnomad' in column.lower():
-                # handle gnomad differently as it requires chrom, pos, ref and
-                # alt in URL instead of just the value adding to the end
-                chrom = str(value.CHROM.replace('chr', ''))
-                url = url.replace('CHROM', chrom)
-                url = url.replace('POS', str(value.POS))
-                url = url.replace('REF', value.REF)
-                url = url.replace('ALT', value.ALT)
-            else:
-                # other URLs with value appended to end
-                url = f'{url}{value[column]}'
+        if not value[column] or pd.isna(value[column]) or value[column] == 'nan':
+            # no value to build hyperlink
+            return
 
-            return f'=HYPERLINK("{url}", "{value[column]}")'
+        if 'gnomad' in column.lower():
+            # handle gnomad differently as it requires chrom, pos, ref and
+            # alt in URL instead of just the value adding to the end
+            chrom = str(value.CHROM.replace('chr', ''))
+            url = url.replace('CHROM', chrom)
+            url = url.replace('POS', str(value.POS))
+            url = url.replace('REF', value.REF)
+            url = url.replace('ALT', value.ALT)
+        else:
+            # other URLs with value appended to end
+            url = f'{url}{value[column]}'
+
+        return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def format_strings(self) -> None:
