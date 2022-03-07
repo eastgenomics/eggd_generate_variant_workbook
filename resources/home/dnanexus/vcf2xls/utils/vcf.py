@@ -4,6 +4,7 @@ import sys
 from typing import Union
 import urllib.parse
 
+import numpy as np
 import pandas as pd
 
 from .columns import splitColumns
@@ -296,6 +297,10 @@ class vcf():
                 type = re.search(
                     "Type=.+?(?=,)", line).group().replace("Type=", "")
 
+                if '_AF' in name:
+                    # force AFs to be floats if wrongly defined as strings
+                    type='Float'
+
                 self.dtypes[name] = dtypes[type]
 
 
@@ -313,15 +318,16 @@ class vcf():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with dtypes set
         """
-        # # first set any empty strings to np.nan values to not break types
-        # vcf_df = vcf_df.replace('', np.nan)
+        # first set any empty strings to np.nan values to not break types
+        vcf_df = vcf_df.replace('', np.nan)
 
-        # # get any AF and AC columns that should be floats
-        # int_columns = [
-        #     x for x in vcf_df.columns if '_AF' in x or '_AC' in x
-        # ]
-        # for col in int_columns:
-        #     self.dtypes[col] = float
+        # get any AF and AC columns that probably should be floats
+        float_columns = [
+            x for x in vcf_df.columns if '_AF' in x or '_AC' in x
+        ]
+
+        for col in float_columns:
+            self.dtypes[col] = float
 
         # filter all dtypes to just those columns in current df
         df_dtypes = {
@@ -329,6 +335,9 @@ class vcf():
         }
 
         vcf_df = vcf_df.astype(df_dtypes, errors='ignore')
+
+        # print(np.where(vcf_df['gnomAD_AF'] > 0.0002))
+        # sys.exit()
 
         return vcf_df
 
