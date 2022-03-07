@@ -113,11 +113,11 @@ class filter():
         # filters, then apply filter to df, retain filtered rows if --keep set
         for idx, vcf in enumerate(self.vcfs):
             all_filter_idxs = []
+
             for filter in self.filters:
                 column, operator, value = filter[0], filter[1], filter[2]
                 if pd.api.types.is_numeric_dtype(vcf[column]):
-                    # check column we're filtering is numeric and set types
-                    value = float(value)
+                    # check column we're filtering is numeric and set type
 
                     # NaN values will always evaluate to false when filtering
                     # with np.where on numeric columns => store the NaN indices
@@ -126,7 +126,8 @@ class filter():
                     na_indices = np.isnan(vcf[column])
                     vcf[column][na_indices] = 0
 
-                    filter_idxs = self.apply_filter(vcf, column, operator, value)
+                    filter_idxs = self.apply_filter(
+                        vcf, column, operator, float(value))
 
                     vcf[column][na_indices] = np.nan  # reset NaNs back
                 else:
@@ -134,15 +135,14 @@ class filter():
                     value = f"'{value}'"
                     filter_idxs = self.apply_filter(vcf, column, operator, value)
 
-            all_filter_idxs.extend(filter_idxs)
+                # get the inverse of the filter indices to retain those
+                # that meet the filters
+                filter_idxs = list(set(vcf.index.values) - set(filter_idxs))
+                all_filter_idxs.extend(filter_idxs)
+
 
             # get unique list of indexes matching filters
             all_filter_idxs = sorted(list(set(all_filter_idxs)))
-
-            # get the inverse of the filter indices to retain those that meet
-            # the filters
-            all_filter_idxs = list(set(vcf.index.values) - set(all_filter_idxs))
-
 
             if not self.args.always_keep.empty:
                 # a list of variants / positions specified to never filter,
