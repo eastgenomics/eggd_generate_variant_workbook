@@ -100,8 +100,8 @@ class vcf():
                 )
 
             # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS
-            # vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
-            # vcf_df = vcf_df.reset_index(drop=True)
+            vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
+            vcf_df = vcf_df.reset_index(drop=True)
 
             self.expanded_vcf_rows += expanded_vcf_rows
 
@@ -357,12 +357,12 @@ class vcf():
 
         # some URLs are build specific, infer which to use from build in header
         reference = self.refs[0].lower()
-        if 'grch37' in reference or 'hg19' in reference:
+        if '37' in reference or 'hg19' in reference:
             urls.update({
                 "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1",
                 "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1"
             })
-        elif 'grch38' in reference or 'hg38' in reference:
+        elif '38' in reference:
             urls.update({
                 "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3",
                 "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3"
@@ -397,7 +397,7 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if value[column]:
+        if value[column] and not pd.isna(value[column]):
             if 'gnomad' in column.lower():
                 # handle gnomad differently as it requires chrom, pos, ref and
                 # alt in URL instead of just the value adding to the end
