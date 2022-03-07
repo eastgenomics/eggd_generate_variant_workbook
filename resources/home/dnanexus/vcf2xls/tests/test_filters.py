@@ -1,4 +1,5 @@
 import argparse
+from multiprocessing.managers import ValueProxy
 import os
 from random import shuffle
 import sys
@@ -37,7 +38,7 @@ class TestFilters():
             class instance of vcf from utils
         """
         # test data vcf
-        columns_vcf = os.path.join(TEST_DATA_DIR, "column_methods_test.vcf")
+        columns_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.vcf")
 
         # initialise vcf class with a valid argparse input to allow
         # calling .read()
@@ -141,19 +142,25 @@ class TestFilters():
         Test when using equal operator filter is correctly applied
         """
         vcf_handler = self.read_vcf()
-        vcf_handler.args.filter = ["CHROM==chr17"]
+
+        # get random value from column to test filtering on
+        value = self.get_random_column_value(vcf_handler.vcfs[0]['CHROM'])
+
+        vcf_handler.args.filter = [f"CHROM=={value}"]
         vcf_handler.args.keep = True
 
         filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
         filter_handler.build()
         filter_handler.filter()
 
-        assert filter_handler.vcfs[0]['CHROM'].tolist() == ['chr17'], (
-            "Filtering with '==' operand returned incorrect rows"
+        assert filter_handler.vcfs[0]['CHROM'].unique().tolist() == [value], (
+            "Filtering with '==' operator returned incorrect rows"
         )
 
-        assert all([x != ['chr17'] for x in filter_handler.vcfs[-1]['CHROM'].tolist()]), (
-            "Filtering with '==' operand returned incorrect rows"
+        assert all([
+            x != [value] for x in filter_handler.vcfs[-1]['CHROM'].tolist()
+        ]), (
+            "Filtering with '==' operator filtered incorrect rows"
         )
 
 
@@ -163,7 +170,10 @@ class TestFilters():
         """
         vcf_handler = self.read_vcf()
 
-        vcf_handler.args.filter = ["CHROM!=chr17"]
+        # get random value from column to test filtering on
+        value = self.get_random_column_value(vcf_handler.vcfs[0]['CHROM'])
+
+        vcf_handler.args.filter = [f"CHROM!={value}"]
         vcf_handler.args.keep = True
 
         total_rows_before_filter = len(vcf_handler.vcfs[0].index)
@@ -179,13 +189,15 @@ class TestFilters():
             "Mismatch between total rows before and after filtering"
         )
 
-        # check filtered df only has chr17 variants
-        assert filter_handler.vcfs[-1]['CHROM'].tolist() == ['chr17'], (
+        # check filtered df only has no selected chromosome variants
+        assert filter_handler.vcfs[-1]['CHROM'].unique().tolist() == [value], (
             "Filtering with '!=' did not filter out all rows"
         )
 
-        # check dataframe has no chr17 variants
-        assert all([x != ['chr17'] for x in filter_handler.vcfs[0]['CHROM'].tolist()]), (
+        # check dataframe has no selected chromosome variants
+        assert all([
+            x != [value] for x in filter_handler.vcfs[0]['CHROM'].tolist()
+        ]), (
             "Filtering with '!=' filtered out incorrect rows"
         )
 
@@ -217,11 +229,11 @@ class TestFilters():
         )
 
         assert all([x > value for x in filter_handler.vcfs[0]['DP'].tolist()]), (
-            'Rows not filtered out when filtering with DP > 1500'
+            'Rows not filtered out when filtering with > DP'
         )
 
         assert all([x <= value for x in filter_handler.vcfs[-1]['DP'].tolist()]), (
-            "Incorrect rows filtered out when filtering with DP > 1500"
+            "Incorrect rows filtered out when filtering with > DP"
         )
 
 
@@ -233,9 +245,9 @@ class TestFilters():
         vcf_handler = self.read_vcf()
 
         # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['MBQ'])
+        value = self.get_random_column_value(vcf_handler.vcfs[0]['DP'])
 
-        vcf_handler.args.filter = [f"MBQ>={value}"]
+        vcf_handler.args.filter = [f"DP>={value}"]
         vcf_handler.args.keep = True
 
         total_rows_before_filter = len(vcf_handler.vcfs[0].index)
@@ -251,11 +263,11 @@ class TestFilters():
             "Mismatch between total rows before and after filtering"
         )
 
-        assert all([x >= value for x in filter_handler.vcfs[0]['MBQ'].tolist()]), (
-            'Rows not filtered out when filtering with >= on MBQ'
+        assert all([x >= value for x in filter_handler.vcfs[0]['DP'].tolist()]), (
+            'Rows not filtered out when filtering with >= on DP'
         )
 
-        assert all([x < value for x in filter_handler.vcfs[-1]['MBQ'].tolist()]), (
+        assert all([x < value for x in filter_handler.vcfs[-1]['DP'].tolist()]), (
             "Incorrect rows filtered out when filtering with > on DP"
         )
 
@@ -340,7 +352,7 @@ class TestFilters():
         )
 
 
-    def test_correct_rows_filtered_w_two_filters(self):
+    def test_correct_rows_filtered_w_two_filters_diff_columns(self):
         """
         Tests the correct rows are filtered with two filter applied, rows are
         not double counted and filtered twice and no rows are dropped
@@ -350,9 +362,9 @@ class TestFilters():
 
         # get random values from columns to test filtering on
         dp_value = self.get_random_column_value(vcf_handler.vcfs[0]['DP'])
-        mpos_value = self.get_random_column_value(vcf_handler.vcfs[0]['MPOS'])
+        qual_value = self.get_random_column_value(vcf_handler.vcfs[0]['QUAL'])
 
-        vcf_handler.args.filter = [f"DP>{dp_value}", f"MPOS<{mpos_value}"]
+        vcf_handler.args.filter = [f"DP>{dp_value}", f"QUAL<{qual_value}"]
         vcf_handler.args.keep = True
 
         total_rows_before_filter = len(vcf_handler.vcfs[0].index)
@@ -371,22 +383,120 @@ class TestFilters():
 
         # check everything should be at filter value for DP and MPOS
         assert all([
-            x > dp_value or y < mpos_value for x, y in zip(
+            x > dp_value or y < qual_value for x, y in zip(
                 filter_handler.vcfs[0]['DP'].tolist(),
-                filter_handler.vcfs[0]['MPOS'].tolist()
+                filter_handler.vcfs[0]['QUAL'].tolist()
             )
         ]), (
             'Rows not filtered out when filtering with 2 filters'
         )
 
         assert all([
-            x <= dp_value or y >= mpos_value for x, y in zip(
+            x <= dp_value or y >= qual_value for x, y in zip(
                 filter_handler.vcfs[-1]['DP'].tolist(),
-                filter_handler.vcfs[-1]['MPOS'].tolist()
+                filter_handler.vcfs[-1]['QUAL'].tolist()
             )
         ]), (
             'Incorrect rows filtered out when filtering with 2 filters'
         )
+
+
+    def test_correct_rows_filtered_w_two_filters_same_column(self):
+        """
+        Tests the correct rows are filtered with two filter applied on the
+        column, rows are not double counted and filtered twice and no rows
+        are dropped
+        """
+        vcf_handler = self.read_vcf()
+
+        vcf_handler.args.filter = [
+            "Consequence!=synonymous_variant",
+            "Consequence!=3_prime_UTR_variant"
+        ]
+        vcf_handler.args.keep = True
+
+        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
+
+        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
+        filter_handler.build()
+        filter_handler.filter()
+
+        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
+
+        # check no rows dropped or duplicated
+        assert total_rows_after_filter == total_rows_before_filter, (
+            "Mismatch between total rows before and after filtering"
+        )
+
+        # check everything should be at filter value for DP and MPOS
+        assert all([
+            x != "3_prime_UTR_variant" or x != "synonymous_variant" \
+            for x in filter_handler.vcfs[0]['Consequence'].tolist()
+        ]), (
+            'Rows not filtered out when filtering with 2 filters on same column'
+        )
+
+        assert sorted(filter_handler.vcfs[-1]['Consequence'].unique().tolist()) == [
+            "3_prime_UTR_variant", "synonymous_variant"
+        ], (
+            'Incorrect rows filtered out when filtering with 2 filters on same column'
+        )
+
+
+    def test_correct_rows_filtered_w_many_filters(self):
+        """
+        Tests the correct rows are filtered with multiple filters across
+        multiple columns
+        """
+        vcf_handler = self.read_vcf()
+
+        vcf_handler.args.filter = [
+            "Consequence!=synonymous_variant",
+            "Consequence!=3_prime_UTR_variant",
+            "Consequence!=intron_variant",
+            "gnomAD_AF<0.02",
+            "gnomADg_AF<0.02",
+            "QUAL>2000",
+            "AC==1"
+        ]
+        vcf_handler.args.keep = True
+
+        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
+
+        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
+        filter_handler.build()
+        filter_handler.filter()
+
+        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
+
+        # check no rows dropped or duplicated
+        assert total_rows_after_filter == total_rows_before_filter, (
+            "Mismatch between total rows before and after filtering"
+        )
+
+        for _, row in filter_handler.vcfs[0].iterrows():
+            # check values of retained df rows
+            assert row['Consequence'] != 'synonymous_variant' or \
+                row['Consequence'] != '3_prime_UTR_variant' or \
+                row['Consequence'] != 'intron_variant' or \
+                row['gnomAD_AF'] <= 0.02 or \
+                row['gnomADg_AF'] <= 0.02 or \
+                row['QUAL'] > 2000 or \
+                row['AC'] == 1, (
+                    "Multiple combined filters have not filtered out correct rows"
+                )
+
+        # check values of filtered out df rows
+        for _, row in filter_handler.vcfs[0].iterrows():
+            assert row['Consequence'] == 'synonymous_variant' or \
+                row['Consequence'] == '3_prime_UTR_variant' or \
+                row['Consequence'] == 'intron_variant' or \
+                row['gnomAD_AF'] > 0.02 or \
+                row['gnomADg_AF'] > 0.02 or \
+                row['QUAL'] <= 2000 or \
+                row['AC'] != 1, (
+                    "Multiple combined filters have wrongly filtered out rows"
+                )
 
 
 
@@ -394,11 +504,12 @@ if __name__ == "__main__":
     t = TestFilters()
     t.read_vcf()
     t.test_building_filters()
-    t.test_correct_rows_filtered_with_gt()
-    t.test_keep_argument_adds_extra_df_filtered_rows()
     t.test_correct_rows_filtered_with_eq()
     t.test_correct_rows_filtered_with_not_eq()
+    t.test_correct_rows_filtered_with_gt()
+    t.test_keep_argument_adds_extra_df_filtered_rows()
     t.test_correct_rows_filtered_with_gt_eq()
     t.test_correct_rows_filtered_with_lt()
     t.test_correct_rows_filtered_with_lt_eq()
-    t.test_correct_rows_filtered_w_two_filters()
+    t.test_correct_rows_filtered_w_two_filters_same_column()
+    t.test_correct_rows_filtered_w_many_filters()
