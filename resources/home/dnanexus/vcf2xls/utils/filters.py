@@ -4,6 +4,8 @@ import sys
 import numpy as np
 import pandas as pd
 
+# disable chained assignments warning
+pd.options.mode.chained_assignment = None
 
 class filter():
     """"
