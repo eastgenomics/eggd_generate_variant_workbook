@@ -214,7 +214,6 @@ class excel():
         worksheet : openpyxl.Writer
             writer object for current sheet
         """
-        # for ws in self.workbook:
         for cells in worksheet.rows:
             for cell in cells:
                 cell.font = Font(name=DEFAULT_FONT.name)
@@ -233,9 +232,7 @@ class excel():
             for cells in ws.rows:
                 for cell in cells:
                     if 'HYPERLINK' in str(cell.value):
-                        print(cell.font.name)
                         cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
-                        print(cell.font.name)
 
 
     def set_widths(self, current_sheet, sheet_columns) -> None:
@@ -280,10 +277,12 @@ class excel():
             "feature": 17
         }
 
-        # generate list of 78 potential xlsx columns from A,B,C...BX,BY,BZ
+        # generate list of 260 potential xlsx columns from A,B,C...IX,IY,IZ
         # allows for handling a lot of columns
         column_list = [
-            f"{x}{y}" for x in ['', 'A', 'B'] for y in uppercase
+            f"{x}{y}" for x in [
+                '', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
+            ] for y in uppercase
         ]
 
         for idx, column in enumerate(sheet_columns):
