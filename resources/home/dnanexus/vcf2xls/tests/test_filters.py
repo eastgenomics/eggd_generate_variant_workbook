@@ -20,6 +20,9 @@ from tests import TEST_DATA_DIR
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
 
+# vcf we are using for testing, ~5000 variants with multiple transcript
+# annotation for each
+TEST_VCF = "NA12878_unittest.vcf"
 
 
 class TestFilters():
@@ -38,7 +41,7 @@ class TestFilters():
             class instance of vcf from utils
         """
         # test data vcf
-        columns_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.vcf")
+        columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
 
         # initialise vcf class with a valid argparse input to allow
         # calling .read()
@@ -58,9 +61,6 @@ class TestFilters():
         vcf_df = splitColumns.info(vcf_df)
         vcf_df = splitColumns.format_fields(vcf_df)
 
-        # set correct dtypes, required for setting numeric & object types
-        # to ensure correct filtering filtering
-        vcf_df = vcf_handler.set_types(vcf_df)
         vcf_handler.vcfs.append(vcf_df)
 
         return vcf_handler
