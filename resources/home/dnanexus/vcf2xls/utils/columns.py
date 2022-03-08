@@ -236,4 +236,3 @@ class splitColumns():
             expanded_vcf_rows = 0
 
         return vcf_df, expanded_vcf_rows
-

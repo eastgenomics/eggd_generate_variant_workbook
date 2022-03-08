@@ -37,8 +37,6 @@ class vcf():
         value to track total rows expanded out when multiple transcript
         annotations for one variant are present, resulting in one row per
         transcript annotation per variant in resultant dataframe
-    dtypes : dict
-        common columns present in annotated vcfs and appropriate dtype to apply
     vcfs : list of pd.DataFrame
         list of dataframes read in from self.args.vcfs
     filtered_rows : pd.DataFrame
@@ -53,16 +51,6 @@ class vcf():
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
         self.filtered_rows = pd.DataFrame()
-        self.dtypes = {
-            "CHROM": str,
-            "POS": int,
-            "ID": str,
-            "REF": str,
-            "ALT": str,
-            "QUAL": float,
-            "FILTER": str,
-            "FORMAT": str,
-        }
 
 
     def process(self) -> None:
@@ -104,10 +92,6 @@ class vcf():
             vcf_df = vcf_df.reset_index(drop=True)
 
             self.expanded_vcf_rows += expanded_vcf_rows
-
-            # set correct dtypes, required for setting numeric & object types
-            # to ensure correct filtering
-            vcf_df = self.set_types(vcf_df)
 
             self.vcfs.append(vcf_df)
 
@@ -183,7 +167,6 @@ class vcf():
             vcf, sep='\t', comment='#', names=columns,
             compression='infer'
         ).convert_dtypes()
-
 
         self.total_vcf_rows += len(vcf_df.index)  # update our total count
         print(f"Total rows in current VCF: {len(vcf_df.index)}")
@@ -270,44 +253,6 @@ class vcf():
         csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
 
         return csq_fields
-
-
-    def set_types(self, vcf_df) -> pd.DataFrame:
-        """
-        Sets appropriate dtypes on given df of variants
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf
-
-        Returns
-        -------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf with dtypes set
-        """
-        # first set any empty strings to np.nan values to not break types
-        vcf_df = vcf_df.replace('', np.nan)
-
-        # get any AF and AC columns that probably should be floats
-        float_columns = [
-            x for x in vcf_df.columns if '_AF' in x or '_AC' in x
-        ]
-
-        for col in float_columns:
-            self.dtypes[col] = float
-
-        # filter all dtypes to just those columns in current df
-        df_dtypes = {
-            k: v for k, v in self.dtypes.items() if k in list(vcf_df.columns)
-        }
-
-        vcf_df = vcf_df.astype(df_dtypes, errors='ignore')
-
-        # print(np.where(vcf_df['gnomAD_AF'] > 0.0002))
-        # sys.exit()
-
-        return vcf_df
 
 
     def add_hyperlinks(self) -> None:
