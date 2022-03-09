@@ -12,11 +12,15 @@ This app may be executed as a standalone app.
 
 ## What data are required for this app to run?
 
+**Packages**
+
+* bcftools
+* bcftools -split-vep plugin
+* Python packages (specified in requirements.txt)
+
 **File inputs**:
 
 - `--vcfs`: VEP annotated vcf(s)
-- `--flagstat_file`: Flagstat file (optional)
-- `--panel_bed`: flanked bed file used to filter vcf (optional)
 
 **Other Inputs:**
 
@@ -53,7 +57,7 @@ This app may be executed as a standalone app.
 Example:
 
 ```bash
-dx run app-eggd_vcf2xls/2.0.0 -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" -ifilter="gnomad_AF<0.02" -ifilter="DP>99" --ikeep=true -irename_cols="gnomADg_AF=gnomAD_genomes_AF" -isummary="dias" -iassay="dias" -iexclude="MLEAC" -iexclude="MLEAF" -iexlcude="MQRankSum"
+dx run app-eggd_vcf2xls/2.0.0 -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" -ifilter="bcftools filter -i <0.02" --ikeep=true -irename_cols="gnomADg_AF=gnomAD_genomes_AF" -isummary="dias" -iassay="dias" -iexclude="MLEAC" -iexclude="MLEAF" -iexlcude="MQRankSum"
 ```
 
 ## What does this app output?
