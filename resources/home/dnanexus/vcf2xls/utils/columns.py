@@ -26,13 +26,11 @@ class splitColumns():
             total number of extra rows from expanding multiple transcript
             annotations to individual rows
         """
-        expanded_rows = 0
-
         vcf_df = self.format_fields(vcf_df)
         vcf_df = self.info(vcf_df)
         vcf_df = self.unique_cosmic(vcf_df)
 
-        return vcf_df, expanded_rows
+        return vcf_df
 
 
     def unique_cosmic(self, vcf_df) -> pd.DataFrame:

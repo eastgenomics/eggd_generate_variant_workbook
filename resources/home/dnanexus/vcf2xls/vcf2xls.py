@@ -113,9 +113,7 @@ class arguments():
         parser.add_argument(
             '-f', '--filter', type=str,
             help=(
-                'Columns on which to filter out variants. Format should be '
-                'as <column><operator><value> (gnomAD_AF<0.02). Supported '
-                'operands are >|<|>=|<=|==|!='
+                'bcftools filter command to filter variants against'
             )
         )
         parser.add_argument(

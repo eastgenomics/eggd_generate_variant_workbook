@@ -49,7 +49,7 @@ class vcf():
         self.refs = []
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
-        self.filtered_rows = []
+        self.filtered_vcfs = []
 
 
     def process(self) -> None:
@@ -59,16 +59,14 @@ class vcf():
 
         Calls methods in following order:
 
+            - self.filter() (optional with --filter)
             - self.read()
             - splitColumns.info()
-            - splitColumns.csq()
             - splitColumns.format_fields()
-            - self.filter()
             - self.drop_columns()
             - self.reorder()
             - self.merge()
             - self.rename()
-            - self.remove_nan()
         """
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
@@ -89,45 +87,41 @@ class vcf():
                 os.remove('tmp1.vcf')
                 os.remove('tmp2.vcf')
 
-                # split out INFO column and FORMAT/SAMPLE column values
+                # split out INFO and FORMAT/SAMPLE column values
                 # to individual columns in dataframe
-                keep_df, _ = splitColumns().split(keep_df)
-                filtered_df, _ = splitColumns().split(filtered_df)
+                keep_df = splitColumns().split(keep_df)
+                filtered_df = splitColumns().split(filtered_df)
 
                 self.vcfs.append(keep_df)
-                self.filtered_rows.append(filtered_df)
+                self.filtered_vcfs.append(filtered_df)
             else:
-                # not filtering vcf
+                # not filtering vcf, read in full vcf and split out INFO and
+                # FORMAT/SAMPLE column values to individual columns in df
                 vcf_df = self.read('decomposed_tmp.vcf', Path(vcf).stem)
-
-                # split out INFO column, CSQ fields and FORMAT/SAMPLE column values
-                # to individual columns in dataframe
-                vcf_df, expanded_vcf_rows = splitColumns().split(vcf_df)
-
-                self.expanded_vcf_rows += expanded_vcf_rows
+                vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
             # delete tmp vcf from splitting CSQ fields
             os.remove('decomposed_tmp.vcf')
 
-        print((
-            f"\nTotal variants from {len(self.vcfs)} "
-            f"vcf(s): {self.total_vcf_rows}\n"
-        ))
-        # if self.expanded_vcf_rows > 0:
-        #     print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
-
         if self.args.print_columns:
             self.print_columns()
+
+        if self.args.merge:
+            self.vcfs = self.merge(self.vcfs)
+
+        if self.args.filter and self.args.keep:
+            # merge all filtered dataframes to one and add to list of vcfs for
+            # doing colum operations and writing to Excel file
+            self.filtered_vcfs = self.merge(self.filtered_vcfs)
+            self.vcfs.append(self.filtered_vcfs[0])
+            self.args.sheets.append('filtered')
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
 
         if self.args.reorder:
             self.order_columns()
-
-        if self.args.merge:
-            self.merge()
 
         self.add_hyperlinks()
         self.rename_columns()
@@ -465,17 +459,14 @@ class vcf():
             ]
 
 
-    def merge(self) -> None:
+    def merge(self, vcfs) -> None:
         """
         Merge all variants into one big dataframe, should be used with
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
-        if not self.args.keep:
-            self.vcfs = [pd.concat(self.vcfs).reset_index(drop=True)]
-        else:
-            # keep filtered df seperate to write to seperate sheet
-            self.vcfs[:-1] = [pd.concat(self.vcfs).reset_index(drop=True)]
+        return [pd.concat(vcfs).reset_index(drop=True)]
+
 
 
     def verify_totals(self) -> None:
