@@ -1,11 +1,11 @@
 import re
+import subprocess
 import sys
+from typing import Union
 
 import numpy as np
 import pandas as pd
 
-# disable chained assignments warning
-pd.options.mode.chained_assignment = None
 
 class filter():
     """"
@@ -21,156 +21,75 @@ class filter():
     filtered_rows : pd.DataFrame
         dataframe of all rows dropped from all vcfs
     """
-    def __init__(self, args, vcfs):
+    def __init__(self, args) -> None:
         self.args = args
-        self.vcfs = vcfs
-        self.filtered_rows = pd.DataFrame()
 
-
-    def validate(self) -> None:
+    @staticmethod
+    def switch_include_exclude(filter_str, x, y) -> str:
         """
-        Validate filters passed for filtering variants down.
-
-        These come from args.filter and wil be in the format
-        <column><operator><value> (i.e. "Consequence!=synonymous"), currently
-        supports the operators >, <, >=, <=, == and !=
-
-        Method will check that a valid operator has been passed, and that the
-        given column is present in all columns of all vcfs
-        """
-        for filter in self.args.filter:
-            # check a valid operand passed
-            assert len(re.findall('>|<|>=|<=|==|!=', filter)) == 1, (
-                f"invalid operand passed in filter: {filter}"
-            )
-
-        for vcf in self.vcfs:
-            # for each filter, check the specified column is in all the vcfs
-            for filter in self.args.filter:
-                assert re.split(r'>|<|>=|<=|==|!=', filter)[0] in vcf.columns, (
-                    f"Column specified in filter '{filter}' not in vcf "
-                    f"columns: {vcf.columns}"
-                )
-
-
-    def build(self) -> None:
-        """
-        Formats cmd line passed filters as list of lists of each filter
-        expression for filtering df of variants.
-
-        This will separate out the passed filters from the format
-        "Consequence!=synonymous" -> ["Consequence", "!=", "synonymous"]
-        """
-        field_value = [
-            re.split(r'>=|<=|<|>|==|!=', x) for x in self.args.filter
-        ]
-        operator = [
-            re.findall('>=|<=|<|>|==|!=', x) for x in self.args.filter
-        ]
-
-        self.filters = [
-            [x[0], y[0], x[1]] for x, y in zip(field_value, operator)
-        ]
-
-
-    def apply_filter(self, vcf, column, operator, value) -> list:
-        """
-        Apply given filter to vcf, returns list of indices matching filter
+        Given a bcftools filter string, switches -e and -i to do inverse
+        of specified filter
 
         Parameters
         ----------
-        vcf : pd.DataFrame
-            dataframe of variants to filter
-        column : str
-            column name of dataframe to filter on
-        operator : str
-            operator to use for filtering
-        value : str or float
-            value to filter column against
+        filter_str : str
+            string of filters to switch
+
+        Returns
+        ----------
+        filter_str : str
+            string of filters
+        """
+        return y.join(part.replace(y, x) for part in filter_str.split(x))
+
+
+    def filter(self, vcf) -> Union[pd.DataFrame, pd.DataFrame]:
+        """
+        Filter given vcf using bcftools
+
+        Parameters
+        ----------
+        vcf : pathlib.PosixPath
+            path to vcf file to filter
 
         Returns
         -------
-        filter_idxs : list
-            list of dataframe indices matching given filter
+        vcf_df : pd.DataFrame
+            dataframe of variants to retain
+        filtered_vcf_rows : pd.DataFrame
+            dataframe of variants filtered out
         """
-        filter = f"np.where(vcf['{column}'] {operator} {value})"
-        filter_idxs = eval(filter)[0]  # returns array in tuple
+        filter_keep = self.args.filter
+        filter_out = self.switch_include_exclude(self.args.filter, '-i', '-e')
 
-        return filter_idxs
+        # write to temporary vcf files to read from with vcf.read()
+        filter_keep += f" {vcf} > tmp1.vcf"
+        filter_out += f" {vcf} > tmp2.vcf"
 
+        keep_variants = subprocess.run(
+            filter_keep, shell=True,
+            capture_output=True
+        )
 
-    def filter(self) -> None:
-        """
-        Apply filters passed to ech dataframe of variants.
+        out_variants = subprocess.run(
+            filter_out, shell=True,
+            capture_output=True, encoding='UTF-8'
+        )
 
-        Filters first checked in self.validate_filters then formatted in
-        self.build filters ready to be passed to np.where()
-
-        Currently wrapped in an eval() call which is not ideal but works for
-        interpreting the operator passed as a string from the cmd line
-        """
-        # build list of indices of variants to filter out against specified
-        # filters, then apply filter to df, retain filtered rows if --keep set
-        for idx, vcf in enumerate(self.vcfs):
-            all_filter_idxs = []
-
-            for filter in self.filters:
-                column, operator, value = filter[0], filter[1], filter[2]
-                if pd.api.types.is_numeric_dtype(vcf[column]):
-                    # check column we're filtering is numeric and set type
-
-                    # NaN values will always evaluate to false when filtering
-                    # with np.where on numeric columns => store the NaN indices
-                    # for current column and set values to zero for filtering,
-                    # then set to NaN back after filtering
-                    na_indices = np.isnan(vcf[column])
-                    vcf[column][na_indices] = 0
-
-                    filter_idxs = self.apply_filter(
-                        vcf, column, operator, float(value))
-
-                    vcf[column][na_indices] = np.nan  # reset NaNs back
-                else:
-                    # string values have to be wrapped in quotes from np.where
-                    value = f"'{value}'"
-                    filter_idxs = self.apply_filter(vcf, column, operator, value)
-
-                # get the inverse of the filter indices to retain those
-                # that meet the filters
-                filter_idxs = list(set(vcf.index.values) - set(filter_idxs))
-                all_filter_idxs.extend(filter_idxs)
-
-
-            # get unique list of indexes matching filters
-            all_filter_idxs = sorted(list(set(all_filter_idxs)))
-
-            if not self.args.always_keep.empty:
-                # a list of variants / positions specified to never filter,
-                # check for these in our filter list and remove if any present
-                all_filter_idxs = self.retain_variants(vcf, all_filter_idxs)
-
-            # apply the filter, assign back to the filtered df
-            self.filtered_rows = self.filtered_rows.append(
-                    vcf.loc[all_filter_idxs], ignore_index=True
-                )
-
-            # drop from current vcf dataframe
-            self.vcfs[idx] = vcf.drop(all_filter_idxs).reset_index(drop=True)
-
-            filter_string = ', '.join([' '.join(x) for x in self.filters])
-
-            print((
-                f"\nApplied the following filters: {filter_string} to vcf(s)\n"
-                f"Filtered out {len(all_filter_idxs)} rows\n"
-                f"Total rows remaining: {len(self.vcfs[idx].index)}\n\n"
-            ))
-
-        self.filtered_rows.reset_index(inplace=True, drop=True)
-
-        if self.args.keep:
-            # keeping filtered variants to write to file
-            self.vcfs.append(self.filtered_rows)
-            self.args.sheets.append("filtered")
+        assert keep_variants.returncode == 0, (
+            f"\n\tError in filtering VCF with bcftools\n"
+            f"\n\tVCF: {vcf}\n"
+            f"\n\tExitcode:{keep_variants.returncode}\n"
+            f"\n\tbcftools filter command used: {self.args.filter}\n"
+            f"\n\t{keep_variants.stderr.decode()}"
+        )
+        assert out_variants.returncode == 0, (
+            f"\n\tError in filtering VCF with bcftools\n"
+            f"\n\tVCF: {vcf}.n"
+            f"\n\tExitcode:{out_variants.returncode}\n"
+            f"\n\tbcftools filter command used: {out_variants}\n"
+            f"\n\t{out_variants.stderr.decode()}"
+        )
 
 
     def retain_variants(self, vcf_df, filter_idxs) -> list:

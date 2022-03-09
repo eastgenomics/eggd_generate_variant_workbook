@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 from typing import Union
 import urllib.parse
@@ -27,8 +29,6 @@ class vcf():
         list of dataframe(s) of vcf data read in and formatted
     refs : list
         list of genome reference files used for given VCFs
-    csq_fields : list
-        list of VEP CSQ fields parsed from header
     total_vcf_rows : int
         value to keep total number of rows read in to ensure we don't drop
         any unless --filter is used and --keep is not and => intentionally
@@ -47,10 +47,9 @@ class vcf():
         self.args = args
         self.vcfs = []
         self.refs = []
-        self.csq_fields = []
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
-        self.filtered_rows = pd.DataFrame()
+        self.filtered_rows = []
 
 
     def process(self) -> None:
@@ -71,51 +70,55 @@ class vcf():
             - self.rename()
             - self.remove_nan()
         """
-        # read in the each vcf and apply formatting
+        # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
-            vcf_df, csq_fields = self.read(vcf)
+            # first split multiple transcript annotation to separate VCF
+            # records, and separate CSQ fields to separate INFO fields
+            self.bcftools_pre_process(vcf)
 
-            # split out INFO column, CSQ fields and FORMAT/SAMPLE column values
-            # to individual columns in dataframe
-            vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
-            vcf_df = splitColumns.info(vcf_df)
-            vcf_df = splitColumns.format_fields(vcf_df)
+            if self.args.filter:
+                # filter vcf against specified filters using bcftools
+                filter(self.args).filter('decomposed_tmp.vcf')
 
-            if 'COSMIC' in vcf_df.columns:
-                # handle known bug in VEP annotation where it duplicates COSMIC
-                vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
-                    lambda x: '&'.join(set(x.split('&')))
-                )
+                # filters.filter() writes tmp1.vcf and tmp2.vcf, containing the
+                # retained and filtered variants, respectively.
+                # Read these in to dataframes and delete
+                keep_df = self.read('tmp1.vcf', Path(vcf).stem)
+                filtered_df = self.read('tmp2.vcf', Path(vcf).stem)
 
-            # TO REMOVE, JUST FOR TESTING SINCE WE HAVE MULTIPLE TRANSCRIPT ANNOTATIONS
-            vcf_df = vcf_df[~vcf_df.duplicated(subset=['CHROM', 'POS', 'ID', 'REF', 'ALT'], keep='first')]
-            vcf_df = vcf_df.reset_index(drop=True)
+                os.remove('tmp1.vcf')
+                os.remove('tmp2.vcf')
 
-            self.expanded_vcf_rows += expanded_vcf_rows
+                # split out INFO column and FORMAT/SAMPLE column values
+                # to individual columns in dataframe
+                keep_df, _ = splitColumns().split(keep_df)
+                filtered_df, _ = splitColumns().split(filtered_df)
 
-            self.vcfs.append(vcf_df)
+                self.vcfs.append(keep_df)
+                self.filtered_rows.append(filtered_df)
+            else:
+                # not filtering vcf
+                vcf_df = self.read('decomposed_tmp.vcf', Path(vcf).stem)
+
+                # split out INFO column, CSQ fields and FORMAT/SAMPLE column values
+                # to individual columns in dataframe
+                vcf_df, expanded_vcf_rows = splitColumns().split(vcf_df)
+
+                self.expanded_vcf_rows += expanded_vcf_rows
+                self.vcfs.append(vcf_df)
+
+            # delete tmp vcf from splitting CSQ fields
+            os.remove('decomposed_tmp.vcf')
 
         print((
             f"\nTotal variants from {len(self.vcfs)} "
             f"vcf(s): {self.total_vcf_rows}\n"
         ))
-        if self.expanded_vcf_rows > 0:
-            print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
+        # if self.expanded_vcf_rows > 0:
+        #     print(f"Total rows expanded from vcfs: {self.expanded_vcf_rows}")
 
         if self.args.print_columns:
             self.print_columns()
-
-        if self.args.filter:
-            # filter dfs of variants against cmd line specified filters
-            filters = filter(self.args, self.vcfs)
-
-            filters.validate()
-            filters.build()
-            filters.filter()
-
-            # update class with any changes from filtering
-            self.vcfs, self.args, self.filtered_rows = filters.vcfs, \
-                filters.args, filters.filtered_rows
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
@@ -136,7 +139,39 @@ class vcf():
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
 
-    def read(self, vcf) -> pd.DataFrame:
+    def bcftools_pre_process(self, vcf):
+        """
+        Decompose multiple transcript annotation to individual records, and
+        split VEP CSQ string to individual INFO keys
+
+        Parameters
+        ------
+        vcf : str
+            path to vcf file to use
+
+        Raises
+        ------
+        AssertionError
+            Raised when non-zero exit code returned by bcftools
+        """
+        cmd = (
+            f"bcftools +split-vep --columns - -a CSQ -d {vcf} | "
+            f"bcftools annotate -x INFO/CSQ -o decomposed_tmp.vcf"
+        )
+
+        decomposed_vcf = subprocess.run(
+            cmd, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        assert decomposed_vcf.returncode == 0, (
+            f"Error in filtering VCF with bcftools. VCF: {vcf}. "
+            f"Exitcode:{decomposed_vcf.returncode}."
+            f"bcftools filter command used: {self.args.filter}"
+        )
+
+
+    def read(self, vcf, sample) -> pd.DataFrame:
         """
         Reads given vcf into pd.DataFrame and parses header
 
@@ -144,29 +179,26 @@ class vcf():
         ------
         vcf : str
             path to vcf file to use
+        sample : str
+            name of vcf, used for adding name to df if --add_name passed
 
         Returns
         -------
         vcf_df : pandas.DataFrame
             dataframe of all variants
-        csq_fields : list
-            VEP CSQ fields read from header
         """
-        sample = Path(vcf).stem
-        if '_' in vcf:
+        print(f"\n\nReading in vcf {vcf} for sample {sample}\n")
+
+        if '_' in sample:
             sample = sample.split('_')[0]
 
-        print(f"\n\nReading in vcf {vcf}\n")
-
         header, columns = self.parse_header(vcf)
-        csq_fields = self.parse_csq_fields(header)
         self.parse_reference(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
-            vcf, sep='\t', comment='#', names=columns,
-            compression='infer'
-        ).convert_dtypes()
+            vcf, sep='\t', comment='#', names=columns, compression='infer'
+        )
 
         self.total_vcf_rows += len(vcf_df.index)  # update our total count
         print(f"Total rows in current VCF: {len(vcf_df.index)}")
@@ -176,7 +208,7 @@ class vcf():
             # add sample name from filename as 1st column
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
-        return vcf_df, csq_fields
+        return vcf_df
 
 
     def parse_header(self, vcf) -> Union[list, list]:
@@ -227,32 +259,6 @@ class vcf():
             if ref not in self.refs:
                 # add reference file if found and same not already in list
                 self.refs.append(Path(ref).name)
-
-
-    def parse_csq_fields(self, header) -> list:
-        """
-        Parse out csq field names from vcf header.
-
-        Kind of horrible way to parse the CSQ field names but this is how VEP
-        seems to have always stored them (6+ years +) in the header as:
-        ['##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence \
-        annotations from Ensembl VEP. Format: SYMBOL|VARIANT_CLASS|...
-
-        Parameters
-        ----------
-        header : list
-            list of header lines read from vcf
-
-        Returns
-        -------
-        csq_fields : list
-            list of CSQ field names parsed from vcf header, used to assign as
-            column headings when splitting out CSQ data for each variant
-        """
-        csq_fields = [x for x in header if x.startswith("##INFO=<ID=CSQ")]
-        csq_fields = csq_fields[0].split("Format: ")[-1].strip('">').split('|')
-
-        return csq_fields
 
 
     def add_hyperlinks(self) -> None:
@@ -336,12 +342,14 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
-                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode() if type(x) == str else x
+                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode() \
+                    if type(x) == str else x
             )
 
             # remove any nans that are strings
             vcf = vcf.applymap(
-                lambda x: x.replace('nan', '') if x == 'nan' and type(x) == str else x
+                lambda x: x.replace('nan', '') \
+                    if x == 'nan' and type(x) == str else x
             )
 
             self.vcfs[idx] = vcf
@@ -539,4 +547,3 @@ class vcf():
             "Total rows to be written to file don't appear to equal what has "
             "been tracked, this suggests we have dropped some variants..."
         )
-

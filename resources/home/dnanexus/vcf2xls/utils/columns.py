@@ -9,8 +9,54 @@ class splitColumns():
     attribute columns (FORMAT, SAMPLE, INFO, CSQ), called during reading
     of VCFs from file in vcf.read()
     """
-    @staticmethod
-    def format_fields(vcf_df) -> pd.DataFrame:
+    def split(self, vcf_df) -> Union[pd.DataFrame, int]:
+        """
+        Call methods to split out INFO and FORMAT columns of given dataframe
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of variants to split
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of variants
+        expanded_vcf_rows : int
+            total number of extra rows from expanding multiple transcript
+            annotations to individual rows
+        """
+        expanded_rows = 0
+
+        vcf_df = self.format_fields(vcf_df)
+        vcf_df = self.info(vcf_df)
+        vcf_df = self.unique_cosmic(vcf_df)
+
+        return vcf_df, expanded_rows
+
+
+    def unique_cosmic(self, vcf_df) -> pd.DataFrame:
+        """
+        Handle known bug in VEP annotation where it duplicates COSMIC IDs
+
+        Parameters
+        ----------
+        vcf_df : pd.DataFrame
+            dataframe of variants
+
+        Returns
+        -------
+        vcf_df : pd.DataFrame
+            dataframe of variants
+        """
+        if 'COSMIC' in vcf_df.columns:
+            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
+                lambda x: '&'.join(set(x.split('&')))
+            )
+        return vcf_df
+
+
+    def format_fields(self, vcf_df) -> pd.DataFrame:
         """
         Get format fields from FORMAT column to split out sample values to
         individual columns, this transforms the data as such:
@@ -74,8 +120,7 @@ class splitColumns():
         return vcf_df
 
 
-    @staticmethod
-    def info(vcf_df) -> pd.DataFrame:
+    def info(self, vcf_df) -> pd.DataFrame:
         """
         Splits out the INFO column of vcf to all separate values, excluding
         the CSQ values. This transforms as:
@@ -156,83 +201,3 @@ class splitColumns():
         vcf_df.drop(['INFO'], axis=1, inplace=True)
 
         return vcf_df
-
-
-    @staticmethod
-    def csq(vcf_df, csq_fields) -> Union[pd.DataFrame, list]:
-        """
-        Split out CSQ string from other values in the INFO column to separate
-        fields to get annotation.  Column headers taken from format stored by
-        VEP in the header, read from vcf.parse_csq_fields().
-
-        Variants with multiple transcript annotation will have duplicate CSQ
-        data that is comma sepparated => expand this to multiple rows, if no
-        ',' present rows will remain unaffacted (i.e. one transcript)
-
-        Transforms as:
-
-        -----------------------------------------------------------------------
-        INFO
-        -----------------------------------------------------------------------
-        ...;CSQ=SIK1|SNV|missense_variant|13/14|NM_173354.5:c.1844C>T|...
-        ...;CSQ=COL18A1|SNV|synonymous_variant|6/42|NM_0013750.1:c.846G>T...
-        ...;CSQ=NSD1|SNV|missense_variant|6/24|NM_001384.1:c.1369T>C|...
-        -----------------------------------------------------------------------
-                                      |
-                                      |
-                                      ▼
-        -----------------------------------------------------------------------
-        SYMBOL | VAR_CLASS | Consequence        | EXON  | HGVSc
-        -----------------------------------------------------------------------
-        SIK1   | SNV       | missense_variant   | 13/14 | NM_173354.5:c.1844C>T
-        -----------------------------------------------------------------------
-        OL18A1 | SNV       | synonymous_variant | 6/42  | NM_0013750.1:c.846G>T
-        -----------------------------------------------------------------------
-        NSD1   | SNV       | missense_variant   | 6/24  | NM_001384.1:c.1369T>C
-        -----------------------------------------------------------------------
-
-
-        Parameters
-        ----------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf
-        csq_fields : list
-            list of CSQ field names parsed from vcf header, used to assign as
-            column headings when splitting out CSQ data for each variant
-
-        Returns
-        -------
-        vcf_df : pd.DataFrame
-            dataframe of all variants from a vcf with separated CSQ fields
-        expanded_vcf_rows : int
-            total number of extra rows from expanding multiple transcript
-            annotations to individual rows
-        """
-        df_rows = len(vcf_df.index)
-        columns = list(vcf_df.columns)
-
-        # split out CSQ string from INFO col from each row
-        vcf_df['CSQ'] = vcf_df['INFO'].apply(lambda x: x.split('CSQ=')[-1])
-
-        # set index to be everything except CSQ, expand this to multiple rows
-        # then set index back
-        vcf_df = vcf_df.set_index(columns).apply(
-            lambda x: x.str.split(',').explode()
-        ).reset_index()
-
-        # split each CSQ value to own columns
-        vcf_df[csq_fields] = vcf_df.CSQ.str.split('|', expand=True)
-
-        # drop INFO and CSQ as we fully split them out
-        vcf_df.drop(['CSQ'], axis=1, inplace=True)
-
-        if df_rows != len(vcf_df.index):
-            # total rows has changed => we must have multiple transcripts
-            print(f"Total rows of VCF changed on splitting CSQ values")
-            print(f"Total rows before: {df_rows}")
-            print(f"Total rows after: {len(vcf_df.index)}")
-            expanded_vcf_rows = len(vcf_df.index) - df_rows
-        else:
-            expanded_vcf_rows = 0
-
-        return vcf_df, expanded_vcf_rows

@@ -111,7 +111,7 @@ class arguments():
             )
         )
         parser.add_argument(
-            '-f', '--filter', nargs='+',
+            '-f', '--filter', type=str,
             help=(
                 'Columns on which to filter out variants. Format should be '
                 'as <column><operator><value> (gnomAD_AF<0.02). Supported '
