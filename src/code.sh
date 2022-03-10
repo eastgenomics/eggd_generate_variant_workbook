@@ -47,6 +47,7 @@ _dias_report_setup () {
 
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
+    export BCFTOOLS_PLUGINS=/usr/local/libexec/bcftools/
 
     mark-section "Downloading inputs"
     mkdir vcfs
@@ -58,14 +59,16 @@ main() {
         _dias_report_setup
     fi
 
-    mkdir -p /home/dnanexus/out/xls_reports
+    mkdir -p /home/dnanexus/out/xls_reports && sudo chmod 757 /home/dnanexus/out/xls_reports
 
+    mark-section "Installing packages"
     # install required python packages
     python3 -m pip install --no-index --no-deps packages/*
 
     echo "keep passed: ${keep}"
     echo "merge passed: ${merge}"
 
+    mark-section "Generating workbook"
     # build string of input arguments
     args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication}"; fi
@@ -88,10 +91,9 @@ main() {
     if [ "$merge" == true ]; then args+="--merge "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 
-    time python3 vcf2xls/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
+    /usr/bin/time -v python3 vcf2xls/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
 
-    echo "Output name: ${output_prefix}.xlsx"
-
+    mark-section "Uploading output"
     output_file=$(dx upload /home/dnanexus/out/xls_reports/* --brief)
     dx-jobutil-add-output xls_report "$output_file" --class=file
 }
