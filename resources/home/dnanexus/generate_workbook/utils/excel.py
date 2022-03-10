@@ -78,19 +78,15 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(40, 1).value = "Reads:"
-        self.summary.cell(41, 1).value = "Usable Reads:"
-        self.summary.cell(43, 1).value = "Workflow:"
-        self.summary.cell(44, 1).value = "Workflow ID:"
+        self.summary.cell(40, 1).value = "Workflow:"
+        self.summary.cell(41, 1).value = "Workflow ID:"
 
         # write summary values
         self.summary.cell(1, 2).value = self.args.sample
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
-        self.summary.cell(40, 2).value = self.args.reads
-        self.summary.cell(41, 2).value = self.args.usable_reads
-        self.summary.cell(43, 2).value = self.args.workflow[0]
-        self.summary.cell(44, 2).value = self.args.workflow[1]
+        self.summary.cell(40, 2).value = self.args.workflow[0]
+        self.summary.cell(41, 2).value = self.args.workflow[1]
 
         # write args passed to script to generate report
         self.summary.cell(46, 1).value = "Filters applied:"
@@ -137,10 +133,10 @@ class excel():
 
         # set titles to bold
         title_cells = [
-            "A1", "A40", "A41", "A43", "A44", "B1", "B9", "B16",
-            "B21", "B22", "B28", "B40", "B41", "B43", "B44", "C16",
-            "C22", "D16", "D22", "D28", "E1", "E2", "E22", "F1", "F2",
-            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "A1", "A40", "A41", "B1", "B9", "B16",
+            "B21", "B22", "B28", "B40", "B41", "B43", "B44",
+            "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
+            "F1", "F2", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in title_cells:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
