@@ -156,15 +156,12 @@ class vcf():
             f"bcftools annotate -x INFO/CSQ -o decomposed.tmp.vcf"
         )
 
-        decomposed_vcf = subprocess.run(
-            cmd, shell=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        output = subprocess.run(cmd, shell=True, capture_output=True)
 
-        assert decomposed_vcf.returncode == 0, (
-            f"Error in filtering VCF with bcftools. VCF: {vcf}. "
-            f"Exitcode:{decomposed_vcf.returncode}."
-            f"bcftools filter command used: {self.args.filter}"
+        assert output.returncode == 0, (
+            f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}."
+            f"\n\tExitcode:{output.returncode}."
+            f"\n\t{output.stderr.decode()}"
         )
 
 

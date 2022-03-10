@@ -47,14 +47,14 @@ class filter():
         # write to temporary vcf files to read from with vcf.read()
         filter = f"{self.args.filter} {vcf} > filtered.tmp.vcf"
 
-        keep_variants = subprocess.run(filter, shell=True, capture_output=True)
+        output = subprocess.run(filter, shell=True, capture_output=True)
 
-        assert keep_variants.returncode == 0, (
+        assert output.returncode == 0, (
             f"\n\tError in filtering VCF with bcftools\n"
             f"\n\tVCF: {vcf}\n"
-            f"\n\tExitcode:{keep_variants.returncode}\n"
+            f"\n\tExitcode:{output.returncode}\n"
             f"\n\tbcftools filter command used: {self.args.filter}\n"
-            f"\n\t{keep_variants.stderr.decode()}"
+            f"\n\t{output.stderr.decode()}"
         )
 
 
