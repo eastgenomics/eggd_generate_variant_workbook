@@ -1,10 +1,10 @@
 <!-- dx-header -->
 
-# vcf2xls_nirvana (DNAnexus Platform App)
+# egg_generate_workbook (DNAnexus Platform App)
 
 ## What does this app do?
 
-Generate an xlsx report from a VEP annotated vcf
+Generate an Excel workbook from VEP annotated vcf(s)
 
 ## What are typical use cases for this app?
 
@@ -26,25 +26,25 @@ This app may be executed as a standalone app.
 
 `--assay` (string):  type of assay to generate report for, determines assay specific things in-app (currently only supports `dias`)
 
-`--exclude_cols` (string): Columns of VCF to exclude from output xlsx
+`--exclude` (string): Columns of VCF to exclude from output xlsx
 
-`--include_cols` (string): Columns of VCF to only include in output xlsx
+`--include` (string): Columns of VCF to only include in output xlsx
 
-`--reorder_cols` (string): Order of fields from VCF in output xlsx columns, any not specified will be appended to end
+`--reorder` (string): Order of fields from VCF in output xlsx columns, any not specified will be appended to end
 
-`--rename_cols` (string): = separated key value pairs of VCF fields to rename in output xlsx (e.g. `"gnomADg_AF=gnomAD_genomes_AF"`)
+`--rename` (string): = separated key value pairs of VCF fields to rename in output xlsx (e.g. `"gnomADg_AF=gnomAD_genomes_AF"`)
 
-`--filter` (string): Columns on which to filter out variants. Format should be as `<column><operator><value>` e.g. `(gnomAD_AF<0.02)`. `Supported operands are >,`<,>,=,<=,== and !=.
+`--filter` (string): `bcftools filter` formatted string (see examples below)
 
-`--keep` (bool): Determines if filtered rows from `--filter` are retained in a seperate 'filtered' tab
+`--keep` (bool): Determines if filtered rows from `--filter` are retained in a seperate 'filtered' tab (default: True)
 
-`--add_name` (bool): Determines if to add samplename as first column in each sheet
+`--add_name` (bool): Determines if to add samplename as first column in each sheet (default: False)
 
-`--sheets` (bool): Names to use for sheets where multiple VCFs are passed
+`--sheets` (list): Names to use for sheets where multiple VCFs are passed
 
 `--output_prefix` (string): Prefix for naming output xlsx file. If not given for single file, the VCF prefix will be used. For 2+ input VCFs this must be specified.
 
-`--merge` (bool): Determines if to merge multiple VCFs to one sheet
+`--merge` (bool): Determines if to merge multiple VCFs to one sheet (default: False)
 
 `--summary` (string): If to include summary sheet, specify key of assay. Currently only supports `dias`.
 
@@ -54,6 +54,8 @@ This app may be executed as a standalone app.
 
 `--print_columns` (bool): Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.
 
+`--print_header` (bool): Print header of first vcf, useful for inspecting all fields and types for filtering.
+
 Example:
 
 ```bash
@@ -62,7 +64,7 @@ dx run app-eggd_vcf2xls/2.0.0 -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" -ifilter="b
 
 ## What does this app output?
 
-This app outputs an xlsx report.
+This app outputs an Excel workbook.
 
 This is the source code for an app that runs on the DNAnexus Platform.
 For more information about how to run or modify it, see

@@ -65,6 +65,7 @@ class TestFilters():
 
         return vcf_handler
 
+
     @staticmethod
     def get_random_column_value(column):
         """
@@ -82,7 +83,11 @@ class TestFilters():
         """
         values = column.tolist()
         shuffle(values)
-        return [x for x in values if not pd.isna(x)][0]
+        value = [x for x in values if not pd.isna(x) and not x == ""][0]
+
+        print(f"\nSelected filter value for filtering {column.name}: {value}")
+
+        return value
 
 
     def test_building_filters(self):
@@ -428,9 +433,9 @@ class TestFilters():
             "Mismatch between total rows before and after filtering"
         )
 
-        # check everything should be at filter value for DP and MPOS
+        # check everything should be at filter value
         assert all([
-            x != "3_prime_UTR_variant" or x != "synonymous_variant" \
+            x != "3_prime_UTR_variant" and x != "synonymous_variant" \
             for x in filter_handler.vcfs[0]['Consequence'].tolist()
         ]), (
             'Rows not filtered out when filtering with 2 filters on same column'
@@ -499,9 +504,97 @@ class TestFilters():
                 )
 
 
+class TestEdgeCaseFilters():
+    """
+    Tests for checking known edge cases that need correctly handling with
+    filtering (i.e. '.', empty strings and NA values in AF column should not
+    be filtered out with < )
+    """
+    def test_edge_values_w_lt(self):
+        """
+        Tests that when NA, . and empty strings are present in AF column, they
+        are treat as zero and not filtered out when filtering with <
+        """
+        vcf_handler = TestFilters().read_vcf()
+
+        # get random value from column to test filtering on
+        value = TestFilters.get_random_column_value(
+            vcf_handler.vcfs[0]['gnomAD_AF'])
+
+        vcf_handler.args.filter = [f"gnomAD_AF<={value}"]
+        vcf_handler.args.keep = True
+
+        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
+
+        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
+        filter_handler.build()
+        filter_handler.filter()
+
+        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
+
+        # check no rows dropped
+        assert total_rows_after_filter == total_rows_before_filter, (
+            "Mismatch between total rows before and after filtering"
+        )
+
+        # check none of the edge case values are filtered out into filtered df
+        assert all([
+            x != "" and x != "." and x != " " and not pd.isna(x) \
+            for x in filter_handler.vcfs[-1]['gnomAD_AF'].tolist()
+        ]), (
+            'Edge cases inocrrectly filtered out on gnomAD_AF with lt'
+        )
+
+
+    def test_edge_values_w_gt(self):
+        """
+        Tests that when NA, . and empty strings are present in AF column, they
+        are treat as zero and ARE filtered out when filtering with >
+        """
+        vcf_handler = TestFilters().read_vcf()
+
+        # get random value from column to test filtering on
+        value = TestFilters.get_random_column_value(
+            vcf_handler.vcfs[0]['gnomAD_AF'])
+
+        vcf_handler.args.filter = [f"gnomAD_AF>0.5"]
+        vcf_handler.args.keep = True
+
+        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
+
+        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
+        filter_handler.build()
+        filter_handler.filter()
+
+        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
+
+        print(sorted(filter_handler.vcfs[0]['gnomAD_AF'].unique().tolist()))
+        print(' ')
+        print(sorted(filter_handler.vcfs[-1]['gnomAD_AF'].unique().tolist()))
+        sys.exit()
+
+        # check no rows dropped
+        assert total_rows_after_filter == total_rows_before_filter, (
+            "Mismatch between total rows before and after filtering"
+        )
+
+        # check none of the edge case values are filtered out into filtered df
+        assert all([
+            x != "" and x != "." and x != " " and not pd.isna(x) \
+            for x in filter_handler.vcfs[0]['gnomAD_AF'].tolist()
+        ]), (
+            'Edge cases not filtered out on gnomAD_AF with gt'
+        )
+        sys.exit()
+
+
 
 if __name__ == "__main__":
     t = TestFilters()
+    e = TestEdgeCaseFilters()
+
+    e.test_edge_values_w_gt()
+
     t.read_vcf()
     t.test_building_filters()
     t.test_correct_rows_filtered_with_eq()

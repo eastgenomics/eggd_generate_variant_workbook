@@ -59,7 +59,7 @@ main() {
         _dias_report_setup
     fi
 
-    mkdir -p /home/dnanexus/out/xls_reports && sudo chmod 757 /home/dnanexus/out/xls_reports
+    mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
 
     mark-section "Installing packages"
     # install required python packages
@@ -73,17 +73,17 @@ main() {
     args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication}"; fi
     if [ "$flagstat_file" ]; then args+="--usable_reads ${nb_usable_reads} "; fi
-    if [ "$exclude_cols" ]; then args+="--exclude ${exclude_cols} "; fi
-    if [ "$include_cols" ]; then args+="--include ${include_cols} "; fi
-    if [ "$reorder_cols" ]; then args+="--reorder ${reorder_cols} "; fi
-    if [ "$rename_cols" ]; then args+="--rename ${rename_cols} "; fi
+    if [ "$exclude" ]; then args+="--exclude ${exclude} "; fi
+    if [ "$include" ]; then args+="--include ${include} "; fi
+    if [ "$reorder" ]; then args+="--reorder ${reorder} "; fi
+    if [ "$rename" ]; then args+="--rename ${rename} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
     if [ "$print_header" ]; then args+="--print_header"; fi
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_id} ${analysis_name} "; fi
     if [ "$analysis" ]; then args+="--analysis ${analyis} "; fi
-    if [ "$summary" ]; then args+="summary ${summary} "; fi
+    if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$sheets" ]; then args+="--sheets ${sheets} "; fi
     if [ "$filter" ]; then args+="--filter ${filter} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
@@ -91,9 +91,9 @@ main() {
     if [ "$merge" == true ]; then args+="--merge "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 
-    /usr/bin/time -v python3 vcf2xls/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
+    /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xlsx_reports" $args
 
     mark-section "Uploading output"
-    output_file=$(dx upload /home/dnanexus/out/xls_reports/* --brief)
-    dx-jobutil-add-output xls_report "$output_file" --class=file
+    output_file=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)
+    dx-jobutil-add-output xlsx_report "$output_file" --class=file
 }

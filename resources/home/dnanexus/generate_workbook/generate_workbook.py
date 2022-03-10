@@ -177,14 +177,6 @@ class arguments():
             help='name of sample to display in summary report'
         )
         parser.add_argument(
-            '--reads', default='',
-            help='total reads from flagstat'
-        )
-        parser.add_argument(
-            '--usable_reads', default='',
-            help='usable reads from flagstat'
-        )
-        parser.add_argument(
             '--print_columns', required=False, action='store_true',
             help=(
                 'Print total columns of all vcfs that will be output to the xlsx. '

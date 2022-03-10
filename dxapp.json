@@ -31,36 +31,36 @@
       "group": "app"
     },
     {
-      "name": "exclude_cols",
+      "name": "exclude",
       "label": "Exclude columns",
       "class": "string",
       "optional": true,
       "help": "Columns of VCF to exclude from output xlsx",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
-      "name": "include_cols",
+      "name": "include",
       "label": "Include columns",
       "class": "string",
       "optional": true,
       "help": "Columns of VCF to only include in output xlsx",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
-      "name": "reorder_cols",
+      "name": "reorder",
       "label": "Reorder columns",
       "class": "string",
       "optional": true,
       "help": "Order of fields from VCF in output xlsx columns",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
-      "name": "rename_cols",
+      "name": "rename",
       "label": "Rename columns",
       "class": "string",
       "optional": true,
       "help": "= separated key value pairs of VCF fields to rename in output xlsx",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "filter",
@@ -68,7 +68,7 @@
       "class": "string",
       "optional": true,
       "help": "Filters to apply to variants",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "keep",
@@ -77,7 +77,7 @@
       "optional": true,
       "default": false,
       "help": "Determines if to keep filtered variants in separate 'filtered' tab",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "add_name",
@@ -86,7 +86,7 @@
       "optional": true,
       "default": false,
       "help": "Determines if to add samplename as first column in each sheet",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "sheets",
@@ -94,7 +94,7 @@
       "class": "string",
       "optional": true,
       "help": "Names to use for sheets where multiple VCFs are passed",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "output",
@@ -102,7 +102,7 @@
       "class": "string",
       "optional": true,
       "help": "Prefix for naming output xlsx file",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "merge",
@@ -111,7 +111,7 @@
       "optional": true,
       "default": false,
       "help": "Determines if to merge multiple VCFs to one sheet",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "summary",
@@ -119,7 +119,7 @@
       "class": "string",
       "optional": true,
       "help": "If to include summary sheet, specify key of assay",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "print_columns",
@@ -127,7 +127,7 @@
       "class": "boolean",
       "optional": true,
       "help": "Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.",
-      "group": "vcf2xls.py"
+      "group": "generate_workbook.py"
     },
     {
       "name": "panel_bed",
@@ -143,11 +143,11 @@
   ],
   "outputSpec": [
     {
-      "name": "xls_report",
-      "label": "xls report for the sample",
+      "name": "xlsx_report",
+      "label": "Excel workbook for the given vcf(s)",
       "class": "file",
       "patterns": [
-        "*.xls"
+        "*.xlsx"
       ],
       "help": ""
     }
