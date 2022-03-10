@@ -33,6 +33,9 @@ class vcf():
         transcript annotation per variant in resultant dataframe
     filtered_rows : list
         list of dataframes of rows dropped from vcfs
+    urls : dict
+        mapping dictionary of column name to URLs, used for adding hyperlinks
+            to column values before writing to file
     """
 
     def __init__(self, args) -> None:
@@ -42,6 +45,12 @@ class vcf():
         self.total_vcf_rows = 0
         self.expanded_vcf_rows = 0
         self.filtered_vcfs = []
+        self.urls = {
+            "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
+            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
+            "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
+            "mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
+        }
 
 
     def process(self) -> None:
@@ -266,37 +275,28 @@ class vcf():
 
     def add_hyperlinks(self) -> None:
         """
-        Format column value as an Excel hyperlink, currently supports:
-            - ClinVar
-            - Cosmic
+        Format column value as an Excel hyperlink if URL for column specified
         """
-        urls = {
-                "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-                "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
-                "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
-                "mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
-            }
-
         # some URLs are build specific, infer which to use from build in header
         reference = self.refs[0].lower()
         if '37' in reference or 'hg19' in reference:
-            urls.update({
+            self.urls.update({
                 "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1",
                 "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1"
             })
         elif '38' in reference:
-            urls.update({
+            self.urls.update({
                 "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3",
                 "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3"
             })
 
         for idx, vcf in enumerate(self.vcfs):
             for col in vcf.columns:
-                if urls.get(col.lower(), None):
+                if self.urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx].apply(
                         lambda x: self.make_hyperlink(
-                            col, urls.get(col.lower()), x
+                            col, self.urls.get(col.lower()), x
                         ), axis=1
                     )
 
