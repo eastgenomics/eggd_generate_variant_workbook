@@ -14,7 +14,6 @@ _dias_report_setup () {
     workflow_id=$(dx describe --json ${annotation_job_id} | jq -r '.parentAnalysis')
     workflow_name=$(dx describe --json ${workflow_id} | jq -r '.executableName')
 
-
     # Placeholder text if the workflow id is not found
     if [ -z "$annotation_job_name" ]; then
         analysis_name="No workflow id found for this report."
@@ -25,18 +24,16 @@ _dias_report_setup () {
 
     project_id=$DX_PROJECT_CONTEXT_ID
 
+    # Tiny chance of race conditions leading to two files with the same name here
     version=0
     matching_files=1
     if [ -z "$output_prefix" ]; then
-        output_name="${sample_id}_${version}"
+        while [ $matching_files -ne 0 ]; do
+            version=$((version+1))
+            output_name="${sample_id}_${version}*"
+            matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
+        done;
     fi
-
-    # Tiny chance of race conditions leading to two files with the same name here
-    while [ $matching_files -ne 0 ]; do
-        version=$((version+1))
-        output_name="${sample_id}_${version}*"
-        matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
-    done;
 
     # Add text to report name if workflow id hasn't been found
     if [[ $workflow_id ]]; then
@@ -50,9 +47,6 @@ _dias_report_setup () {
 
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
-
-    # total cores available for cmds that make use of them
-    CPU=$(grep -c ^processor /proc/cpuinfo)
 
     mark-section "Downloading inputs"
     mkdir vcfs
@@ -80,8 +74,8 @@ main() {
     if [ "$include_cols" ]; then args+="--include ${include_cols} "; fi
     if [ "$reorder_cols" ]; then args+="--reorder ${reorder_cols} "; fi
     if [ "$rename_cols" ]; then args+="--rename ${rename_cols} "; fi
-    if [ "$print_columns" ]; then args+="--print-columns "; fi
-    if [ "$flagstat_file" ]; then args+="--reads ${total_nb_reads} "; fi
+    if [ "$print_columns" ]; then args+="--print_columns "; fi
+    if [ "$print_header" ]; then args+="--print_header"; fi
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_id} ${analysis_name} "; fi
@@ -94,7 +88,7 @@ main() {
     if [ "$merge" == true ]; then args+="--merge "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 
-    time python3 vcf2xls/bin/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
+    time python3 vcf2xls/vcf2xls.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xls_reports" $args
 
     echo "Output name: ${output_prefix}.xlsx"
 

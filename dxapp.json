@@ -1,7 +1,7 @@
 {
-  "name": "eggd_vcf2xls",
-  "title": "eggd_vcf2xls",
-  "summary": "Create xlsx from VEP annotated vcf",
+  "name": "eggd_generate_workbook",
+  "title": "eggd_generate_workbook",
+  "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
   "version": "2.0.0",
   "authorizedUsers": [
@@ -11,7 +11,7 @@
     "org-emee_1"
   ],
   "properties": {
-    "githubRelease": "v1.6.3"
+    "githubRelease": "v2.0.0"
   },
   "inputSpec": [
     {
@@ -130,17 +130,6 @@
       "group": "vcf2xls.py"
     },
     {
-      "name": "flagstat_file",
-      "label": "Flagstat file for displaying number of reads in the report",
-      "class": "file",
-      "optional": true,
-      "patterns": [
-        "*.flagstat"
-      ],
-      "help": "",
-      "group": "app"
-    },
-    {
       "name": "panel_bed",
       "label": "Panel bed that matches panel name provided",
       "class": "file",
@@ -166,7 +155,7 @@
   "runSpec": {
     "timeoutPolicy": {
       "*": {
-        "hours": 6
+        "hours": 1
       }
     },
     "interpreter": "bash",
@@ -177,7 +166,10 @@
   },
   "assetDepends": [
     {
-      
+      "name": "htslib",
+      "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+      "folder": "/app_assets/htslib/htslib_v1.14.0",
+      "version": "1.14.0"
     }
   ],
   "access": {
