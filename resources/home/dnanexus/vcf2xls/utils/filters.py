@@ -1,10 +1,10 @@
-import re
 import subprocess
 import sys
-from typing import Union
 
 import numpy as np
 import pandas as pd
+
+pd.options.mode.chained_assignment = None
 
 
 class filter():
@@ -21,29 +21,11 @@ class filter():
     filtered_rows : pd.DataFrame
         dataframe of all rows dropped from all vcfs
     """
-    def __init__(self, args) -> None:
+    def __init__(self, args=None) -> None:
         self.args = args
 
-    @staticmethod
-    def switch_include_exclude(filter_str, x, y) -> str:
-        """
-        Given a bcftools filter string, switches -e and -i to do inverse
-        of specified filter
 
-        Parameters
-        ----------
-        filter_str : str
-            string of filters to switch
-
-        Returns
-        ----------
-        filter_str : str
-            string of filters
-        """
-        return y.join(part.replace(y, x) for part in filter_str.split(x))
-
-
-    def filter(self, vcf) -> Union[pd.DataFrame, pd.DataFrame]:
+    def filter(self, vcf) -> None:
         """
         Filter given vcf using bcftools
 
@@ -52,29 +34,20 @@ class filter():
         vcf : pathlib.PosixPath
             path to vcf file to filter
 
-        Returns
+        Outputs
         -------
-        vcf_df : pd.DataFrame
-            dataframe of variants to retain
-        filtered_vcf_rows : pd.DataFrame
-            dataframe of variants filtered out
+        filtered.tmp.vcf : file
+            vcf file filtered with bedtools and specified filters
+
+        Raises
+        ------
+        AssertionError
+            Raised when non-zero exitcode returned from bcftools annotate
         """
-        filter_keep = self.args.filter
-        filter_out = self.switch_include_exclude(self.args.filter, '-i', '-e')
-
         # write to temporary vcf files to read from with vcf.read()
-        filter_keep += f" {vcf} > tmp1.vcf"
-        filter_out += f" {vcf} > tmp2.vcf"
+        filter = f"{self.args.filter} {vcf} > filtered.tmp.vcf"
 
-        keep_variants = subprocess.run(
-            filter_keep, shell=True,
-            capture_output=True
-        )
-
-        out_variants = subprocess.run(
-            filter_out, shell=True,
-            capture_output=True, encoding='UTF-8'
-        )
+        keep_variants = subprocess.run(filter, shell=True, capture_output=True)
 
         assert keep_variants.returncode == 0, (
             f"\n\tError in filtering VCF with bcftools\n"
@@ -83,13 +56,38 @@ class filter():
             f"\n\tbcftools filter command used: {self.args.filter}\n"
             f"\n\t{keep_variants.stderr.decode()}"
         )
-        assert out_variants.returncode == 0, (
-            f"\n\tError in filtering VCF with bcftools\n"
-            f"\n\tVCF: {vcf}.n"
-            f"\n\tExitcode:{out_variants.returncode}\n"
-            f"\n\tbcftools filter command used: {out_variants}\n"
-            f"\n\t{out_variants.stderr.decode()}"
+
+
+    def get_filtered_rows(self, vcf, keep_df, columns) -> pd.DataFrame():
+        """
+        Given filtered vcf dataframe, return a dataframe of the filtered out
+        variants
+
+        Parameters
+        ----------
+        vc : str
+            name of full vcf passed to .filter() to read all variants from
+        keep_df : pd.DataFrame
+            dataframe of variants passing filters
+        columns : list
+            column names read from header of vcf
+
+        Returns
+        -------
+        filtered_out_df : pd.DataFrame
+            dataframe of filtered out variants
+        """
+        # read full unfiltered vcf into pandas df
+        full_df = pd.read_csv(
+            vcf, sep='\t', comment='#', names=columns, compression='infer'
         )
+
+        # get the rows only present in original vcf => filtered out rows
+        filtered_out_df = full_df.merge(keep_df, how='left', indicator=True)
+        filtered_out_df = filtered_out_df.query('_merge == "left_only"')
+        filtered_out_df.drop(['_merge'], axis=1, inplace=True)
+
+        return filtered_out_df
 
 
     def retain_variants(self, vcf_df, filter_idxs) -> list:
@@ -129,4 +127,3 @@ class filter():
         filter_idxs = list(set(filter_idxs) - set(retain_idxs))
 
         return filter_idxs
-

@@ -23,14 +23,6 @@ _dias_report_setup () {
         workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
     fi
 
-
-    # get read stats from flagstat file
-    total_nb_reads=$(grep total inputs/"$flagstat_file_name" | cut -d+ -f1)
-    nb_duplicates_reads=$(grep duplicate inputs/"$flagstat_file_name" | cut -d+ -f1)
-    nb_aligned_reads=$(grep "mapped (" inputs/"$flagstat_file_name" | cut -d+ -f1)
-    nb_usable_reads=$(( "$nb_aligned_reads" - "$nb_duplicates_reads" ))
-
-
     project_id=$DX_PROJECT_CONTEXT_ID
 
     version=0
@@ -55,23 +47,9 @@ _dias_report_setup () {
 }
 
 
-_panel_filter () {
-    # Filters with bedtools intersect if panel bed file given
-    vcf=$1
-    echo "Filtering ${vcf} agaist ${panel_bed_name}"
-
-    # get nicely formatted name of bed file for report
-    panel=$(sed 's/_\([0-9]\{2\}\)bp_b\([0-9]\{2\}\).bed//g' <<< $bed)  # remove generate_bed suffix
-    panel=${bed//_/}
-    panel=${bed//&&/ & }
-
-    bedtools intersect -header -a $vcf -b inputs/$panel_bed_name > vcfs/$vcf
-}
-
 
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
-    echo "Value of flagstat_file: $flagstat_file"
 
     # total cores available for cmds that make use of them
     CPU=$(grep -c ^processor /proc/cpuinfo)
@@ -82,31 +60,17 @@ main() {
     find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
 
     if [ "$assay" == "dias" ]; then
-        # download and do dias specific things
-        dx download "$flagstat_file"
+        # do dias specific things
         _dias_report_setup
     fi
 
     mkdir -p /home/dnanexus/out/xls_reports
 
-    if [ "$panel_bed" ]; then
-        # filtering against bed file, move all the vcfs then add back the
-        # filtered ones to vcfs dir
-        dx download "$panel_bed"
-
-        mkdir unfiltered_vcfs
-        mv vcfs/* unfiltered_vcfs/
-
-        for vcf in unfiltered_vcfs/*; do
-            _panel_filter "$vcf"
-        done
-    fi
-
     # install required python packages
     python3 -m pip install --no-index --no-deps packages/*
 
     echo "keep passed: ${keep}"
-    echo "merg passed: ${merge}"
+    echo "merge passed: ${merge}"
 
     # build string of input arguments
     args=""
@@ -126,7 +90,7 @@ main() {
     if [ "$sheets" ]; then args+="--sheets ${sheets} "; fi
     if [ "$filter" ]; then args+="--filter ${filter} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
-    if [ "$add_name" == "true" ]; then args+="--add_name "; fi
+    if [ "$add_name" == true ]; then args+="--add_name "; fi
     if [ "$merge" == true ]; then args+="--merge "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 

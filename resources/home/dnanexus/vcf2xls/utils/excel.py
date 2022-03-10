@@ -277,11 +277,11 @@ class excel():
             "feature": 17
         }
 
-        # generate list of 260 potential xlsx columns from A,B,C...IX,IY,IZ
+        # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
         # allows for handling a lot of columns
         column_list = [
             f"{x}{y}" for x in [
-                '', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
+                '', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
             ] for y in uppercase
         ]
 

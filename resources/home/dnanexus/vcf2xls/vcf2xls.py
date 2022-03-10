@@ -191,6 +191,15 @@ class arguments():
                 'Useful to identify what will be in the output to include/exclude'
             )
         )
+        parser.add_argument(
+            '--print_header', required=False, action='store_true',
+            help=(
+                'Print header from first given VCF. Useful for identifying '
+                'available INFO/FORMAT/CSQ fields and their types.'
+                'n.b. CSQ fields are prefixed with "CSQ_", this is stripped '
+                'before writing to the Excel file.'
+            )
+        )
 
         return parser.parse_args()
 

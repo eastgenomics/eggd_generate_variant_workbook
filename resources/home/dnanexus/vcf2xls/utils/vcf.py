@@ -1,12 +1,10 @@
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
 from typing import Union
 import urllib.parse
 
-import numpy as np
 import pandas as pd
 
 from .columns import splitColumns
@@ -16,10 +14,6 @@ from .filters import filter
 class vcf():
     """
     Functions to handle reading and manipulating vcf data
-
-    Called in the order:
-
-    read() -> filter() -> drop_columns() -> reorder() -> merge() -> rename()
 
     Attributes
     ----------
@@ -37,10 +31,8 @@ class vcf():
         value to track total rows expanded out when multiple transcript
         annotations for one variant are present, resulting in one row per
         transcript annotation per variant in resultant dataframe
-    vcfs : list of pd.DataFrame
-        list of dataframes read in from self.args.vcfs
-    filtered_rows : pd.DataFrame
-        dataframe of all rows dropped from all vcfs
+    filtered_rows : list
+        list of dataframes of rows dropped from vcfs
     """
 
     def __init__(self, args) -> None:
@@ -76,19 +68,21 @@ class vcf():
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filter(self.args).filter('decomposed_tmp.vcf')
+                filter(self.args).filter('decomposed.tmp.vcf')
 
-                # filters.filter() writes tmp1.vcf and tmp2.vcf, containing the
-                # retained and filtered variants, respectively.
-                # Read these in to dataframes and delete
-                keep_df = self.read('tmp1.vcf', Path(vcf).stem)
-                filtered_df = self.read('tmp2.vcf', Path(vcf).stem)
+                # filters.filter() writes temp filtered vcf containing the
+                # filtered variants to read into df
+                keep_df = self.read('filtered.tmp.vcf', Path(vcf).stem)
+                os.remove('filtered.tmp.vcf')
+                _, columns = self.parse_header(vcf)
 
-                os.remove('tmp1.vcf')
-                os.remove('tmp2.vcf')
+                # get filtered out rows and read back to new df
+                filtered_df = filter(self.args).get_filtered_rows(
+                    'decomposed.tmp.vcf', keep_df, columns
+                )
 
-                # split out INFO and FORMAT/SAMPLE column values
-                # to individual columns in dataframe
+                # split out INFO and FORMAT column values to individual
+                # columns in dataframe
                 keep_df = splitColumns().split(keep_df)
                 filtered_df = splitColumns().split(filtered_df)
 
@@ -97,12 +91,12 @@ class vcf():
             else:
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
-                vcf_df = self.read('decomposed_tmp.vcf', Path(vcf).stem)
+                vcf_df = self.read('decomposed.tmp.vcf', Path(vcf).stem)
                 vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
-            # delete tmp vcf from splitting CSQ fields
-            os.remove('decomposed_tmp.vcf')
+            # delete tmp vcf from splitting CSQ str in bcftools_pre_process()
+            os.remove('decomposed.tmp.vcf')
 
         if self.args.print_columns:
             self.print_columns()
@@ -126,6 +120,7 @@ class vcf():
         self.add_hyperlinks()
         self.rename_columns()
         self.format_strings()
+        self.strip_csq_prefix()
 
         # run checks to ensure we haven't unintentionally dropped variants
         # self.verify_totals()
@@ -136,12 +131,20 @@ class vcf():
     def bcftools_pre_process(self, vcf):
         """
         Decompose multiple transcript annotation to individual records, and
-        split VEP CSQ string to individual INFO keys
+        split VEP CSQ string to individual INFO keys. Adds a 'CSQ_' prefix
+        to each field extracted from the CSQ string to stop potential conflicts
+        with existing INFO fields, which is then stripped before writing
+        to the Excel file
 
         Parameters
         ------
         vcf : str
             path to vcf file to use
+
+        Outputs
+        -------
+        decomposed.tmp.vcf : file
+            vcf file output from bcftools
 
         Raises
         ------
@@ -149,8 +152,8 @@ class vcf():
             Raised when non-zero exit code returned by bcftools
         """
         cmd = (
-            f"bcftools +split-vep --columns - -a CSQ -d {vcf} | "
-            f"bcftools annotate -x INFO/CSQ -o decomposed_tmp.vcf"
+            f"bcftools +split-vep --columns - -a CSQ -p 'CSQ_' -d {vcf} | "
+            f"bcftools annotate -x INFO/CSQ -o decomposed.tmp.vcf"
         )
 
         decomposed_vcf = subprocess.run(
@@ -188,6 +191,9 @@ class vcf():
 
         header, columns = self.parse_header(vcf)
         self.parse_reference(header)
+
+        if self.args.print_header:
+            self.print_header(header)
 
         # read vcf into pandas df
         vcf_df = pd.read_csv(
@@ -363,6 +369,20 @@ class vcf():
         sys.exit(0)
 
 
+    def print_header(self, header) -> None:
+        """
+        Simple method to print vcf header(s) after splitting CSQ string with
+        bcftools to show all available fields and their types
+
+        Parameters
+        ----------
+        header : list
+            vcf header as list read from file
+        """
+        [print(x) for x in header]
+        sys.exit(0)
+
+
     def drop_columns(self) -> None:
         """
         If `--exclude` or `--include` passed, drop given columns
@@ -459,6 +479,21 @@ class vcf():
             ]
 
 
+    def strip_csq_prefix(self) -> None:
+        """
+        Strip CSQ prefix added by bcftools -split-vep from column names
+
+        Any conflicts in names with already present columns will retain prefix
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            # strip prefix from column name if present and not already a column
+            self.vcfs[idx].columns = [
+                x.replace('CSQ ', '', 1) if (
+                    x.startswith('CSQ ') and x.replace('CSQ ', '') not in vcf.columns
+                ) else x for x in vcf.columns
+            ]
+
+
     def merge(self, vcfs) -> None:
         """
         Merge all variants into one big dataframe, should be used with
@@ -466,7 +501,6 @@ class vcf():
         is important
         """
         return [pd.concat(vcfs).reset_index(drop=True)]
-
 
 
     def verify_totals(self) -> None:
