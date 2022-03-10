@@ -162,16 +162,16 @@
     "release": "20.04",
     "version": "0",
     "distribution": "Ubuntu",
-    "file": "src/code.sh"
+    "file": "src/code.sh",
+    "assetDepends": [
+      {
+        "name": "htslib",
+        "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
+        "folder": "/app_assets/htslib/htslib_v1.14.0",
+        "version": "1.14.0"
+      }
+    ]
   },
-  "assetDepends": [
-    {
-      "name": "htslib",
-      "project": "project-Fkb6Gkj433GVVvj73J7x8KbV",
-      "folder": "/app_assets/htslib/htslib_v1.14.0",
-      "version": "1.14.0"
-    }
-  ],
   "access": {
     "project": "CONTRIBUTE",
     "allProjects": "VIEW",
