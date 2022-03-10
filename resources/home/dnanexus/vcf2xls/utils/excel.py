@@ -192,8 +192,12 @@ class excel():
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
+                sheet_no = self.args.sheets.index(sheet) + 1
+                print(f"Writing {sheet} sheet ({sheet_no}/{len(self.args.sheets)})")
+
                 vcf.to_excel(
-                    self.writer, sheet_name=sheet, index=False
+                    self.writer, sheet_name=sheet,
+                    index=False, float_format="%.3f"
                 )
                 curr_worksheet = self.writer.sheets[sheet]
                 self.set_widths(curr_worksheet, vcf.columns)

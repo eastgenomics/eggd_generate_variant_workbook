@@ -88,6 +88,9 @@ class vcf():
 
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)
+
+                # clean up some memory since big dataframes can use a lot
+                del keep_df, filtered_df
             else:
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
@@ -95,8 +98,11 @@ class vcf():
                 vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
+                del vcf_df
+
             # delete tmp vcf from splitting CSQ str in bcftools_pre_process()
             os.remove('decomposed.tmp.vcf')
+
 
         if self.args.print_columns:
             self.print_columns()
@@ -159,8 +165,8 @@ class vcf():
         output = subprocess.run(cmd, shell=True, capture_output=True)
 
         assert output.returncode == 0, (
-            f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}."
-            f"\n\tExitcode:{output.returncode}."
+            f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
+            f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
         )
 
