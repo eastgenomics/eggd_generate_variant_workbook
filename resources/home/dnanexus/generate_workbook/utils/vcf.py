@@ -71,23 +71,31 @@ class vcf():
         """
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
+            # names for intermediary vcfs
+            split_vcf = f"{Path(vcf).stem}.split.vcf"
+            filter_vcf = f"{Path(vcf).stem}.filter.vcf"
+
             # first split multiple transcript annotation to separate VCF
             # records, and separate CSQ fields to separate INFO fields
-            self.bcftools_pre_process(vcf)
+            self.bcftools_pre_process(vcf, split_vcf)
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filter(self.args).filter('decomposed.tmp.vcf')
+                filter(self.args).filter(split_vcf, filter_vcf)
 
                 # filters.filter() writes temp filtered vcf containing the
                 # filtered variants to read into df
-                keep_df = self.read('filtered.tmp.vcf', Path(vcf).stem)
-                os.remove('filtered.tmp.vcf')
-                _, columns = self.parse_header(vcf)
+                keep_df = self.read(filter_vcf, Path(vcf).stem)
+
+                if not self.args.keep_tmp:
+                    os.remove(filter_vcf)
+                else:
+                    self.bgzip(filter_vcf)
 
                 # get filtered out rows and read back to new df
+                _, columns = self.parse_header(vcf)
                 filtered_df = filter(self.args).get_filtered_rows(
-                    'decomposed.tmp.vcf', keep_df, columns
+                    split_vcf, keep_df, columns
                 )
 
                 # split out INFO and FORMAT column values to individual
@@ -103,14 +111,17 @@ class vcf():
             else:
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
-                vcf_df = self.read('decomposed.tmp.vcf', Path(vcf).stem)
+                vcf_df = self.read(split_vcf, Path(vcf).stem)
                 vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
                 del vcf_df
 
             # delete tmp vcf from splitting CSQ str in bcftools_pre_process()
-            os.remove('decomposed.tmp.vcf')
+            if not self.args.keep_tmp:
+                os.remove(split_vcf)
+            else:
+                self.bgzip(split_vcf)
 
 
         if self.args.print_columns:
@@ -132,10 +143,10 @@ class vcf():
         if self.args.reorder:
             self.order_columns()
 
-        self.add_hyperlinks()
-        self.rename_columns()
         self.format_strings()
         self.strip_csq_prefix()
+        self.add_hyperlinks()
+        self.rename_columns()
 
         # run checks to ensure we haven't unintentionally dropped variants
         # self.verify_totals()
@@ -143,7 +154,7 @@ class vcf():
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
 
-    def bcftools_pre_process(self, vcf):
+    def bcftools_pre_process(self, vcf, output_vcf):
         """
         Decompose multiple transcript annotation to individual records, and
         split VEP CSQ string to individual INFO keys. Adds a 'CSQ_' prefix
@@ -155,10 +166,12 @@ class vcf():
         ------
         vcf : str
             path to vcf file to use
+        output_vcf : str
+            name for output vcf
 
         Outputs
         -------
-        decomposed.tmp.vcf : file
+        {vcf}.split.vcf : file
             vcf file output from bcftools
 
         Raises
@@ -166,15 +179,39 @@ class vcf():
         AssertionError
             Raised when non-zero exit code returned by bcftools
         """
+        print(f"Splitting {vcf} with bcftools +split-vep")
         cmd = (
             f"bcftools +split-vep --columns - -a CSQ -p 'CSQ_' -d {vcf} | "
-            f"bcftools annotate -x INFO/CSQ -o decomposed.tmp.vcf"
+            f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
         )
 
         output = subprocess.run(cmd, shell=True, capture_output=True)
 
         assert output.returncode == 0, (
             f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
+            f"\n\tExitcode:{output.returncode}"
+            f"\n\t{output.stderr.decode()}"
+        )
+
+
+    def bgzip(self, file):
+        """
+        Call bgzip on given file
+
+        Parameters
+        ----------
+        file : file to compress
+
+        Outputs
+        -------
+        input file, but compressed
+        """
+        output = subprocess.run(
+            f"bgzip --force {file}", shell=True, capture_output=True
+        )
+
+        assert output.returncode == 0, (
+            f"\n\tError in compressing file with bgzip. File: {file}"
             f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
         )
@@ -292,6 +329,8 @@ class vcf():
 
         for idx, vcf in enumerate(self.vcfs):
             for col in vcf.columns:
+                # print(vcf.columns.tolist())
+                # sys.exit()
                 if self.urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx].apply(
@@ -319,18 +358,19 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if not value[column] or pd.isna(value[column]) or value[column] == 'nan':
+        if not value[column] or pd.isna(value[column]) or \
+            value[column] == 'nan' or value[column] == '.':
             # no value to build hyperlink
-            return
+            return value[column]
 
         if 'gnomad' in column.lower():
             # handle gnomad differently as it requires chrom, pos, ref and
             # alt in URL instead of just the value adding to the end
-            chrom = str(value.CHROM.replace('chr', ''))
+            chrom = str(value.CHROM).replace('chr', '')
             url = url.replace('CHROM', chrom)
             url = url.replace('POS', str(value.POS))
-            url = url.replace('REF', value.REF)
-            url = url.replace('ALT', value.ALT)
+            url = url.replace('REF', str(value.REF))
+            url = url.replace('ALT', str(value.ALT))
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -491,8 +531,8 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             # strip prefix from column name if present and not already a column
             self.vcfs[idx].columns = [
-                x.replace('CSQ ', '', 1) if (
-                    x.startswith('CSQ ') and x.replace('CSQ ', '') not in vcf.columns
+                x.replace('CSQ_', '', 1) if (
+                    x.startswith('CSQ_') and x.replace('CSQ_', '') not in vcf.columns
                 ) else x for x in vcf.columns
             ]
 
