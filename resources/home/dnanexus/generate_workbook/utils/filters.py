@@ -59,6 +59,10 @@ class filter():
         # write to temporary vcf files to read from with vcf.read()
         command = f"{self.args.filter} {split_vcf} -o {filter_vcf}"
 
+        print(
+            f"\nFiltering {split_vcf} with the command: \n\t{command}\n"
+        )
+
         output = subprocess.run(command, shell=True, capture_output=True)
 
         assert output.returncode == 0, (
@@ -94,10 +98,19 @@ class filter():
             vcf, sep='\t', comment='#', names=columns, compression='infer'
         )
 
+        # need to find filtered rows without FILTER column since this is
+        # modified with bcftools
+        columns.remove('FILTER')
+
         # get the rows only present in original vcf => filtered out rows
-        filtered_out_df = full_df.merge(keep_df, how='left', indicator=True)
+        filtered_out_df = full_df.merge(
+            keep_df, how='left', on=columns, indicator=True
+        )
         filtered_out_df = filtered_out_df.query('_merge == "left_only"')
-        filtered_out_df.drop(['_merge'], axis=1, inplace=True)
+
+        # drop unneeded column and rename filter
+        filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
+        filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
 
         return filtered_out_df
 
