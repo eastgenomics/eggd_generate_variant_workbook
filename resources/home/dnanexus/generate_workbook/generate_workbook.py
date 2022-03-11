@@ -117,10 +117,26 @@ class arguments():
             )
         )
         parser.add_argument(
+            '-t', '--types', nargs='*', action=self.parsePairs, help=(
+                'Pass pairs of column=type for modifying types in VCF header,'
+                'this should be used when the given type in the VCF header is '
+                'incorrect and needs correcting to allow filtering (i.e. '
+                'AF fields wrongly set as strings. Types of all fields may be '
+                'inspected with --print_header.'
+            )
+        )
+        parser.add_argument(
             '-k', '--keep', action='store_true',
             help=(
                 'Pass when using --filter to keep filtered variants in a '
                 'separated "filtered" tab'
+            )
+        )
+        parser.add_argument(
+            '--keep_tmp', action='store_true',
+            help=(
+                'Pass to keep intermediary split vcf, and filtered vcf if '
+                '--filter specified'
             )
         )
         parser.add_argument(
@@ -258,7 +274,6 @@ class arguments():
             else:
                 # one vcf (or merged) => name it variants
                 self.args.sheets = ["variants"]
-
 
 
 def main():
