@@ -8,19 +8,11 @@ _dias_report_setup () {
     mark-section "Parsing values"
 
     # get job id creating the annotated vcf
-    annotation_job_id=$(dx describe --json ${vcfs[0]} | jq -r '.createdBy.job')
-    annotation_job_name=$(dx describe --json ${annotation_job_id} | jq -r '.executableName')
+    analysis_id=$(dx describe --json ${vcfs[0]} | jq -r '.createdBy.job')
+    analysis_name=$(dx describe --json ${analysis_id} | jq -r '.executableName')
 
-    workflow_id=$(dx describe --json ${annotation_job_id} | jq -r '.parentAnalysis')
+    workflow_id=$(dx describe --json ${analysis_id} | jq -r '.parentAnalysis')
     workflow_name=$(dx describe --json ${workflow_id} | jq -r '.executableName')
-
-    # Placeholder text if the workflow id is not found
-    if [ -z "$annotation_job_name" ]; then
-        analysis_name="No workflow id found for this report."
-    fi
-    if [ -z "$workflow_name" ]; then
-        workflow_id="This report was probably generated for development purposes, do not use for clinical reporting"
-    fi
 
     project_id=$DX_PROJECT_CONTEXT_ID
 
@@ -34,15 +26,7 @@ _dias_report_setup () {
             matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
         done;
     fi
-
-    # Add text to report name if workflow id hasn't been found
-    if [[ $workflow_id ]]; then
-        output_prefix="${sample_id}_${version}"
-    else
-        output_prefix="${sample_id}_${version}_FOR_DEV_USE_ONLY"
-    fi
 }
-
 
 
 main() {
@@ -71,8 +55,7 @@ main() {
     mark-section "Generating workbook"
     # build string of input arguments
     args=""
-    if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication}"; fi
-    if [ "$flagstat_file" ]; then args+="--usable_reads ${nb_usable_reads} "; fi
+    if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$exclude" ]; then args+="--exclude ${exclude} "; fi
     if [ "$include" ]; then args+="--include ${include} "; fi
     if [ "$reorder" ]; then args+="--reorder ${reorder} "; fi
@@ -81,19 +64,26 @@ main() {
     if [ "$print_header" ]; then args+="--print_header"; fi
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
-    if [ "$workflow" ]; then args+="--workflow ${workflow_id} ${analysis_name} "; fi
-    if [ "$analysis" ]; then args+="--analysis ${analyis} "; fi
+    if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
+    if [ "$analysis" ]; then args+="--analysis ${analysis_name} ${analysis_id} "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$sheets" ]; then args+="--sheets ${sheets} "; fi
     if [ "$filter" ]; then args+="--filter ${filter} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
     if [ "$add_name" == true ]; then args+="--add_name "; fi
     if [ "$merge" == true ]; then args+="--merge "; fi
+    if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
     if [ "$keep" == true ]; then args+="--keep "; fi
 
     /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xlsx_reports" $args
 
     mark-section "Uploading output"
-    output_file=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)
-    dx-jobutil-add-output xlsx_report "$output_file" --class=file
+    output_xlsx=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)
+    dx-jobutil-add-output xlsx_report "$output_xlsx" --class=file
+
+    if [ "$keep_tmp" == true ]; then
+        tmp_vcfs=$(find . \( -name "*.filter.vcf.gz" -o -name "*.split.vcf.gz" \))
+        uploaded_vcfs=$(dx upload "${tmp_vcfs}" --brief)
+        dx-jobutil-add-output tmp_vcfs "$uploaded_vcfs" --class=array:file
+    fi
 }
