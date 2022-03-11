@@ -1,4 +1,5 @@
 import os
+import gzip
 from pathlib import Path
 import subprocess
 import sys
@@ -277,14 +278,23 @@ class vcf():
         columns : list
             column names from vcf
         """
-        with open(vcf) as fh:
-            # read in header of vcf
-            header = []
-            for line in fh.readlines():
-                if line.startswith('#'):
-                    header.append(line.rstrip('\n'))
-                else:
-                    break
+        if vcf.endswith('.gz'):
+            fh = gzip.open(vcf)
+        else:
+            fh = open(vcf)
+
+        # read in header of vcf
+        header = []
+        for line in fh.readlines():
+            if vcf.endswith('.gz'):
+                line = line.decode()
+
+            if line.startswith('#'):
+                header.append(line.rstrip('\n'))
+            else:
+                break
+
+        fh.close
 
         columns = [x.strip('#') for x in header[-1].split()]
         columns[-1] = 'SAMPLE'
