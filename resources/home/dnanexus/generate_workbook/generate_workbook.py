@@ -173,12 +173,12 @@ class arguments():
             help='summary sheet to include, must be one of: dias'
         )
         parser.add_argument(
-            '--analysis', default='',
-            help='Name of analysis to display in summary'
+            '--analysis', default=('', ''), nargs=2,
+            help='Name and ID of analysis to display in summary'
         )
         parser.add_argument(
             '--workflow', default=('', ''), nargs=2,
-            help='ID and name of workflow to display in summary'
+            help='Name and ID of workflow to display in summary'
         )
         parser.add_argument(
             '--panel', default='',

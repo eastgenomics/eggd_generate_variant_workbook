@@ -1,6 +1,6 @@
 from pathlib import Path
 from string import ascii_uppercase as uppercase
-from unicodedata import name
+from timeit import default_timer as timer
 
 import Levenshtein as levenshtein
 from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
@@ -78,21 +78,34 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(40, 1).value = "Workflow:"
-        self.summary.cell(41, 1).value = "Workflow ID:"
+        self.summary.cell(34, 1).value = "Workflow:"
+        self.summary.cell(35, 1).value = "Workflow ID:"
+        self.summary.cell(36, 1).value = "VCF Analysis:"
+        self.summary.cell(37, 1).value = "VCF Analysis ID:"
+        self.summary.cell(39, 1).value = "Total records:"
 
         # write summary values
         self.summary.cell(1, 2).value = self.args.sample
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
-        self.summary.cell(40, 2).value = self.args.workflow[0]
-        self.summary.cell(41, 2).value = self.args.workflow[1]
+        self.summary.cell(34, 2).value = self.args.workflow[0]
+        self.summary.cell(35, 2).value = self.args.workflow[1]
+        self.summary.cell(36, 2).value = self.args.analysis[0]
+        self.summary.cell(37, 2).value = self.args.analysis[1]
+
+        # write total rows in each sheet
+        count = 40
+        for sheet, vcf in zip(self.args.sheets, self.vcfs):
+            self.summary.cell(count, 2).value = sheet
+            self.summary.cell(count, 3).value = len(vcf.index)
+            self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+            count += 1
+
 
         # write args passed to script to generate report
         self.summary.cell(46, 1).value = "Filters applied:"
         if self.args.filter:
-            for idx, filter in enumerate(self.args.filter):
-                self.summary.cell(46 + idx, 2).value = filter
+            self.summary.cell(46, 2).value = self.args.filter
         else:
             self.summary.cell(46, 2).value = "None"
 
@@ -133,8 +146,8 @@ class excel():
 
         # set titles to bold
         title_cells = [
-            "A1", "A40", "A41", "B1", "B9", "B16",
-            "B21", "B22", "B28", "B40", "B41", "B43", "B44",
+            "A1", "A34", "A35", "A36", "A37", "A39", "B1", "B9", "B16",
+            "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
             "F1", "F2", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
@@ -142,7 +155,7 @@ class excel():
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
         # set column widths for readability
-        self.summary.column_dimensions['A'].width = 13
+        self.summary.column_dimensions['A'].width = 18
         self.summary.column_dimensions['B'].width = 13
         self.summary.column_dimensions['C'].width = 13
         self.summary.column_dimensions['D'].width = 13
@@ -184,12 +197,22 @@ class excel():
         more than one dataframes to write
         """
         total_rows = sum([len(x) for x in self.vcfs])
-        print(f"Writing {total_rows} rows to output xlsx file")
+        print(f"\nWriting {total_rows} rows to output xlsx file")
+        if total_rows > 5000:
+            print(
+                "Writing many rows to Excel is slow, "
+                "this may take a few minutes..."
+            )
+
+        start = timer()  # timing how long it takes to write because why not
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
                 sheet_no = self.args.sheets.index(sheet) + 1
-                print(f"Writing {sheet} sheet ({sheet_no}/{len(self.args.sheets)})")
+                print(
+                    f"\nWriting {len(vcf)} rows to {sheet} sheet "
+                    f"({sheet_no}/{len(self.args.sheets)})"
+                )
 
                 vcf.to_excel(
                     self.writer, sheet_name=sheet,
@@ -201,6 +224,9 @@ class excel():
                 self.colour_hyperlinks(curr_worksheet)
 
                 self.workbook.save(self.args.output)
+
+        end = timer()
+        print(f"Writing to Excel took {round(end - start)}s")
 
 
     def set_font(self, worksheet) -> None:
