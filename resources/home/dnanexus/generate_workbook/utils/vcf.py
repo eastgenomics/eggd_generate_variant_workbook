@@ -456,17 +456,19 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             if self.args.include:
                 # include passed => select all columns not specified to drop
+                columns = self.args.include
                 to_drop = list(
-                    set(vcf.columns.tolist()) - set(self.args.include)
+                    set(vcf.columns.tolist()) - set(columns)
                 )
             else:
+                # sense check given exclude columns are in the vcfs
+                columns = self.args.exclude
                 to_drop = self.args.exclude
 
-            # sense check given exclude columns are in the vcfs
-            assert all(column in vcf.columns for column in to_drop), (
-                "Column(s) specified with --exclude/--include not present in "
+            assert all(column in vcf.columns for column in columns), (
+                "Column(s) specified with --exclude not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
-                f"{vcf.columns.tolist()}. \n\nColumns specified: {to_drop}"
+                f"{vcf.columns.tolist()}. \n\nColumns specified: {columns}"
             )
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
@@ -526,7 +528,7 @@ class vcf():
                     columns=dict(self.args.rename.items()), inplace=True
                 )
 
-            # remove underscores from all names
+            # remove underscores from all column names
             self.vcfs[idx].columns = [
                 x.replace('_', ' ') for x in self.vcfs[idx].columns
             ]
