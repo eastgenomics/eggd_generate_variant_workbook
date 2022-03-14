@@ -111,6 +111,7 @@ class filter():
         # drop unneeded column and rename filter
         filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
         filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
+        filtered_out_df.reset_index(inplace=True, drop=True)
 
         return filtered_out_df
 

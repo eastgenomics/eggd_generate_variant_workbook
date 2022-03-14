@@ -88,11 +88,6 @@ class vcf():
                 # filtered variants to read into df
                 keep_df = self.read(filter_vcf, Path(vcf).stem)
 
-                if not self.args.keep_tmp:
-                    os.remove(filter_vcf)
-                else:
-                    self.bgzip(filter_vcf)
-
                 # get filtered out rows and read back to new df
                 _, columns = self.parse_header(vcf)
                 filtered_df = filter(self.args).get_filtered_rows(
@@ -106,6 +101,11 @@ class vcf():
 
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)
+
+                if not self.args.keep_tmp:
+                    os.remove(filter_vcf)
+                else:
+                    self.bgzip(filter_vcf)
 
                 # clean up some memory since big dataframes can use a lot
                 del keep_df, filtered_df
