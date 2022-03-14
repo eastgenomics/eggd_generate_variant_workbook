@@ -1,16 +1,22 @@
+from email import header
 from pathlib import Path
 from string import ascii_uppercase as uppercase
+import sys
 from timeit import default_timer as timer
 
 import Levenshtein as levenshtein
+from openpyxl import load_workbook
 from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
+
 
 # openpyxl style settings
 THIN = Side(border_style="thin", color="000000")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 DEFAULT_FONT.name = 'Calibri'
+
 
 class excel():
     """
@@ -197,14 +203,13 @@ class excel():
         more than one dataframes to write
         """
         total_rows = sum([len(x) for x in self.vcfs])
-        print(f"\nWriting {total_rows} rows to output xlsx file")
+        print(f"\nWriting total of {total_rows} rows to output xlsx file")
         if total_rows > 5000:
             print(
                 "Writing many rows to Excel is slow, "
                 "this may take a few minutes..."
             )
 
-        start = timer()  # timing how long it takes to write because why not
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
@@ -214,19 +219,73 @@ class excel():
                     f"({sheet_no}/{len(self.args.sheets)})"
                 )
 
+                # timing how long it takes to write because its slow
+                start = timer()
                 vcf.to_excel(
                     self.writer, sheet_name=sheet,
                     index=False, float_format="%.3f"
                 )
+
                 curr_worksheet = self.writer.sheets[sheet]
                 self.set_widths(curr_worksheet, vcf.columns)
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
 
                 self.workbook.save(self.args.output)
+                end = timer()
+                print(
+                    f"Writing to Excel for sheet {sheet} took "
+                    f"{round(end - start)}s"
+                )
 
-        end = timer()
-        print(f"Writing to Excel took {round(end - start)}s")
+                # read back the written sheet to check its written correctly
+                self.check_written_sheets(vcf, sheet)
+
+
+    def check_written_sheets(self, vcf, sheet) -> None:
+        """"
+        Check that the written sheet is exactly the same as the dataframe
+        that was meant to be written
+
+        Parameters
+        ----------
+        vcf : pd.DataFrame
+            dataframe of sheet that was written to file
+        sheet : str
+            sheet name to read from file
+
+        Raises
+        ------
+        AssertionError
+            Raised when data written to sheet does not match the dataframe
+        """
+        print(f"\nVerifying data written to file for {sheet} sheet\n")
+
+        # read in written sheet using openpyxl to deal with Excel oddities
+        sheet_data = load_workbook(filename = self.args.output)[sheet]
+        written_sheet = pd.DataFrame(
+            sheet_data.values, columns=vcf.columns.tolist())
+        written_sheet = written_sheet.iloc[1:] # drop header on first row
+
+        # set all columns of both dfs to strings
+        vcf.fillna('None', inplace=True)  # openpyxl read sets NaNs to None
+        vcf = vcf.astype(str)
+        written_sheet = written_sheet.astype(str).reset_index(drop=True)
+
+        # floats with trailing zero seem inconsistent when writing to file,
+        # since we've cast everything to a string strip for ease of comparing
+        vcf = vcf.applymap(
+            lambda x: x.replace('.0', '') if x.endswith('.0') else x
+        )
+        written_sheet = written_sheet.applymap(
+            lambda x: x.replace('.0', '') if x.endswith('.0') else x
+        )
+
+        print("Checking")
+        assert vcf.equals(written_sheet), (
+            f"Written data for sheet: {sheet} does not seem to match the "
+            "dataframe to be written"
+        )
 
 
     def set_font(self, worksheet) -> None:
@@ -254,14 +313,13 @@ class excel():
         worksheet : openpyxl.Writer
             writer object for current sheet
         """
-        for ws in self.workbook:
-            for cells in ws.rows:
-                for cell in cells:
-                    if 'HYPERLINK' in str(cell.value):
-                        cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
+        for cells in worksheet.rows:
+            for cell in cells:
+                if 'HYPERLINK' in str(cell.value):
+                    cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
 
 
-    def set_widths(self, current_sheet, sheet_columns) -> None:
+    def set_widths(self, worksheet, sheet_columns) -> None:
         """
         Set widths for variant sheets off common names to be more readable,
         calls get_closest_match() method to determine appropriate column
@@ -269,7 +327,7 @@ class excel():
 
         Parameters
         ----------
-        current_sheet : openpyxl.Writer
+        worksheet : openpyxl.Writer
             writer object for current sheet
         sheet_columns : list
             column names for sheet from DataFrame.columns
@@ -315,7 +373,7 @@ class excel():
             # loop over column names, select width by closest match from dict
             # and set width in sheet letter
             width = self.get_closest_match(column.lower(), widths)
-            current_sheet.column_dimensions[column_list[idx]].width = width
+            worksheet.column_dimensions[column_list[idx]].width = width
 
 
     def get_closest_match(self, column, widths) -> int:
