@@ -80,6 +80,14 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "keep_tmp",
+      "label": "Keep tmp vcfs",
+      "class": "boolean",
+      "default": false,
+      "help": "Determines if to upload the intermediate bcftools split and filtered vcfs",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "add_name",
       "label": "Add sample name",
       "class": "boolean",
@@ -150,12 +158,18 @@
         "*.xlsx"
       ],
       "help": ""
+    },
+    {
+      "name": "tmp_vcfs",
+      "label": "tmp vcfs",
+      "class": "array:file",
+      "help": "intermediate split and annotated vcfs, output with --keep_tmp"
     }
   ],
   "runSpec": {
     "timeoutPolicy": {
       "*": {
-        "hours": 1
+        "hours": 2
       }
     },
     "interpreter": "bash",
