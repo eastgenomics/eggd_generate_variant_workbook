@@ -41,24 +41,6 @@ class arguments():
                 getattr(namespace, self.dest)[key] = value
 
 
-    class readList(argparse.Action):
-        """
-        Class method to read in tsv of positions to always keep to
-        pd.DataFrame, assigns the dataframe to the always_keep object
-        in argparse.Namespace.
-
-        Accessed in vcf.filter() to not filter out specified variants
-        """
-        def __call__(self, parser, namespace, values, option_string=None):
-            keep_list = pd.read_csv(
-                Path(values), delimiter=r"\s+",
-                names=['chrom', 'start', 'end'], dtype={
-                    'chrom': str, 'start': int, 'end': int
-                }
-            )
-            setattr(namespace, self.dest, keep_list)
-
-
     def parse_args(self) -> argparse.Namespace:
         """
         Parse command line arguments
@@ -75,11 +57,6 @@ class arguments():
         parser.add_argument(
             '-v', '--vcfs', nargs='+',
             help='Annotated vcf file(s)'
-        )
-        parser.add_argument(
-            '--always_keep', required=False, action=self.readList,
-            default=pd.DataFrame(),
-            help='tsv of variants to never filter out, in format chrom pos ref alt'
         )
         parser.add_argument(
             '-e', '--exclude', nargs='+',
