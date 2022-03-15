@@ -1,6 +1,4 @@
 *.xls
 *.xlsx
-*.vcf
-*.vcf.gz
 *.bed
 *.pyc
