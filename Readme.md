@@ -59,7 +59,7 @@ This app may be executed as a standalone app.
 Example:
 
 ```bash
-dx run app-eggd_vcf2xls/2.0.0 -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" -ifilter="bcftools filter -i <0.02" --ikeep=true -irename_cols="gnomADg_AF=gnomAD_genomes_AF" -isummary="dias" -iassay="dias" -iexclude="MLEAC" -iexclude="MLEAF" -iexlcude="MQRankSum"
+dx run app-eggd_vcf2xls/2.0.0 -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" -ifilter="bcftools filter -e 'CSQ_gnomAD_AF>0.02''" --ikeep=true -irename_cols="gnomADg_AF=gnomAD_genomes_AF" -isummary="dias" -iassay="dias" -iexclude="MLEAC" -iexclude="MLEAF" -iexlcude="MQRankSum"
 ```
 
 ## What does this app output?
