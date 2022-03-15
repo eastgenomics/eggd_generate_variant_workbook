@@ -1,12 +1,10 @@
 import argparse
 import os
 from pathlib import Path
-from random import shuffle
 import shutil
 import sys
 from typing import Union
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -29,7 +27,12 @@ TEST_VCF = "NA12878_unittest.vcf"
 
 class TestModifyingFieldTypes():
     """
-    Tests for modifying the INFO field types in the header using --types arg
+    Tests for modifying the INFO field types in the header specified in the
+    --types arg.
+
+    This tests the functions from filters.py:
+        - modify_header_types()
+        - write_header()
     """
     # test data vcf
     columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
@@ -107,7 +110,6 @@ class TestModifyingFieldTypes():
         )
 
         os.remove(test_vcf)
-
 
 
 
