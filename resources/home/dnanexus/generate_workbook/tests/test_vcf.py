@@ -57,19 +57,6 @@ class TestHeader():
         assert vcf_handler.refs == ['hs37d5.fa']
 
 
-    def test_parse_csq_fields(self):
-        """
-        Tests the read in csq fields from header are correct
-        """
-        correct_csq_fields = [
-            "Allele", "Gene", "HGNC", "RefSeq", "Feature", "Consequence",
-            "cDNA_position", "Protein_position", "Amino_acids",
-            "Existing_variation", "SIFT", "PolyPhen", "HGVSc"
-        ]
-
-        assert self.csq_fields == correct_csq_fields
-
-
     def test_only_header_parsed(self):
         """
         Tests that only header lines parsed from file
@@ -121,7 +108,6 @@ class TestDataFrameActions():
 
         vcf_handler.vcfs.append(vcf_df)
         vcf_handler.add_hyperlinks()
-
 
         return vcf_handler
 

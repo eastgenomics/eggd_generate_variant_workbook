@@ -1,13 +1,8 @@
 import argparse
-from itertools import chain
 import os
 from pathlib import Path
 import subprocess
 import sys
-
-import numpy as np
-import pandas as pd
-from parso import split_lines
 
 import pytest
 
@@ -33,9 +28,9 @@ def read_test_vcf(vcf_file):
         filter=None, include=None, keep=False, merge=False,
         out_dir='',
         output='',
-        panel='', print_columns=False, print_header=False, reads='', rename=None, reorder=None,
-        sample='', sheets=['variants'], summary=None, usable_reads='',
-        vcfs=[columns_vcf], workflow=('', '')
+        panel='', print_columns=False, print_header=False, reads='',
+        rename=None, reorder=None, sample='', sheets=['variants'],
+        summary=None, usable_reads='', vcfs=[columns_vcf], workflow=('', '')
     ))
     vcf_df = vcf_handler.read(columns_vcf)
 
@@ -81,7 +76,7 @@ class TestInfoColumn():
 
     ['STR', 'POP_AF', 'RPA', 'TLOD', 'P_GERMLINE', 'ECNT', 'DP', 'RU']
     """
-    test_vcf = "NA12878_unittest.split.vcf"
+    test_vcf = f"{TEST_DATA_DIR}/NA12878_unittest.split.vcf"
 
     # run dataframe through splitColumns.info() to split out INFO column
     vcf_df = read_test_vcf(vcf_file=test_vcf)
@@ -96,7 +91,7 @@ class TestInfoColumn():
         # read all the INFO keys direct from vcf
         output = subprocess.run(
             (
-                f"cut -f8 {TEST_DATA_DIR}/{self.test_vcf} | grep -oh "
+                f"cut -f8 {self.test_vcf} | grep -oh "
                 f"';[A-Za-z0-9\_\-\.]*=' | sort | uniq",
             ), shell=True, capture_output=True
         )
@@ -112,13 +107,13 @@ class TestInfoColumn():
 
     def test_parsed_correct_gnomAD_AF_values(self):
         """
-        Test values read into dataframe for DP match the values
+        Test values read into dataframe for gnomAD_AF match the values
         above from the VCF
         """
         # read gnomAD_AF values from vcf
         output = subprocess.run(
             (
-                f"grep -v '^#' {TEST_DATA_DIR}/{self.test_vcf} | grep -oh "
+                f"grep -v '^#' {self.test_vcf} | grep -oh "
                 f"'gnomAD_AF=[0-9\.e\-]*;' | sort | uniq"
             ), shell=True, capture_output=True
         )
@@ -156,7 +151,7 @@ class TestFormatSample():
 
     # get list of FORMAT fields from VCF FORMAT column
     output = subprocess.run((
-        f"grep -v '^#' {TEST_DATA_DIR}/{test_vcf} | cut -f9 | sort | uniq"
+        f"grep -v '^#' {test_vcf} | cut -f9 | sort | uniq"
     ), shell=True, capture_output=True)
 
     format_fields = sorted(output.stdout.decode().split())[0].split(':')
@@ -169,7 +164,7 @@ class TestFormatSample():
 
     # get all SAMPLE values from vcf
     output = subprocess.run((
-        f"grep -v '^#' {TEST_DATA_DIR}/{test_vcf} | cut -f10"
+        f"grep -v '^#' {test_vcf} | cut -f10"
     ), shell=True, capture_output=True)
 
     sample_strings_vcf = output.stdout.decode().splitlines()
@@ -188,7 +183,6 @@ class TestFormatSample():
         assert self.sample_strings_df == self.sample_strings_vcf, (
             "SAMPLE values in dataframe do not match those in test vcf"
         )
-
 
 
 if __name__ == "__main__":
