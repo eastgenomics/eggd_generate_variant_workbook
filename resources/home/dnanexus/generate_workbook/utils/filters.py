@@ -32,7 +32,7 @@ class filter():
 
     def filter(self, split_vcf, filter_vcf) -> None:
         """
-        Filter given vcf using bcftools
+        Filter given vcf using bcftoolsd
 
         Parameters
         ----------
@@ -76,8 +76,8 @@ class filter():
 
     def get_filtered_rows(self, vcf, keep_df, columns) -> pd.DataFrame():
         """
-        Given filtered vcf dataframe, return a dataframe of the filtered out
-        variants
+        Given dataframe of variants passing filter from vcf, return a
+        dataframe of the filtered out variants
 
         Parameters
         ----------
@@ -102,6 +102,11 @@ class filter():
         # modified with bcftools
         columns.remove('FILTER')
 
+        # store the current dtypes to set later, set both to str for merging
+        dtypes = full_df.dtypes.to_dict()
+        keep_df = keep_df.astype(str)
+        full_df = full_df.astype(str)
+
         # get the rows only present in original vcf => filtered out rows
         filtered_out_df = full_df.merge(
             keep_df, how='left', on=columns, indicator=True
@@ -112,6 +117,8 @@ class filter():
         filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
         filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
         filtered_out_df.reset_index(inplace=True, drop=True)
+
+        filtered_out_df = filtered_out_df.astype(dtypes)
 
         return filtered_out_df
 
@@ -161,7 +168,7 @@ class filter():
 
     def write_header(self, vcf, new_header) -> None:
         """
-        Write the new header with modified types to the temporrary vcf
+        Write the new header with modified types to the temporary vcf
 
         Parameters
         ----------

@@ -1,8 +1,10 @@
 import argparse
-from multiprocessing.managers import ValueProxy
 import os
+from pathlib import Path
 from random import shuffle
+import shutil
 import sys
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -25,584 +27,241 @@ vcf_handler = vcf(argparse.Namespace)
 TEST_VCF = "NA12878_unittest.vcf"
 
 
+class TestModifyingFieldTypes():
+    """
+    Tests for modifying the INFO field types in the header using --types arg
+    """
+    # test data vcf
+    columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
+
+    # initialise vcf class with a valid argparse input to allow
+    # calling .read()
+    vcf_handler = vcf(argparse.Namespace(
+        add_name=True, analysis='',
+        filter=None, keep=False, merge=False,
+        reorder=[], exclude=None, include=None,
+        out_dir='', output='', always_keep=pd.DataFrame(),
+        panel='', print_columns=False, reads='', rename=None,
+        sample='', sheets=['variants'], summary=None, usable_reads='',
+        vcfs=[columns_vcf], workflow=('', ''),
+        types={'gnomADg_AF': 'Float'}
+    ))
+
+    # get header from vcf
+    file_header, _ = vcf_handler.parse_header(columns_vcf)
+    current_file_header = file_header
+
+    # get new header
+    new_header = filter(vcf_handler.args).modify_header_types(columns_vcf)
+
+
+    def test_type_correctly_modified(self):
+        """
+        Test that the header is as expected
+        """
+        header_diff = list(set(self.new_header) - set(self.file_header))
+
+        correct_diff = [(
+            '##INFO=<ID=gnomADg_AF,Number=.,Type=Float,Description=\"AF field '
+            'from /opt/vep/.vep/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz\">'
+        )]
+
+        assert header_diff == correct_diff, (
+            "Header wrongly modified with modify_header_types()"
+        )
+
+
+    def test_header_overwritten_correctly(self):
+        """
+        Test that writing the new header with modified types back to file
+        """
+        # make a copy of the vcf to test modifying
+        test_vcf = f"{self.columns_vcf.replace('.vcf', '.test_filters.tmp.vcf')}"
+        shutil.copy(self.columns_vcf, test_vcf)
+
+        # call method to overwrite with new header
+        filter(vcf_handler.args).write_header(test_vcf, self.new_header)
+
+        with open(self.columns_vcf) as fh:
+            # read variants from unmodified testing vcf
+            current_vcf_variants = [
+                x for x in fh.read().splitlines() if not x.startswith('#')
+            ]
+
+        with open(test_vcf) as fh:
+            # read back header and variants from modified vcf to test
+            written_header = [
+                x for x in fh.read().splitlines() if x.startswith('#')
+            ]
+            fh.seek(0)
+            new_vcf_variants = [
+                x for x in fh.read().splitlines() if not x.startswith('#')
+            ]
+
+        assert written_header == self.new_header, (
+            "Modified header not correctly written to file"
+        )
+
+        assert current_vcf_variants == new_vcf_variants, (
+            "Variants modified when modifying types in header"
+        )
+
+        os.remove(test_vcf)
+
+
+
+
 class TestFilters():
     """
     Tests for building and applying filters from filters.py to dataframe(s)
     of variants
     """
-    def read_vcf(self):
+    # test data vcf
+    columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
+
+    # initialise vcf class with a valid argparse input to allow
+    # calling .read()
+    vcf_handler = vcf(argparse.Namespace(
+        add_name=False, analysis='',
+        filter=None, keep=False, merge=False,
+        reorder=[], exclude=None, include=None,
+        out_dir='', output='', always_keep=pd.DataFrame(),
+        panel='', print_columns=False, print_header=False, reads='',
+        rename=None, sample='', sheets=['variants'], summary=None,
+        usable_reads='', vcfs=[columns_vcf], workflow=('', ''), types=None
+    ))
+
+    # names for output vcfs
+    test_processed_vcf = columns_vcf.replace('.vcf', '.split.vcf')
+    test_filter_vcf = columns_vcf.replace('.vcf', '.filter.vcf')
+
+    # process with bcftools +split-vep ready for filtering
+    vcf_handler.bcftools_pre_process(columns_vcf, test_processed_vcf)
+
+
+    def filter_vcf_and_read(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
         """
-        Read in vcf with valid argparse NameSpace for testing, call in every
-        test function to reset up unmodified vcf to test each method on
-
-        Returns
-        -------
-        vcf_handler : utils.vcf.vcf
-            class instance of vcf from utils
-        """
-        # test data vcf
-        columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
-
-        # initialise vcf class with a valid argparse input to allow
-        # calling .read()
-        vcf_handler = vcf(argparse.Namespace(
-            add_name=True, analysis='',
-            filter=None, keep=False, merge=False,
-            reorder=[], exclude=None, include=None,
-            out_dir='', output='', always_keep=pd.DataFrame(),
-            panel='', print_columns=False, reads='', rename=None,
-            sample='', sheets=['variants'], summary=None, usable_reads='',
-            vcfs=[columns_vcf], workflow=('', '')
-        ))
-        vcf_df, csq_fields = vcf_handler.read(columns_vcf)
-
-        # call methods like in vcf.read() to process df and add to self
-        vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
-        vcf_df = splitColumns.info(vcf_df)
-        vcf_df = splitColumns.format_fields(vcf_df)
-
-        vcf_handler.vcfs.append(vcf_df)
-
-        return vcf_handler
-
-
-    @staticmethod
-    def get_random_column_value(column):
-        """
-        Give a dataframe column, return a random non-NA value
+        Given a bcftools filter string, run the filter and get the filtered and
+        filtered out rows of the vcf as 2 dataframes
 
         Parameters
         ----------
-        column : pd.Series
-            column of dataframe to get random value from
+        filter_str : str
+            string of bcftools filter command
 
         Returns
         -------
-        value : int | string
-            random value from column
+        keep_df : pd.DataFrame
+            df of filtered variants
+        filtered_df : pd.DataFrame
+            df of filtered out variants
         """
-        values = column.tolist()
-        shuffle(values)
-        value = [x for x in values if not pd.isna(x) and not x == ""][0]
+        self.vcf_handler.args.filter = filter_str
+        self.vcf_handler.args.keep = True
 
-        print(f"\nSelected filter value for filtering {column.name}: {value}")
+        filter_handle = filter(self.vcf_handler.args)
 
-        return value
+        # apply filter, read in filtered vcf, then get the filtered out rows
+        filter_handle.filter(self.test_processed_vcf, self.test_filter_vcf)
 
+        keep_df = self.vcf_handler.read(
+            self.test_filter_vcf, Path(self.columns_vcf).stem
+        )
+        _, columns = vcf_handler.parse_header(self.test_processed_vcf)
 
-    def test_building_filters(self):
-        """
-        Test filters passed to args are correctly built
-        """
-        vcf_handler = self.read_vcf()
-
-        # set some example filters as passed to args
-        vcf_handler.args.filter = [
-            "CHROM==5", "gnomAD_AF>0.02", "Consequence!=missense_variant",
-            "AN<2", "ReadPosRankSum<=0.1", "FS>=4"
-        ]
-
-        # the above should be turned into a list of lists, with column,
-        # operand and value as separate elements
-        correct_filter_format = [
-            ["CHROM", "==", "5"], ["gnomAD_AF", ">", "0.02"],
-            ["Consequence", "!=", "missense_variant"], ["AN", "<", "2"],
-            ["ReadPosRankSum", "<=", "0.1"], ["FS", ">=", "4"]
-        ]
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-
-        assert filter_handler.filters == correct_filter_format, (
-            "Filters incorrectly parsed with filters.build()"
+        filtered_df = filter_handle.get_filtered_rows(
+            self.test_processed_vcf, keep_df, columns
         )
 
+        # split out INFO and FORMAT column values to individual
+        # columns in dataframe
+        keep_df = splitColumns().split(keep_df)
+        filtered_df = splitColumns().split(filtered_df)
 
-    def test_keep_argument_adds_extra_df_filtered_rows(self):
+        # delete the filtered vcf file
+        os.remove(self.test_filter_vcf)
+
+        return keep_df, filtered_df
+
+
+    def test_correct_rows_filtered_with_include_eq(self):
         """
-        Tests that when --keep is passed, the filtered rows are saved to the
-        last dataframe in self.vcfs and sheets list has "filtered" appended
+        Test when using include with equal operator filter is correctly applied
         """
-        vcf_handler = self.read_vcf()
-        vcf_handler.args.filter = ["CHROM==chr17"]
-        vcf_handler.args.keep = True
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-
-        # check sheets name added to list of names
-        assert filter_handler.args.sheets[-1] == "filtered", (
-            "sheets list does not have 'filtered' added with --keep passed"
+        keep_df, filtered_df = self.filter_vcf_and_read(
+            "bcftools filter -i 'CHROM==\"4\"'"
         )
 
-        assert len(filter_handler.vcfs) == 2, (
-            'filtered variants df not retained when args.keep specified'
-        )
-
-
-    def test_correct_rows_filtered_with_eq(self):
-        """
-        Test when using equal operator filter is correctly applied
-        """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['CHROM'])
-
-        vcf_handler.args.filter = [f"CHROM=={value}"]
-        vcf_handler.args.keep = True
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        assert filter_handler.vcfs[0]['CHROM'].unique().tolist() == [value], (
+        assert keep_df['CHROM'].unique().astype(str).tolist() == ["4"], (
             "Filtering with '==' operator returned incorrect rows"
         )
 
         assert all([
-            x != [value] for x in filter_handler.vcfs[-1]['CHROM'].tolist()
+            x != "4" for x in filtered_df['CHROM'].astype(str).tolist()
         ]), (
-            "Filtering with '==' operator filtered incorrect rows"
+            "Filtering with bcftools filter -i 'CHROM==\"4\"' operator "
+            "filtered incorrect rows"
         )
 
 
-    def test_correct_rows_filtered_with_not_eq(self):
+    def test_correct_rows_filtered_with_exclude_eq(self):
         """
-        Test when using not equal operator filter is correctly applied
+        Test when using exclude with equal operator filter is correctly applied
         """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['CHROM'])
-
-        vcf_handler.args.filter = [f"CHROM!={value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
+        keep_df, filtered_df = self.filter_vcf_and_read(
+            "bcftools filter -e 'CHROM==\"4\"'"
         )
 
-        # check filtered df only has no selected chromosome variants
-        assert filter_handler.vcfs[-1]['CHROM'].unique().tolist() == [value], (
-            "Filtering with '!=' did not filter out all rows"
-        )
-
-        # check dataframe has no selected chromosome variants
-        assert all([
-            x != [value] for x in filter_handler.vcfs[0]['CHROM'].tolist()
-        ]), (
-            "Filtering with '!=' filtered out incorrect rows"
-        )
-
-
-    def test_correct_rows_filtered_with_gt(self):
-        """
-        Tests the correct rows are filtered with one filter applied, and no
-        rows are dropped
-        """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['DP'])
-
-        vcf_handler.args.filter = [f"DP>{value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        assert all([x > value for x in filter_handler.vcfs[0]['DP'].tolist()]), (
-            'Rows not filtered out when filtering with > DP'
-        )
-
-        assert all([x <= value for x in filter_handler.vcfs[-1]['DP'].tolist()]), (
-            "Incorrect rows filtered out when filtering with > DP"
-        )
-
-
-    def test_correct_rows_filtered_with_gt_eq(self):
-        """
-        Tests the correct rows are filtered with one filter applied, and no
-        rows are dropped
-        """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['DP'])
-
-        vcf_handler.args.filter = [f"DP>={value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        assert all([x >= value for x in filter_handler.vcfs[0]['DP'].tolist()]), (
-            'Rows not filtered out when filtering with >= on DP'
-        )
-
-        assert all([x < value for x in filter_handler.vcfs[-1]['DP'].tolist()]), (
-            "Incorrect rows filtered out when filtering with > on DP"
-        )
-
-
-    def test_correct_rows_filtered_with_lt(self):
-        """
-        Tests the correct rows are filtered with one filter applied, and no
-        rows are dropped
-        """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['gnomAD_AF'])
-
-        vcf_handler.args.filter = [f"gnomAD_AF<{value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        # everything should be under filter value or NaN
-        assert all([
-            x < value or pd.isna(x) for x in filter_handler.vcfs[0]['gnomAD_AF'].tolist()
-        ]), (
-            'Rows not filtered out when filtering with gnomAD_AF < 0.02'
+        assert filtered_df['CHROM'].astype(str).unique().tolist() == ["4"], (
+            "Filtering bcftools filter -e 'CHROM==\"4\"' operator returned "
+            "incorrect rows"
         )
 
         assert all([
-            x >= value for x in filter_handler.vcfs[-1]['gnomAD_AF'].tolist()
+            x != "4" for x in keep_df['CHROM'].astype(str).tolist()
         ]), (
-            "Incorrect rows filtered out when filtering with < on gnomAD_AF"
+            "Filtering with bcftools filter -e 'CHROM==\"4\"' operator "
+            "filtered out incorrect rows"
         )
 
 
-    def test_correct_rows_filtered_with_lt_eq(self):
+    def test_correct_rows_filtered_with_exclude_gt(self):
         """
-        Tests the correct rows are filtered with one filter applied, and no
-        rows are dropped
+        Test when using exclude with gt operator filter is correctly applied
         """
-        vcf_handler = self.read_vcf()
-
-        # get random value from column to test filtering on
-        value = self.get_random_column_value(vcf_handler.vcfs[0]['gnomAD_AF'])
-
-        vcf_handler.args.filter = [f"gnomAD_AF<={value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
+        keep_df, filtered_df = self.filter_vcf_and_read(
+            "bcftools filter -e 'CSQ_gnomAD_AF>0.02'"
         )
 
-        # everything should be under filter value or NaN
-        assert all([
-            x <= value or pd.isna(x) for x in filter_handler.vcfs[0]['gnomAD_AF'].tolist()
-        ]), (
-            'Rows not filtered out when filtering with gnomAD_AF < 0.02'
+        # set '.' to 0 to allow column to be a float for comparing
+        keep_df['CSQ_gnomAD_AF'] = keep_df['CSQ_gnomAD_AF'].apply(
+            lambda x: '0' if x == '.' else x
+        ).astype(float)
+
+        filtered_df['CSQ_gnomAD_AF'] = filtered_df['CSQ_gnomAD_AF'].astype(float)
+
+
+        assert all(keep_df['CSQ_gnomAD_AF'] <= 0.02), (
+            "Filtering bcftools filter -e 'gnomAD_AF>0.02' operator returned "
+            "incorrect rows"
         )
 
-        assert all([
-            x > value for x in filter_handler.vcfs[-1]['gnomAD_AF'].tolist()
-        ]), (
-            "Incorrect rows filtered out when filtering with <= on gnomAD_AF"
+        assert all(filtered_df['CSQ_gnomAD_AF'] > 0.02), (
+            "Filtering with bcftools filter -e 'gnomAD_AF>0.02' operator "
+            "filtered out incorrect rows"
         )
 
-
-    def test_correct_rows_filtered_w_two_filters_diff_columns(self):
-        """
-        Tests the correct rows are filtered with two filter applied, rows are
-        not double counted and filtered twice and no rows are dropped
-        """
-        print('testing 2 filters')
-        vcf_handler = self.read_vcf()
-
-        # get random values from columns to test filtering on
-        dp_value = self.get_random_column_value(vcf_handler.vcfs[0]['DP'])
-        qual_value = self.get_random_column_value(vcf_handler.vcfs[0]['QUAL'])
-
-        vcf_handler.args.filter = [f"DP>{dp_value}", f"QUAL<{qual_value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped or duplicated
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-
-        # check everything should be at filter value for DP and MPOS
-        assert all([
-            x > dp_value or y < qual_value for x, y in zip(
-                filter_handler.vcfs[0]['DP'].tolist(),
-                filter_handler.vcfs[0]['QUAL'].tolist()
-            )
-        ]), (
-            'Rows not filtered out when filtering with 2 filters'
-        )
-
-        assert all([
-            x <= dp_value or y >= qual_value for x, y in zip(
-                filter_handler.vcfs[-1]['DP'].tolist(),
-                filter_handler.vcfs[-1]['QUAL'].tolist()
-            )
-        ]), (
-            'Incorrect rows filtered out when filtering with 2 filters'
-        )
-
-
-    def test_correct_rows_filtered_w_two_filters_same_column(self):
-        """
-        Tests the correct rows are filtered with two filter applied on the
-        column, rows are not double counted and filtered twice and no rows
-        are dropped
-        """
-        vcf_handler = self.read_vcf()
-
-        vcf_handler.args.filter = [
-            "Consequence!=synonymous_variant",
-            "Consequence!=3_prime_UTR_variant"
-        ]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped or duplicated
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        # check everything should be at filter value
-        assert all([
-            x != "3_prime_UTR_variant" and x != "synonymous_variant" \
-            for x in filter_handler.vcfs[0]['Consequence'].tolist()
-        ]), (
-            'Rows not filtered out when filtering with 2 filters on same column'
-        )
-
-        assert sorted(filter_handler.vcfs[-1]['Consequence'].unique().tolist()) == [
-            "3_prime_UTR_variant", "synonymous_variant"
-        ], (
-            'Incorrect rows filtered out when filtering with 2 filters on same column'
-        )
-
-
-    def test_correct_rows_filtered_w_many_filters(self):
-        """
-        Tests the correct rows are filtered with multiple filters across
-        multiple columns
-        """
-        vcf_handler = self.read_vcf()
-
-        vcf_handler.args.filter = [
-            "Consequence!=synonymous_variant",
-            "Consequence!=3_prime_UTR_variant",
-            "Consequence!=intron_variant",
-            "gnomAD_AF<0.02",
-            "gnomADg_AF<0.02",
-            "QUAL>2000",
-            "AC==1"
-        ]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped or duplicated
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        for _, row in filter_handler.vcfs[0].iterrows():
-            # check values of retained df rows
-            assert row['Consequence'] != 'synonymous_variant' or \
-                row['Consequence'] != '3_prime_UTR_variant' or \
-                row['Consequence'] != 'intron_variant' or \
-                row['gnomAD_AF'] <= 0.02 or \
-                row['gnomADg_AF'] <= 0.02 or \
-                row['QUAL'] > 2000 or \
-                row['AC'] == 1, (
-                    "Multiple combined filters have not filtered out correct rows"
-                )
-
-        # check values of filtered out df rows
-        for _, row in filter_handler.vcfs[0].iterrows():
-            assert row['Consequence'] == 'synonymous_variant' or \
-                row['Consequence'] == '3_prime_UTR_variant' or \
-                row['Consequence'] == 'intron_variant' or \
-                row['gnomAD_AF'] > 0.02 or \
-                row['gnomADg_AF'] > 0.02 or \
-                row['QUAL'] <= 2000 or \
-                row['AC'] != 1, (
-                    "Multiple combined filters have wrongly filtered out rows"
-                )
-
-
-class TestEdgeCaseFilters():
-    """
-    Tests for checking known edge cases that need correctly handling with
-    filtering (i.e. '.', empty strings and NA values in AF column should not
-    be filtered out with < )
-    """
-    def test_edge_values_w_lt(self):
-        """
-        Tests that when NA, . and empty strings are present in AF column, they
-        are treat as zero and not filtered out when filtering with <
-        """
-        vcf_handler = TestFilters().read_vcf()
-
-        # get random value from column to test filtering on
-        value = TestFilters.get_random_column_value(
-            vcf_handler.vcfs[0]['gnomAD_AF'])
-
-        vcf_handler.args.filter = [f"gnomAD_AF<={value}"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        # check none of the edge case values are filtered out into filtered df
-        assert all([
-            x != "" and x != "." and x != " " and not pd.isna(x) \
-            for x in filter_handler.vcfs[-1]['gnomAD_AF'].tolist()
-        ]), (
-            'Edge cases inocrrectly filtered out on gnomAD_AF with lt'
-        )
-
-
-    def test_edge_values_w_gt(self):
-        """
-        Tests that when NA, . and empty strings are present in AF column, they
-        are treat as zero and ARE filtered out when filtering with >
-        """
-        vcf_handler = TestFilters().read_vcf()
-
-        # get random value from column to test filtering on
-        value = TestFilters.get_random_column_value(
-            vcf_handler.vcfs[0]['gnomAD_AF'])
-
-        vcf_handler.args.filter = [f"gnomAD_AF>0.5"]
-        vcf_handler.args.keep = True
-
-        total_rows_before_filter = len(vcf_handler.vcfs[0].index)
-
-        filter_handler = filter(vcf_handler.args, vcf_handler.vcfs)
-        filter_handler.build()
-        filter_handler.filter()
-
-        total_rows_after_filter = sum([len(x.index) for x in filter_handler.vcfs])
-
-        print(sorted(filter_handler.vcfs[0]['gnomAD_AF'].unique().tolist()))
-        print(' ')
-        print(sorted(filter_handler.vcfs[-1]['gnomAD_AF'].unique().tolist()))
-        sys.exit()
-
-        # check no rows dropped
-        assert total_rows_after_filter == total_rows_before_filter, (
-            "Mismatch between total rows before and after filtering"
-        )
-
-        # check none of the edge case values are filtered out into filtered df
-        assert all([
-            x != "" and x != "." and x != " " and not pd.isna(x) \
-            for x in filter_handler.vcfs[0]['gnomAD_AF'].tolist()
-        ]), (
-            'Edge cases not filtered out on gnomAD_AF with gt'
-        )
-        sys.exit()
 
 
 
 if __name__ == "__main__":
+
+    modify_header = TestModifyingFieldTypes()
+    modify_header.test_type_correctly_modified()
+    modify_header.test_header_overwritten_correctly()
+
+
     t = TestFilters()
-    e = TestEdgeCaseFilters()
-
-    e.test_edge_values_w_gt()
-
-    t.read_vcf()
-    t.test_building_filters()
-    t.test_correct_rows_filtered_with_eq()
-    t.test_correct_rows_filtered_with_not_eq()
-    t.test_correct_rows_filtered_with_gt()
-    t.test_keep_argument_adds_extra_df_filtered_rows()
-    t.test_correct_rows_filtered_with_gt_eq()
-    t.test_correct_rows_filtered_with_lt()
-    t.test_correct_rows_filtered_with_lt_eq()
-    t.test_correct_rows_filtered_w_two_filters_same_column()
-    t.test_correct_rows_filtered_w_many_filters()
+    t.test_correct_rows_filtered_with_include_eq()
+    t.test_correct_rows_filtered_with_exclude_eq()
+    t.test_correct_rows_filtered_with_exclude_gt()

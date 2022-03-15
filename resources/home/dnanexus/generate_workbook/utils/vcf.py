@@ -155,7 +155,7 @@ class vcf():
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
 
-    def bcftools_pre_process(self, vcf, output_vcf):
+    def bcftools_pre_process(self, vcf, output_vcf) -> None:
         """
         Decompose multiple transcript annotation to individual records, and
         split VEP CSQ string to individual INFO keys. Adds a 'CSQ_' prefix
@@ -195,7 +195,7 @@ class vcf():
         )
 
 
-    def bgzip(self, file):
+    def bgzip(self, file) -> None:
         """
         Call bgzip on given file
 
@@ -206,6 +206,11 @@ class vcf():
         Outputs
         -------
         input file, but compressed
+
+        Raises
+        ------
+        AssertionError
+            Raised when non-zero exit code returned by bgzip
         """
         output = subprocess.run(
             f"bgzip --force {file}", shell=True, capture_output=True
