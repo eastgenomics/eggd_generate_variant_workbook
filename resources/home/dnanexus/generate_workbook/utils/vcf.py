@@ -223,7 +223,7 @@ class vcf():
         )
 
 
-    def read(self, vcf, sample) -> pd.DataFrame:
+    def read(self, vcf, sample=None) -> pd.DataFrame:
         """
         Reads given vcf into pd.DataFrame and parses header
 
@@ -241,8 +241,9 @@ class vcf():
         """
         print(f"\n\nReading in vcf {vcf} for sample {sample}\n")
 
-        if '_' in sample:
-            sample = sample.split('_')[0]
+        if sample:
+            if '_' in sample:
+                sample = sample.split('_')[0]
 
         header, columns = self.parse_header(vcf)
         self.parse_reference(header)
