@@ -33,7 +33,7 @@ class vcf():
         annotations for one variant are present, resulting in one row per
         transcript annotation per variant in resultant dataframe
     filtered_rows : list
-        list of dataframes of rows dropped from vcfs
+        list of dataframes of rows filtered out from vcfs
     urls : dict
         mapping dictionary of column name to URLs, used for adding hyperlinks
             to column values before writing to file
@@ -63,12 +63,15 @@ class vcf():
 
             - self.filter() (optional with --filter)
             - self.read()
-            - splitColumns.info()
-            - splitColumns.format_fields()
+            - splitColumns.split()
+            - self.merge()
             - self.drop_columns()
             - self.reorder()
-            - self.merge()
             - self.rename()
+            - self.format_strings()
+            - self.strip_csq_prefix()
+            - self.add_hyperlinks()
+            - self.rename_columns()
         """
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
@@ -148,9 +151,6 @@ class vcf():
         self.strip_csq_prefix()
         self.add_hyperlinks()
         self.rename_columns()
-
-        # run checks to ensure we haven't unintentionally dropped variants
-        # self.verify_totals()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
@@ -562,74 +562,3 @@ class vcf():
         is important
         """
         return [pd.concat(vcfs).reset_index(drop=True)]
-
-
-    def verify_totals(self) -> None:
-        """
-        Verify total variants in resultant dataframe(s) match what was read in,
-        unless --filter has been applied and --keep has not.
-
-        Totals we have tracked to check on:
-
-        - self.total_vcf_rows -> total rows read in from vcf before modifying
-        - self.expanded_rows -> total rows expanded out when CSQ contains
-            multiple transcripts, and each transcript for each variant is split
-            to individual rows
-        - self.filtered_rows -> total rows filtered out to separate df by
-            filters passed with --filter
-        - total_rows_to_write -> total of all rows that will be written to the
-            xlsx across all sheets
-
-
-        Raises
-        ------
-        AssertionError
-            Raised when the total rows we have tracked don't seem to equal what
-            is going to be written to file
-        """
-        print("Verifying total variants being written to file is correct")
-        if not self.args.merge:
-            # haven't merged to one df => count all
-            total_rows_to_write = sum([len(df.index) for df in self.vcfs])
-        else:
-            total_rows_to_write = len(self.vcfs[0])
-
-        if self.args.filter:
-            total_filtered_rows = len(self.filtered_rows)
-
-        # totals we tracked in previous methods
-        tracked_total = int(self.total_vcf_rows) + int(self.expanded_vcf_rows)
-
-        print(f"\nTotal variants identified:")
-        print(f"\tTotal rows read in from vcf(s): {self.total_vcf_rows}")
-        print((
-            f"\tTotal rows expanded: "
-            f"{self.expanded_vcf_rows}"
-        ))
-        print(
-            f"\tTotal rows filtered with --filter: {len(self.filtered_rows)}"
-        )
-        if not self.args.keep and self.args.filter:
-            print(
-                "\t\t--keep not passed, these filtered rows will be dropped"
-            )
-        elif self.args.keep and self.args.filter:
-            print(
-                "\t\t--keep passed, filtered variants will be written to file"
-            )
-        else:
-            print("\t\tNo variants excluded as --filter not specified")
-
-        print(f"\tTotal rows going to write to file: {total_rows_to_write}")
-        print(f"\tTotal rows we have tracked: {tracked_total}")
-
-
-        if not self.args.keep:
-            # not keeping filtered rows => check that total we would write if
-            # they were included is what we expect from reading in & expanding
-            total_rows_to_write += int(len(self.filtered_rows))
-
-        assert tracked_total == total_rows_to_write, (
-            "Total rows to be written to file don't appear to equal what has "
-            "been tracked, this suggests we have dropped some variants..."
-        )
