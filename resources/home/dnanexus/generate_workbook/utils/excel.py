@@ -267,8 +267,10 @@ class excel():
             sheet_data.values, columns=vcf.columns.tolist())
         written_sheet = written_sheet.iloc[1:] # drop header on first row
 
+        # openpyxl read sets NaNs to None, so match it
+        vcf.fillna('None', inplace=True)
+
         # set all columns of both dfs to strings
-        vcf.fillna('None', inplace=True)  # openpyxl read sets NaNs to None
         vcf = vcf.astype(str)
         written_sheet = written_sheet.astype(str).reset_index(drop=True)
 
