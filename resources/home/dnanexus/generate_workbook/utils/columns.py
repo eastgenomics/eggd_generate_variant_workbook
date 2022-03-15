@@ -26,8 +26,8 @@ class splitColumns():
             total number of extra rows from expanding multiple transcript
             annotations to individual rows
         """
-        vcf_df = self.format_fields(vcf_df)
         vcf_df = self.info(vcf_df)
+        vcf_df = self.format_fields(vcf_df)
         vcf_df = self.unique_cosmic(vcf_df)
 
         return vcf_df
@@ -87,23 +87,22 @@ class splitColumns():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf with split out FORMAT fields
         """
-        # get unique list of FORMAT fields from all rows
-        format_cols = list(set(':'.join(vcf_df.FORMAT.tolist()).split(':')))
-
-        # join respective pairs from FORMAT and SAMPLE columns to '|'
+        # join respective pairs from FORMAT and SAMPLE columns to '##'
         # separated '=' joined pairs
         # before -> GT:AD:DP:GQ:PL  1/1:0,41:41:99:1442,123,0
-        # after  -> GT=1/1|AD=0,41|DP=41|GQ=99|PL=1442,123,0
+        # after  -> GT=1/1##AD=0,41##DP=41##GQ=99##PL=1442,123,0
+        # n.b. using '##' to join since VCF spec for what is allowed in
+        # sample strings is not strict, but ## is very unlikely to be used
         tmp_df = pd.DataFrame()
 
-        tmp_df['tmp'] = vcf_df.apply(lambda x: '|'.join([
+        tmp_df['tmp'] = vcf_df.apply(lambda x: '##'.join([
             "=".join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
         ]), axis=1)
 
         # split every row to a dict of key value pairs and build df
         format_cols = tmp_df.join(pd.DataFrame([
             dict(val) for val in tmp_df.pop('tmp').str.findall((
-                r'(\w+)=([^|\}]+)'
+                r'(\w+)=([^##\}]+)'
             ))
         ]))
 
