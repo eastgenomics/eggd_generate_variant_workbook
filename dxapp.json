@@ -163,6 +163,7 @@
       "name": "tmp_vcfs",
       "label": "tmp vcfs",
       "class": "array:file",
+      "optional": true,
       "help": "intermediate split and annotated vcfs, output with --keep_tmp"
     }
   ],
