@@ -14,11 +14,12 @@ This app may be executed as a standalone app.
 
 **Packages**
 
-* bcftools
-* bcftools -split-vep plugin
+* Packages from htslib DNAnexus asset:
+  * bcftools
+  * bcftools -split-vep plugin
 * Python packages (specified in requirements.txt)
 
-**File inputs**:
+**File inputs (required)**:
 
 - `--vcfs`: VEP annotated vcf(s)
 

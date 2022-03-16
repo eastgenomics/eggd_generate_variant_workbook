@@ -7,8 +7,6 @@ import sys
 import numpy as np
 import pandas as pd
 
-from pysam import VariantFile
-
 pd.options.mode.chained_assignment = None
 
 

@@ -23,7 +23,7 @@
       "group": "app"
     },
     {
-      "name": "exclude",
+      "name": "exclude_columns",
       "label": "Exclude columns",
       "class": "string",
       "optional": true,
@@ -31,7 +31,7 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "include",
+      "name": "include_columns",
       "label": "Include columns",
       "class": "string",
       "optional": true,
@@ -39,15 +39,15 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "reorder",
+      "name": "reorder_columns",
       "label": "Reorder columns",
       "class": "string",
       "optional": true,
-      "help": "Order of fields from VCF in output xlsx columns",
+      "help": "Set order for columns in output vcf, any not specified will be appended to the end",
       "group": "generate_workbook.py"
     },
     {
-      "name": "rename",
+      "name": "rename_columns",
       "label": "Rename columns",
       "class": "string",
       "optional": true,
@@ -71,7 +71,7 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "keep",
+      "name": "keep_filtered",
       "label": "Keep",
       "class": "boolean",
       "optional": true,
@@ -88,7 +88,7 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "add_name",
+      "name": "add_samplename_column",
       "label": "Add sample name",
       "class": "boolean",
       "optional": true,
@@ -97,11 +97,11 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "sheets",
+      "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",
       "optional": true,
-      "help": "Names to use for sheets where multiple VCFs are passed",
+      "help": "'Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used",
       "group": "generate_workbook.py"
     },
     {
@@ -113,7 +113,7 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "merge",
+      "name": "merge_vcfs",
       "label": "Merge",
       "class": "boolean",
       "optional": true,
@@ -134,7 +134,7 @@
       "label": "Print columns",
       "class": "boolean",
       "optional": true,
-      "help": "Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.",
+      "help": "Print all column names of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.",
       "group": "generate_workbook.py"
     },
     {

@@ -38,7 +38,7 @@ main() {
     dx-download-all-inputs --parallel
     find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
 
-    if [ "$assay" == "dias" ]; then
+    if [ "$summary" == "dias" ]; then
         # do dias specific things
         _dias_report_setup
     fi
@@ -56,24 +56,25 @@ main() {
     # build string of input arguments
     args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
-    if [ "$exclude" ]; then args+="--exclude ${exclude} "; fi
-    if [ "$include" ]; then args+="--include ${include} "; fi
-    if [ "$reorder" ]; then args+="--reorder ${reorder} "; fi
-    if [ "$rename" ]; then args+="--rename ${rename} "; fi
+    if [ "$exclude_columns" ]; then args+="--exclude ${exclude_columns} "; fi
+    if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
+    if [ "$reorder_columns" ]; then args+="--reorder ${reorder_columns} "; fi
+    if [ "$rename_columns" ]; then args+="--rename ${rename_columns} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
-    if [ "$print_header" ]; then args+="--print_header"; fi
+    if [ "$print_header" ]; then args+="--print_header "; fi
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$analysis" ]; then args+="--analysis ${analysis_name} ${analysis_id} "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
-    if [ "$sheets" ]; then args+="--sheets ${sheets} "; fi
+    if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$filter" ]; then args+="--filter ${filter} "; fi
+    if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
-    if [ "$add_name" == true ]; then args+="--add_name "; fi
-    if [ "$merge" == true ]; then args+="--merge "; fi
+    if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
+    if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
-    if [ "$keep" == true ]; then args+="--keep "; fi
+    if [ "$keep_filtered" == true ]; then args+="--keep "; fi
 
     /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xlsx_reports" $args
 
