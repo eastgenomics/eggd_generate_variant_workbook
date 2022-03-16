@@ -522,12 +522,25 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             if self.args.rename:
                 # sense check given reorder keys are in the vcfs
-                assert all(x in vcf.columns for x in self.args.rename), (
+                assert all(
+                    x in vcf.columns for x in self.args.rename.keys()
+                ), (
                     f"Column(s) specified with --rename not present in one or "
                     f"more of the given vcfs. \n\nValid column names: "
                     f"\n\n\t{vcf.columns}. \n\nColumn names passed to "
                     f"--rename: \n\n\t{list(self.args.rename.keys())}"
                 )
+
+                # check the given new name(s) not already a column name
+                assert all(
+                    x not in vcf.columns for x in self.args.rename.values()
+                ), (
+                    f"Column(s) specified with --rename already present in "
+                    f"one or more of the given vcfs. \n\ Column names: "
+                    f"\n\n\t{vcf.columns}. \n\nNew column names passed to "
+                    f"--rename: \n\n\t{list(self.args.rename.values())}"
+                )
+
                 self.vcfs[idx].rename(
                     columns=dict(self.args.rename.items()), inplace=True
                 )
