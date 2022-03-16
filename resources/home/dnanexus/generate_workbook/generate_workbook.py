@@ -25,6 +25,7 @@ class arguments():
         self.parse_output()
         self.set_sheet_names()
         self.verify_sheets()
+        self.check_include_exclude()
 
 
     class parsePairs(argparse.Action):
@@ -217,6 +218,22 @@ class arguments():
 
         self.args.output = (
             f"{Path(self.args.out_dir)}/{self.args.output}.xlsx"
+        )
+
+
+    def check_include_exclude(self) -> None:
+        """
+        Use of --inlcude / --exclude is mutually exclusive, therefore check
+        and raise exception if both are passed
+
+        Raises
+        ------
+        AssertionError
+            Raised when include and exclude arguments are both specified
+        """
+        assert not (self.args.include and self.args.exclude), (
+            "Both --include and --exclude passed, these arguments are "
+            "mutually exclusive."
         )
 
 
