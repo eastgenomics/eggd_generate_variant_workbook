@@ -376,8 +376,8 @@ class vcf():
         """
         if not value[column] or pd.isna(value[column]) or \
             value[column] == 'nan' or value[column] == '.':
-            # no value to build hyperlink
-            return value[column]
+                # no value to build hyperlink
+                return value[column]
 
         if 'gnomad' in column.lower():
             # handle gnomad differently as it requires chrom, pos, ref and
@@ -401,14 +401,14 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
-                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode() \
-                    if type(x) == str else x
+                lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
+                if type(x) == str else x
             )
 
             # remove any nans that are strings
             vcf = vcf.applymap(
-                lambda x: x.replace('nan', '') \
-                    if x == 'nan' and type(x) == str else x
+                lambda x: x.replace('nan', '')
+                if x == 'nan' and type(x) == str else x
             )
 
             self.vcfs[idx] = vcf

@@ -262,10 +262,10 @@ class excel():
         print(f"\nVerifying data written to file for {sheet} sheet\n")
 
         # read in written sheet using openpyxl to deal with Excel oddities
-        sheet_data = load_workbook(filename = self.args.output)[sheet]
+        sheet_data = load_workbook(filename=self.args.output)[sheet]
         written_sheet = pd.DataFrame(
             sheet_data.values, columns=vcf.columns.tolist())
-        written_sheet = written_sheet.iloc[1:] # drop header on first row
+        written_sheet = written_sheet.iloc[1:]  # drop header on first row
 
         # openpyxl read sets NaNs to None, so match it
         vcf.fillna('None', inplace=True)

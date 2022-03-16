@@ -64,8 +64,6 @@ class TestHeader():
         assert all([x.startswith('#') for x in self.header])
 
 
-
-
 class TestDataFrameActions():
     """
     Tests for functions that modify dataframes of variants (i.e. reorder(),
@@ -125,7 +123,8 @@ class TestDataFrameActions():
 
         # ensure columns in exclude are no longer in df columns
         columns = sorted(list(
-            set(["Allele", "Gene", "HGNC"]) - set(vcf_handler.vcfs[0].columns.tolist())
+            set(["Allele", "Gene", "HGNC"]) -
+            set(vcf_handler.vcfs[0].columns.tolist())
         ))
 
         assert columns == ["Allele", "Gene", "HGNC"], (
@@ -147,7 +146,8 @@ class TestDataFrameActions():
         vcf_handler.drop_columns()
 
         assert vcf_handler.vcfs[0].columns.tolist() == include_cols, (
-            "Columns after calling vcf.drop_columns() with --include not as expected"
+            "Columns after calling vcf.drop_columns() with --include not "
+            "as expected"
         )
 
 
@@ -218,7 +218,7 @@ class TestDataFrameActions():
         new_columns = vcf_handler.vcfs[0].columns.tolist()
         new_columns = [x.replace(' ', '_') for x in new_columns]
 
-        # add rename variables to Namespace to access in other tests of renaming
+        # add rename variable to Namespace to access in other tests of renaming
         rename_vals = Namespace()
         rename_vals.prev_columns = prev_columns
         rename_vals.new_columns = new_columns
@@ -244,17 +244,19 @@ class TestDataFrameActions():
 
     def test_renamed_correctly(self, rename):
         """
-        Tests that the renamed columns have the specified names from args.rename
+        Tests that the renamed columns have the specified names
+        from args.rename
         """
         renamed_columns = sorted(
             list(set(rename.new_columns) & set(rename.rename_dict.values())))
 
         assert renamed_columns == sorted(list(rename.rename_dict.values())), (
-            "Column names specified in args.rename not present in renamed column list"
+            "Column names specified in args.rename not present in renamed "
+            "column list"
         )
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     header = TestHeader()
     header.test_column_names()
 

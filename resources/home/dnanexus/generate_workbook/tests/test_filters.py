@@ -254,8 +254,6 @@ class TestFilters():
         )
 
 
-
-
 if __name__ == "__main__":
 
     modify_header = TestModifyingFieldTypes()

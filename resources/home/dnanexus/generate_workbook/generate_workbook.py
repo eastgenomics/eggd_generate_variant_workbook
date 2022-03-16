@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 import sys
+from matplotlib.pyplot import table
 
 import pandas as pd
 
@@ -62,22 +63,22 @@ class arguments():
         parser.add_argument(
             '-e', '--exclude', nargs='+',
             help=(
-                'Columns in vcf to EXCLUDE from output, by default all INFO and '
-                'CSQ fields are expanded to their own columns'
+                'Columns in vcf to EXCLUDE from output, by default all INFO '
+                'and CSQ fields are expanded to their own columns'
             )
         )
         parser.add_argument(
             '-i', '--include', nargs='+',
             help=(
-                'Columns in vcf to INCLUDE from output, by default all INFO and '
-                'CSQ fields are expanded to their own columns'
+                'Columns in vcf to INCLUDE from output, by default all INFO '
+                'and CSQ fields are expanded to their own columns'
             )
         )
         parser.add_argument(
             '-r', '--reorder', required=False, nargs='+',
             help=(
-                'Set order for columns in output vcf, any not specified will be '
-                'appended to the end'
+                'Set order for columns in output vcf, any not specified will '
+                'be appended to the end'
             )
         )
         parser.add_argument(
@@ -124,18 +125,19 @@ class arguments():
         parser.add_argument(
             '-s', '--sheets', nargs='+',
             help=(
-                'Names to use for multiple sheets, these MUST be the same number '
-                'as the number of vcfs passed and in the same order. If not '
-                'given, if there is 1 vcf passed the sheet will be named '
-                '"variants", if multiple the name prefix of the vcf will be used'
+                'Names to use for multiple sheets, these MUST be the same '
+                'number as the number of vcfs passed and in the same order. '
+                'If not given, if there is 1 vcf passed the sheet will be '
+                'named "variants", if multiple the name prefix of the vcf '
+                'will be used'
             )
         )
         parser.add_argument(
             '-o', '--output', required=False,
             help=(
-                'output name prefix for file, if more than 1 vcf passed a name '
-                'must be specified. If only 1 vcf passed and no output name, the '
-                'vcf filename prefix will be used'
+                'output name prefix for file, if more than 1 vcf passed a '
+                'name must be specified. If only 1 vcf passed and no output '
+                'name, the vcf filename prefix will be used'
             )
         )
         parser.add_argument(
@@ -144,7 +146,9 @@ class arguments():
         )
         parser.add_argument(
             '-m', '--merge', action='store_true',
-            help='Merge multiple vcfs into one dataframe of variants to display'
+            help=(
+                'Merge multiple vcfs into one dataframe of variants to display'
+            )
         )
         parser.add_argument(
             '--summary', required=False,
@@ -173,8 +177,9 @@ class arguments():
         parser.add_argument(
             '--print_columns', required=False, action='store_true',
             help=(
-                'Print total columns of all vcfs that will be output to the xlsx. '
-                'Useful to identify what will be in the output to include/exclude'
+                'Print total columns of all vcfs that will be output to the '
+                'workbook. Useful to identify what will be in the output to '
+                'include/exclude'
             )
         )
         parser.add_argument(
@@ -252,7 +257,7 @@ class arguments():
                 "Different number of sheets specified to total vcfs passed. "
                 f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
                 f"sheet names passed: {len(self.args.sheets)}"
-            )
+        )
 
 
     def set_sheet_names(self) -> None:
