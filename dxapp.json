@@ -15,14 +15,6 @@
   },
   "inputSpec": [
     {
-      "name": "assay",
-      "label": "Type of assay to generate report for, determines what is downloaded and run in-app",
-      "class": "string",
-      "optional": true,
-      "help": "Lowercase string of assay report is for (i.e. dias)",
-      "group": "app"
-    },
-    {
       "name": "vcfs",
       "label": "VEP annotated vcf(s)",
       "class": "array:file",
@@ -60,6 +52,14 @@
       "class": "string",
       "optional": true,
       "help": "= separated key value pairs of VCF fields to rename in output xlsx",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "types",
+      "label": "Types",
+      "class": "string",
+      "optional": true,
+      "help": "= separated key value pairs of field=type to overwrite in VCF header (i.e CSQ_gnomADg_AF=Float)",
       "group": "generate_workbook.py"
     },
     {
@@ -135,6 +135,14 @@
       "class": "boolean",
       "optional": true,
       "help": "Print total columns of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "print_header",
+      "label": "Print header",
+      "class": "boolean",
+      "optional": true,
+      "help": "Print header of first vcf that will be output to the xlsx. Useful to identify field types in the VCF, which can be modified with --types.",
       "group": "generate_workbook.py"
     },
     {
