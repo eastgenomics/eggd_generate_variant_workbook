@@ -157,6 +157,10 @@ class arguments():
             help='summary sheet to include, must be one of: dias'
         )
         parser.add_argument(
+            '--job_id', required=False,
+            help='Job ID of eggd_generate_workbook to add to Dias summary'
+        )
+        parser.add_argument(
             '--analysis', default=('', ''), nargs=2,
             help='Name and ID of analysis to display in summary'
         )

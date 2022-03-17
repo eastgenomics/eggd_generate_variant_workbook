@@ -15,6 +15,7 @@ _dias_report_setup () {
     workflow_name=$(dx describe --json ${workflow_id} | jq -r '.executableName')
 
     project_id=$DX_PROJECT_CONTEXT_ID
+    job_id=$DX_JOB_ID
 
     # Tiny chance of race conditions leading to two files with the same name here
     version=0
@@ -66,6 +67,7 @@ main() {
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$analysis" ]; then args+="--analysis ${analysis_name} ${analysis_id} "; fi
+    if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$filter" ]; then args+="--filter ${filter} "; fi
