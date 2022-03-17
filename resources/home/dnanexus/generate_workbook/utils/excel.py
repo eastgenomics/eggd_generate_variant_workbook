@@ -100,20 +100,36 @@ class excel():
         self.summary.cell(37, 2).value = self.args.analysis[1]
 
         # write total rows in each sheet
-        count = 40
+        count = 39
+
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(count, 2).value = sheet
             self.summary.cell(count, 3).value = len(vcf.index)
-            self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+            self.summary[f"A{count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
             count += 1
 
+        count += 3
+
+        if self.refs:
+            self.summary.cell(count, 1).value = "Reference:"
+            self.summary[f"A{count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in self.refs:
+                self.summary.cell(count, 2).value = ref
+                count += 1
+
+        count += 2
 
         # write args passed to script to generate report
-        self.summary.cell(46, 1).value = "Filters applied:"
+        self.summary.cell(count, 1).value = "Filters applied:"
+        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
         if self.args.filter:
-            self.summary.cell(46, 2).value = self.args.filter
+            self.summary.cell(count, 2).value = self.args.filter
         else:
-            self.summary.cell(46, 2).value = "None"
+            self.summary.cell(count, 2).value = "None"
 
         # write center reporting section tables
         self.summary.cell(9, 2).value = "Phenotype:"
