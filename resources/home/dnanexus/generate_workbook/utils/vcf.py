@@ -284,6 +284,11 @@ class vcf():
             list of header lines read from vcf
         columns : list
             column names from vcf
+
+        Raises
+        ------
+        AssertionError
+            Raised when header looks to be malformed and column names incorrect
         """
         if vcf.endswith('.gz'):
             fh = gzip.open(vcf)
