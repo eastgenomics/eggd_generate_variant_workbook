@@ -306,6 +306,11 @@ class vcf():
         columns = [x.strip('#') for x in header[-1].split()]
         columns[-1] = 'SAMPLE'
 
+        assert columns[0] == 'CHROM', (
+            "Parsed header appears to be malformed, column names parsed as: "
+            f"{columns}"
+        )
+
         return header, columns
 
 
