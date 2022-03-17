@@ -472,11 +472,13 @@ class vcf():
                 to_drop = list(
                     set(vcf.columns.tolist()) - set(columns)
                 )
-            else:
-                # sense check given exclude columns are in the vcfs
+            elif self.args.exclude:
                 columns = self.args.exclude
                 to_drop = self.args.exclude
+            else:
+                continue
 
+            # sense check given exclude columns are in the vcfs
             assert all(column in vcf.columns for column in columns), (
                 "Column(s) specified with --exclude not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
