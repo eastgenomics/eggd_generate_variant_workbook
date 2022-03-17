@@ -86,10 +86,8 @@ class excel():
         self.summary.cell(2, 5).value = "Panel(s):"
         self.summary.cell(34, 1).value = "Workflow:"
         self.summary.cell(35, 1).value = "Workflow ID:"
-        self.summary.cell(36, 1).value = "VCF Analysis:"
-        self.summary.cell(37, 1).value = "VCF Analysis ID:"
-        self.summary.cell(38, 1).value = "Report Job ID:"
-        self.summary.cell(40, 1).value = "Total records:"
+        self.summary.cell(36, 1).value = "Report Job ID:"
+        self.summary.cell(38, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -106,12 +104,10 @@ class excel():
         self.summary.cell(2, 6).value = self.args.panel
         self.summary.cell(34, 2).value = self.args.workflow[0]
         self.summary.cell(35, 2).value = self.args.workflow[1]
-        self.summary.cell(36, 2).value = self.args.analysis[0]
-        self.summary.cell(37, 2).value = self.args.analysis[1]
-        self.summary.cell(38, 2).value = self.args.job_id
+        self.summary.cell(36, 2).value = self.args.job_id
 
         # write total rows in each sheet
-        count = 40
+        count = 38
 
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(count, 2).value = sheet
@@ -179,7 +175,7 @@ class excel():
 
         # set titles to bold
         title_cells = [
-            "A1", "A34", "A35", "A36", "A37", "A38", "A40", "B1",
+            "A1", "A34", "A35", "A36","A38", "B1",
             "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
             "F1", "F2", "F16", "F22", "G16", "G22", "H16", "H22", "I16"

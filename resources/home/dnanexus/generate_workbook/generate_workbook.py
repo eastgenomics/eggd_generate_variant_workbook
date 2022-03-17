@@ -161,10 +161,6 @@ class arguments():
             help='Job ID of eggd_generate_workbook to add to Dias summary'
         )
         parser.add_argument(
-            '--analysis', default=('', ''), nargs=2,
-            help='Name and ID of analysis to display in summary'
-        )
-        parser.add_argument(
             '--workflow', default=('', ''), nargs=2,
             help='Name and ID of workflow to display in summary'
         )

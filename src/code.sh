@@ -9,8 +9,6 @@ _dias_report_setup () {
 
     # get job id creating the annotated vcf
     analysis_id=$(dx describe --json ${vcfs[0]} | jq -r '.createdBy.job')
-    analysis_name=$(dx describe --json ${analysis_id} | jq -r '.executableName')
-
     workflow_id=$(dx describe --json ${analysis_id} | jq -r '.parentAnalysis')
     workflow_name=$(dx describe --json ${workflow_id} | jq -r '.executableName')
 
@@ -66,7 +64,6 @@ main() {
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
-    if [ "$analysis" ]; then args+="--analysis ${analysis_name} ${analysis_id} "; fi
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
