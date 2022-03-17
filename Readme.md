@@ -77,7 +77,7 @@ The above will do the following:
 - rename the gnomAD genomes AF column
 - add the summary sheet for Dias
 - exlcude the `MLEAF`, `MGRankSum` and `MLEAC` columns from the output
-- keep the filtered out variants in a separate  sheet (default behaviour)
+- keep the filtered out variants in a separate sheet (default behaviour)
 
 
 **Notes on inputs**
@@ -86,6 +86,7 @@ The above will do the following:
 - filtering with `-filter` accepts any valid `bcftools` command where the vcf would be passed at the end (i.e. `bcftools filter -e 'CSQ_gnomAD_AF>0.02' sample.vcf`). Commands that are chained with pipes where the vcf is passed to the first command will NOT work (i.e. `bcftools filter -e 'CSQ_gnomAD_AF>0.02' sample.vcf | bcftoools ...`). See the filtering section below for examples.
 - `-include` and `-exclude` are mutually exclusive and can not be passed together
 - any arguments that are strings and passing multiple should be one space seperated string (i.e. `-iexclude="MLEAF MQRankSum MLEAC"`)
+- Fields in `INFO` and `FORMAT` columns will be split to individual columns, with the field key as the column name. If any duplicates are in the **FORMAT** column, these will have the suffix `(FMT)` (i.e. if depth is present in both `INFO` and `FORMAT`, the depth from `INFO` will be in column `DP` and the depth from `FORMAT` will be in `DP (FMT)`).
 
 
 **Filtering**
