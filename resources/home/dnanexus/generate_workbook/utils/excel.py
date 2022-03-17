@@ -90,8 +90,17 @@ class excel():
         self.summary.cell(37, 1).value = "VCF Analysis ID:"
         self.summary.cell(39, 1).value = "Total records:"
 
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+
         # write summary values
-        self.summary.cell(1, 2).value = self.args.sample
+        self.summary.cell(1, 2).value = sample
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
         self.summary.cell(34, 2).value = self.args.workflow[0]
