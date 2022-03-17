@@ -230,20 +230,33 @@ class arguments():
 
     def verify_sheets(self) -> None:
         """
-        Check if total number of sheets matches number of VCFs where
-        args.sheets is passed
+        Check if total number of sheets matches number of VCFs
 
         Raises
         ------
         AssertionError
             Raised when number of VCFs does not match the number of sheets
             given with args.sheets
+
+        AssertionError
+            Raised when --merge and --sheets given, but more than one sheet
+            name specified
         """
-        assert len(self.args.vcfs) == len(self.args.sheets), (
-            "Different number of sheets specified to total vcfs passed. "
-            f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
-            f"sheet names passed: {len(self.args.sheets)}"
-        )
+        if not self.args.merge:
+            assert len(self.args.vcfs) == len(self.args.sheets), (
+                "Different number of sheets specified to total vcfs passed. "
+                f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
+                f"sheet names passed: {len(self.args.sheets)}"
+            )
+        else:
+            # merging => should be at most one name passed (or will default
+            # to 'variants' in set_sheet_names())
+            if self.args.sheets:
+                assert len(self.args.sheets) == 1. (
+                    "--merge specified but more than one user defined sheet "
+                    "name passed. Either pass one name, or do not pass the "
+                    "--sheets arg and the default will be used ('variants')"
+                )
 
 
     def set_sheet_names(self) -> None:
