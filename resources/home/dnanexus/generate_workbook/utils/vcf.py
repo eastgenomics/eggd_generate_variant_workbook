@@ -136,7 +136,7 @@ class vcf():
 
         if self.args.filter and self.args.keep:
             # merge all filtered dataframes to one and add to list of vcfs for
-            # doing colum operations and writing to Excel file
+            # doing column operations and writing to Excel file
             self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('filtered')
@@ -182,7 +182,7 @@ class vcf():
         """
         print(f"Splitting {vcf} with bcftools +split-vep")
         cmd = (
-            f"bcftools +split-vep --columns - -a CSQ -p 'CSQ_' -d {vcf} | "
+            f"bcftools +split-vep --columns - -a CSQ -Ou -p 'CSQ_' -d {vcf} | "
             f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
         )
 

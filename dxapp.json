@@ -43,7 +43,7 @@
       "label": "Reorder columns",
       "class": "string",
       "optional": true,
-      "help": "Set order for columns in output vcf, any not specified will be appended to the end",
+      "help": "Set order for columns in workbook, any not specified will be appended to the end",
       "group": "generate_workbook.py"
     },
     {

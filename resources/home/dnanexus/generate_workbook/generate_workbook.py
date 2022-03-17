@@ -26,7 +26,6 @@ class arguments():
         self.parse_output()
         self.set_sheet_names()
         self.verify_sheets()
-        self.check_include_exclude()
 
 
     class parsePairs(argparse.Action):
@@ -60,14 +59,15 @@ class arguments():
             '-v', '--vcfs', nargs='+',
             help='Annotated vcf file(s)'
         )
-        parser.add_argument(
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
             '-e', '--exclude', nargs='+',
             help=(
-                'Columns in vcf to EXCLUDE from output, by default all INFO '
+                'Columns from vcf to EXCLUDE from output, by default all INFO '
                 'and CSQ fields are expanded to their own columns'
             )
         )
-        parser.add_argument(
+        group.add_argument(
             '-i', '--include', nargs='+',
             help=(
                 'Columns in vcf to INCLUDE from output, by default all INFO '
@@ -77,8 +77,8 @@ class arguments():
         parser.add_argument(
             '-r', '--reorder', required=False, nargs='+',
             help=(
-                'Set order for columns in output vcf, any not specified will '
-                'be appended to the end'
+                'Set order for columns in output workbook, any not specified '
+                'will be appended to the end'
             )
         )
         parser.add_argument(
@@ -86,7 +86,8 @@ class arguments():
             help=(
                 'Pass pairs of {column_name}={new_column_name} for renaming '
                 'columns in output excel, should be passed as '
-                '--rename CHROM=chr POS=pos REF=ref...'
+                '--rename CHROM=chr POS=pos REF=ref... (use --print_columns '
+                'to see valid column names)'
             )
         )
         parser.add_argument(
@@ -142,12 +143,13 @@ class arguments():
         )
         parser.add_argument(
             '--out_dir', required=False, default=os.getcwd(),
-            help="path to where to output report"
+            help="path to output directory"
         )
         parser.add_argument(
             '-m', '--merge', action='store_true',
             help=(
-                'Merge multiple vcfs into one dataframe of variants to display'
+                'Merge multiple vcfs into one combined sheet of '
+                'variants to display'
             )
         )
         parser.add_argument(
@@ -223,22 +225,6 @@ class arguments():
 
         self.args.output = (
             f"{Path(self.args.out_dir)}/{self.args.output}.xlsx"
-        )
-
-
-    def check_include_exclude(self) -> None:
-        """
-        Use of --inlcude / --exclude is mutually exclusive, therefore check
-        and raise exception if both are passed
-
-        Raises
-        ------
-        AssertionError
-            Raised when include and exclude arguments are both specified
-        """
-        assert not (self.args.include and self.args.exclude), (
-            "Both --include and --exclude passed, these arguments are "
-            "mutually exclusive."
         )
 
 
