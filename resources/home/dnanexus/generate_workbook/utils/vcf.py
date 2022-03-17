@@ -338,21 +338,21 @@ class vcf():
         """
         # some URLs are build specific, infer which to use from build in header
         reference = self.refs[0].lower()
+        gnomad_base_url = "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
+
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
-                "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1",
-                "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r2_1"
+                "gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r2_1",
+                "gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r2_1"
             })
         elif '38' in reference:
             self.urls.update({
-                "gnomad_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3",
-                "gnomadg_af": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT?dataset=gnomad_r3"
+                "gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r3",
+                "gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r3"
             })
 
         for idx, vcf in enumerate(self.vcfs):
             for col in vcf.columns:
-                # print(vcf.columns.tolist())
-                # sys.exit()
                 if self.urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx].apply(
