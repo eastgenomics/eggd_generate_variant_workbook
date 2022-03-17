@@ -95,6 +95,12 @@ class splitColumns():
         # sample strings is not strict, but ## is very unlikely to be used
         tmp_df = pd.DataFrame()
 
+        # sense check what we use to split on does not already exist
+        assert vcf_df[vcf_df['SAMPLE'].str.contains('##')].empty, (
+            'Error attempting to split SAMPLE column, one or more rows '
+            '  contain "##" which is used to separate the columns.'
+        )
+
         tmp_df['tmp'] = vcf_df.apply(lambda x: '##'.join([
             "=".join(x) for x in zip(x.FORMAT.split(':'), x.SAMPLE.split(':'))
         ]), axis=1)
