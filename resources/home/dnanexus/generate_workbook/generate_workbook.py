@@ -252,7 +252,7 @@ class arguments():
             # merging => should be at most one name passed (or will default
             # to 'variants' in set_sheet_names())
             if self.args.sheets:
-                assert len(self.args.sheets) == 1. (
+                assert len(self.args.sheets) == 1, (
                     "--merge specified but more than one user defined sheet "
                     "name passed. Either pass one name, or do not pass the "
                     "--sheets arg and the default will be used ('variants')"
