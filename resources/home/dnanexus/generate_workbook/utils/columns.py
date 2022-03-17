@@ -82,6 +82,12 @@ class splitColumns():
         vcf_df : pd.DataFrame
             dataframe of all variants from a vcf
 
+        Raises
+        ------
+        AssertionError
+            Raised when SAMPLE column contains '##' that is used to split out
+            data to separte columns on
+
         Returns
         -------
         vcf_df : pd.DataFrame
