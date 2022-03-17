@@ -240,9 +240,9 @@ class arguments():
             given with args.sheets
         """
         assert len(self.args.vcfs) == len(self.args.sheets), (
-                "Different number of sheets specified to total vcfs passed. "
-                f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
-                f"sheet names passed: {len(self.args.sheets)}"
+            "Different number of sheets specified to total vcfs passed. "
+            f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
+            f"sheet names passed: {len(self.args.sheets)}"
         )
 
 
@@ -254,7 +254,8 @@ class arguments():
             if len(self.args.vcfs) > 1 and not self.args.merge:
                 # sheet names not specified for > 1 vcf passed => use vcf names
                 self.args.sheets = [
-                    Path(x).name.split('_')[0] for x in self.args.vcfs
+                    Path(x).name.split('_')[0] if '_' in x else
+                    Path(x).stem.replace('.vcf', '') for x in self.args.vcfs
                 ]
             else:
                 # one vcf (or merged) => name it variants

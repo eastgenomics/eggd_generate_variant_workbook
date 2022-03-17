@@ -242,6 +242,7 @@ class vcf():
         print(f"\n\nReading in vcf {vcf} for sample {sample}\n")
 
         if sample:
+            sample = sample.replace('.vcf', '').replace('.gz', '')
             if '_' in sample:
                 sample = sample.split('_')[0]
 
