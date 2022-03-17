@@ -526,6 +526,10 @@ class vcf():
         AssertionError
             Raised when columns specified with --rename do not exist in more
             or more of the vcfs columns
+
+        AssertionError
+            Raised when new column names specified are already present in the
+            vcf
         """
         for idx, vcf in enumerate(self.vcfs):
             if self.args.rename:
