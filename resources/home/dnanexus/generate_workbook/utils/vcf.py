@@ -336,6 +336,12 @@ class vcf():
                 # add reference file if found and same not already in list
                 self.refs.append(Path(ref).name)
 
+                # check we don't have a mix of 37 and 38
+                assert not ('37' in str(self.refs) and '38' in str(self.refs)), (
+                    'References from vcfs appear to be a mix of reference '
+                    f'builds.\n References parsed: {self.refs}'
+                )
+
 
     def add_hyperlinks(self) -> None:
         """
