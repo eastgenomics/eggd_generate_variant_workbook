@@ -19,9 +19,6 @@ def read_test_vcf(vcf_file):
     """
     Read in test vcf to dataframe using methods from vcf()
     """
-    # test data vcf
-    columns_vcf = os.path.join(TEST_DATA_DIR, vcf_file)
-
     # initialise vcf class with a valid argparse input to allow calling .read()
     vcf_handler = vcf(argparse.Namespace(
         add_name=False, analysis='', clinical_indication='', exclude=None,
@@ -30,9 +27,9 @@ def read_test_vcf(vcf_file):
         output='',
         panel='', print_columns=False, print_header=False, reads='',
         rename=None, reorder=None, sample='', sheets=['variants'],
-        summary=None, usable_reads='', vcfs=[columns_vcf], workflow=('', '')
+        summary=None, usable_reads='', vcfs=[vcf_file], workflow=('', '')
     ))
-    vcf_df = vcf_handler.read(columns_vcf)
+    vcf_df = vcf_handler.read(vcf_file)
 
     return vcf_df
 
@@ -138,7 +135,7 @@ class TestFormatSample():
     fields, combining with respective values from SAMPLE column
     """
     # run dataframe through splitColumns.format_fields() to split out FORMAT/SAMPLE
-    test_vcf = "NA12878_unittest.split.vcf"
+    test_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.split.vcf")
 
     # run dataframe through splitColumns.info() to split out INFO column
     vcf_df = read_test_vcf(vcf_file=test_vcf)
