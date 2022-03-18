@@ -127,7 +127,7 @@ class TestInfoColumn():
         # get AF values from dataframe
         df_values = sorted(list(self.vcf_df['CSQ_gnomAD_AF'].unique().tolist()))
 
-        assert all([x == y for x, y in zip(stdout, df_values)]), (
+        assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
             "gnomAD AF values in VCF do not match those in dataframe"
         )
 
