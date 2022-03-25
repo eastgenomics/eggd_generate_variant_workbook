@@ -1,4 +1,3 @@
-from email import header
 import fileinput
 import re
 import subprocess

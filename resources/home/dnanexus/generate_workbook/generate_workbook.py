@@ -2,7 +2,6 @@ import argparse
 import os
 from pathlib import Path
 import sys
-from matplotlib.pyplot import table
 
 import pandas as pd
 

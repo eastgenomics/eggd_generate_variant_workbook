@@ -1,4 +1,3 @@
-from email import header
 from pathlib import Path
 from string import ascii_uppercase as uppercase
 import sys
@@ -9,7 +8,6 @@ from openpyxl import load_workbook
 from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
 
 # openpyxl style settings
