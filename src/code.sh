@@ -8,9 +8,16 @@ _dias_report_setup () {
     mark-section "Parsing values"
 
     # get job id creating the annotated vcf
-    analysis_id=$(dx describe --json ${vcfs[0]} | jq -r '.createdBy.job')
-    workflow_id=$(dx describe --json ${analysis_id} | jq -r '.parentAnalysis')
-    workflow_name=$(dx describe --json ${workflow_id} | jq -r '.executableName')
+    vcf=$(awk -F'"' '{print $4}' <<< "${vcfs[0]}")
+    analysis_id=$(dx describe --json ${vcf} | jq -r '.createdBy.job')
+
+    if [ "$analysis_id" != "null" ]; then
+        workflow_id=$(dx describe --json "${analysis_id}" | jq -r '.parentAnalysis')
+
+        if [ "$workflow_id" != "null" ]; then
+            workflow_name=$(dx describe --json "${workflow_id}" | jq -r '.executableName')
+        fi
+    fi
 
     project_id=$DX_PROJECT_CONTEXT_ID
     job_id=$DX_JOB_ID
