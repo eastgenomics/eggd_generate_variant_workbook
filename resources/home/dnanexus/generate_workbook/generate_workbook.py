@@ -269,8 +269,11 @@ class arguments():
                     Path(x).name.split('_')[0] if '_' in x else
                     Path(x).stem.replace('.vcf', '') for x in self.args.vcfs
                 ]
+            elif self.args.filter:
+                # one vcf (or merged) and filtering
+                self.args.sheets = ["included"]
             else:
-                # one vcf (or merged) => name it variants
+                # one vcf (or merged) and NOT filtering => name it variants
                 self.args.sheets = ["variants"]
 
 

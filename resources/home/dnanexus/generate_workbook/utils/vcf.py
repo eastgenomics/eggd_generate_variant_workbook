@@ -139,7 +139,7 @@ class vcf():
             # doing column operations and writing to Excel file
             self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
-            self.args.sheets.append('filtered')
+            self.args.sheets.append('excluded')
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
