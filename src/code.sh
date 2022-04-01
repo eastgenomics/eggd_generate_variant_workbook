@@ -52,15 +52,14 @@ main() {
     mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
 
     mark-section "Installing packages"
-    # install required python packages
     python3 -m pip install --no-index --no-deps --user packages/*
 
     echo "keep passed: ${keep}"
     echo "merge passed: ${merge}"
 
-    mark-section "Generating workbook"
     # build string of input arguments
-    args=""
+    mark-section "Building arguments"
+    args="--out_dir /home/dnanexus/out/xlsx_reports "
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$exclude_columns" ]; then args+="--exclude ${exclude_columns} "; fi
     if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
@@ -81,20 +80,16 @@ main() {
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
 
-    args+="--out_dir /home/dnanexus/out/xlsx_reports"
 
+    mark-section "Generating workbook"
     if [ "$filter" ]; then
         # adding the filter variable to the args string breaks everything as it is a single
         # string with spaces and quoting in bash is some black magic that makes no sense,
         # keeping this separate works so ¯\_(ツ)_/¯
-        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args --filter "${filter}"
+        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* "$args" --filter "${filter}"
     else
-        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args
+        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* "$args"
     fi
-
-
-    # python3 generate_workbook/generate_workbook.py --vcfs vcfs/* \
-    #     --out_dir "/home/dnanexus/out/xlsx_reports" ${args}
 
     mark-section "Uploading output"
     output_xlsx=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)
