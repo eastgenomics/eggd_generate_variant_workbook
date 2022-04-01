@@ -53,7 +53,7 @@ main() {
 
     mark-section "Installing packages"
     # install required python packages
-    python3 -m pip install --no-index --no-deps packages/*
+    python3 -m pip install --no-index --no-deps --user packages/*
 
     echo "keep passed: ${keep}"
     echo "merge passed: ${merge}"
@@ -66,23 +66,35 @@ main() {
     if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
     if [ "$reorder_columns" ]; then args+="--reorder ${reorder_columns} "; fi
     if [ "$rename_columns" ]; then args+="--rename ${rename_columns} "; fi
+    if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
+    if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
+    if [ "$summary" ]; then args+="--summary ${summary} "; fi
+    if [ "$keep_filtered" == true ]; then args+="--keep "; fi
+    if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
     if [ "$print_header" ]; then args+="--print_header "; fi
+    if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$output" ]; then args+="--sample ${output} "; fi
     if [ "$output" ]; then args+="--output ${output} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
-    if [ "$summary" ]; then args+="--summary ${summary} "; fi
-    if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
-    if [ "$filter" ]; then args+="--filter ${filter} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
-    if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
-    if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
-    if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
-    if [ "$keep_filtered" == true ]; then args+="--keep "; fi
 
-    /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* --out_dir "/home/dnanexus/out/xlsx_reports" $args
+    args+="--out_dir /home/dnanexus/out/xlsx_reports"
+
+    if [ "$filter" ]; then
+        # adding the filter variable to the args string breaks everything as it is a single
+        # string with spaces and quoting in bash is some black magic that makes no sense,
+        # keeping this separate works so ¯\_(ツ)_/¯
+        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args --filter "${filter}"
+    else
+        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args
+    fi
+
+
+    # python3 generate_workbook/generate_workbook.py --vcfs vcfs/* \
+    #     --out_dir "/home/dnanexus/out/xlsx_reports" ${args}
 
     mark-section "Uploading output"
     output_xlsx=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)

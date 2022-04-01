@@ -75,7 +75,7 @@
       "label": "Keep",
       "class": "boolean",
       "optional": true,
-      "default": false,
+      "default": true,
       "help": "Determines if to keep filtered variants in separate 'filtered' tab",
       "group": "generate_workbook.py"
     },
