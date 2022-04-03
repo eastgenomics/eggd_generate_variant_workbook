@@ -91,16 +91,19 @@ class vcf():
                 # filtered variants to read into df
                 keep_df = self.read(filter_vcf, Path(vcf).stem)
 
-                # get filtered out rows and read back to new df
-                _, columns = self.parse_header(vcf)
-                filtered_df = filter(self.args).get_filtered_rows(
-                    split_vcf, keep_df, columns
-                )
+                # read in all variants vcf to identify excluded rows
+                all_variants_df = self.read(split_vcf)
 
                 # split out INFO and FORMAT column values to individual
                 # columns in dataframe
                 keep_df = splitColumns().split(keep_df)
-                filtered_df = splitColumns().split(filtered_df)
+                all_variants_df = splitColumns().split(all_variants_df)
+
+                # get filtered out rows and read back to new df
+                _, columns = self.parse_header(vcf)
+                filtered_df = filter(self.args).get_filtered_rows(
+                    all_variants_df, keep_df, columns
+                )
 
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)

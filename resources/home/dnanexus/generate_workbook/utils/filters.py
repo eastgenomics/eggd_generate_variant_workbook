@@ -2,9 +2,11 @@ import fileinput
 import re
 import subprocess
 import sys
+from black import err
 
 import numpy as np
 import pandas as pd
+from sklearn.decomposition import KernelPCA
 
 pd.options.mode.chained_assignment = None
 
@@ -71,7 +73,7 @@ class filter():
         )
 
 
-    def get_filtered_rows(self, vcf, keep_df, columns) -> pd.DataFrame():
+    def get_filtered_rows(self, full_df, keep_df, columns) -> pd.DataFrame():
         """
         Given dataframe of variants passing filter from vcf, return a
         dataframe of the filtered out variants
@@ -81,7 +83,7 @@ class filter():
         vc : str
             name of full vcf passed to .filter() to read all variants from
         keep_df : pd.DataFrame
-            dataframe of variants passing filters
+            dataframe of variants passing filters, from bcftools filter
         columns : list
             column names read from header of vcf
 
@@ -90,19 +92,21 @@ class filter():
         filtered_out_df : pd.DataFrame
             dataframe of filtered out variants
         """
-        # read full unfiltered vcf into pandas df
-        full_df = pd.read_csv(
-            vcf, sep='\t', comment='#', names=columns, compression='infer'
-        )
-
         # need to find filtered rows without FILTER column since this is
         # modified with bcftools
+        columns = keep_df.columns.tolist()
         columns.remove('FILTER')
 
-        # store the current dtypes to set later, set both to str for merging
-        dtypes = full_df.dtypes.to_dict()
-        keep_df = keep_df.astype(str)
-        full_df = full_df.astype(str)
+        for column in keep_df.columns:
+            # force everything to be numeric if possible, this is needed due
+            # to having mixes of integers and floats as objects (i.e. 0 vs 0.0)
+            # which will not evaluate as equal
+            full_df[column] = pd.to_numeric(full_df[column], errors='ignore')
+            keep_df[column] = pd.to_numeric(keep_df[column], errors='ignore')
+
+            keep_df = keep_df.astype(full_df.dtypes).astype(str)
+            full_df = full_df.astype(str)
+
 
         # get the rows only present in original vcf => filtered out rows
         filtered_out_df = full_df.merge(
@@ -114,8 +118,6 @@ class filter():
         filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
         filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
         filtered_out_df.reset_index(inplace=True, drop=True)
-
-        filtered_out_df = filtered_out_df.astype(dtypes)
 
         return filtered_out_df
 

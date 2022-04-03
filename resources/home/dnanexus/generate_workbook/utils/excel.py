@@ -4,6 +4,7 @@ import sys
 from timeit import default_timer as timer
 
 import Levenshtein as levenshtein
+import numpy as np
 from openpyxl import load_workbook
 from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
@@ -297,6 +298,7 @@ class excel():
         written_sheet = written_sheet.iloc[1:]  # drop header on first row
 
         # openpyxl read sets NaNs to None, so match it
+        vcf = vcf.replace(r'^\s*$', np.nan, regex=True)
         vcf.fillna('None', inplace=True)
 
         # set all columns of both dfs to strings
