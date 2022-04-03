@@ -2,13 +2,9 @@ import fileinput
 import re
 import subprocess
 import sys
-from black import err
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import KernelPCA
-
-pd.options.mode.chained_assignment = None
 
 
 class filter():

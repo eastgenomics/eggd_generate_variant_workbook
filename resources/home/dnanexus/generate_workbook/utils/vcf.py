@@ -105,6 +105,14 @@ class vcf():
                     all_variants_df, keep_df, columns
                 )
 
+                assert len(all_variants_df) == len(keep_df) + len(filtered_df), (
+                    "Total variants included and excluded does not match "
+                    f"total from input vcf.\n\nToal variants input: "
+                    f"{len(all_variants_df)}\nTotal variants included: "
+                    f"{len(keep_df)}\nTotal variants excluded: "
+                    f"{len(filtered_df)}"
+                )
+
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)
 
@@ -259,10 +267,6 @@ class vcf():
         vcf_df = pd.read_csv(
             vcf, sep='\t', comment='#', names=columns, compression='infer'
         )
-
-        self.total_vcf_rows += len(vcf_df.index)  # update our total count
-        print(f"Total rows in current VCF: {len(vcf_df.index)}")
-        print(f"Total rows of all vcfs read in: {self.total_vcf_rows}\n")
 
         if self.args.add_name:
             # add sample name from filename as 1st column
