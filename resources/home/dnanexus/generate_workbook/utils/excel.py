@@ -117,7 +117,8 @@ class excel():
             self.summary[f"A{count}"].font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-            for ref in self.refs:
+
+            for ref in list(set(self.refs)):
                 self.summary.cell(count, 2).value = ref
                 count += 1
 

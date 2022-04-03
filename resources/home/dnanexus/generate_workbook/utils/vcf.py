@@ -338,6 +338,7 @@ class vcf():
         ref = next(
             iter([x for x in header if x.startswith('##reference')]), None
         )
+
         if ref:
             if ref not in self.refs:
                 # add reference file if found and same not already in list
