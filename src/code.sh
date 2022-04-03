@@ -59,7 +59,7 @@ main() {
 
     # build string of input arguments
     mark-section "Building arguments"
-    args="--out_dir /home/dnanexus/out/xlsx_reports "
+    args=""
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$exclude_columns" ]; then args+="--exclude ${exclude_columns} "; fi
     if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
@@ -80,15 +80,16 @@ main() {
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
 
+    args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
     mark-section "Generating workbook"
     if [ "$filter" ]; then
         # adding the filter variable to the args string breaks everything as it is a single
         # string with spaces and quoting in bash is some black magic that makes no sense,
         # keeping this separate works so ¯\_(ツ)_/¯
-        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* "$args" --filter "${filter}"
+        /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args --filter "${filter}"
     else
-        python3 generate_workbook/generate_workbook.py --vcfs vcfs/* "$args"
+        /usr/bin/time -v python3 generate_workbook/generate_workbook.py --vcfs vcfs/* $args
     fi
 
     mark-section "Uploading output"
