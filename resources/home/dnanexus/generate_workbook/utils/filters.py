@@ -1,4 +1,5 @@
 import fileinput
+import os
 import re
 import subprocess
 import sys
@@ -69,17 +70,17 @@ class filter():
         )
 
 
-    def get_filtered_rows(self, full_df, keep_df, columns) -> pd.DataFrame():
+    def get_filtered_rows(self, split_vcf, filter_vcf, columns) -> pd.DataFrame():
         """
         Given dataframe of variants passing filter from vcf, return a
         dataframe of the filtered out variants
 
         Parameters
         ----------
-        vc : str
-            name of full vcf passed to .filter() to read all variants from
-        keep_df : pd.DataFrame
-            dataframe of variants passing filters, from bcftools filter
+        split_vcf : str
+            filename of vcf of all variants
+        filtrr_vcf : str
+            filename of vcf of filtered out variants
         columns : list
             column names read from header of vcf
 
@@ -88,32 +89,22 @@ class filter():
         filtered_out_df : pd.DataFrame
             dataframe of filtered out variants
         """
-        # need to find filtered rows without FILTER column since this is
-        # modified with bcftools
-        columns = keep_df.columns.tolist()
-        columns.remove('FILTER')
+        os.makedirs('tmp', exist_ok=True)
 
-        for column in keep_df.columns:
-            # force everything to be numeric if possible, this is needed due
-            # to having mixes of integers and floats as objects (i.e. 0 vs 0.0)
-            # which will not evaluate as equal
-            full_df[column] = pd.to_numeric(full_df[column], errors='ignore')
-            keep_df[column] = pd.to_numeric(keep_df[column], errors='ignore')
+        # index both vcfs with tabix
+        split_index = f"tabix {split_vcf}"
+        filter_index = f"tabix {filter_vcf}"
 
-            keep_df = keep_df.astype(full_df.dtypes).astype(str)
-            full_df = full_df.astype(str)
+        split_output = subprocess.run(split_index, shell=True, capture_output=True)
+        filter_output = subprocess.run(filter_index, shell=True, capture_output=True)
 
+        # use bcftools isec to find excluded variants from bcftools filter
+        isec_command = f"bcftools isec -p tmp {split_vcf} {filter_vcf}"
 
-        # get the rows only present in original vcf => filtered out rows
-        filtered_out_df = full_df.merge(
-            keep_df, how='left', on=columns, indicator=True
+        # variants excluded will be in the 0000.vcf
+        filtered_out_df = pd.read_csv(
+            'tmp/0000.vcf', sep='\t', comment='#', names=columns, compression='infer'
         )
-        filtered_out_df = filtered_out_df.query('_merge == "left_only"')
-
-        # drop unneeded column and rename filter
-        filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
-        filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
-        filtered_out_df.reset_index(inplace=True, drop=True)
 
         return filtered_out_df
 

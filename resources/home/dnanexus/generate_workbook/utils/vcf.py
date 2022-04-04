@@ -94,16 +94,16 @@ class vcf():
                 # read in all variants vcf to identify excluded rows
                 all_variants_df = self.read(split_vcf)
 
-                # split out INFO and FORMAT column values to individual
-                # columns in dataframe
-                keep_df = splitColumns().split(keep_df)
-                all_variants_df = splitColumns().split(all_variants_df)
-
                 # get filtered out rows and read back to new df
                 _, columns = self.parse_header(vcf)
                 filtered_df = filter(self.args).get_filtered_rows(
-                    all_variants_df, keep_df, columns
+                    split_vcf, filter_vcf, columns
                 )
+
+                # split out INFO and FORMAT column values to individual
+                # columns in dataframe
+                keep_df = splitColumns().split(keep_df)
+                filtered_df = splitColumns().split(filtered_df)
 
                 assert len(all_variants_df) == len(keep_df) + len(filtered_df), (
                     "Total variants included and excluded does not match "
