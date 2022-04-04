@@ -1,15 +1,14 @@
-from email import header
 from pathlib import Path
 from string import ascii_uppercase as uppercase
 import sys
 from timeit import default_timer as timer
 
 import Levenshtein as levenshtein
+import numpy as np
 from openpyxl import load_workbook
 from openpyxl.styles import Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
 
 # openpyxl style settings
@@ -84,10 +83,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(34, 1).value = "Workflow:"
-        self.summary.cell(35, 1).value = "Workflow ID:"
-        self.summary.cell(36, 1).value = "Report Job ID:"
-        self.summary.cell(38, 1).value = "Total records:"
+        self.summary.cell(34, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -102,12 +98,9 @@ class excel():
         self.summary.cell(1, 2).value = sample
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
-        self.summary.cell(34, 2).value = self.args.workflow[0]
-        self.summary.cell(35, 2).value = self.args.workflow[1]
-        self.summary.cell(36, 2).value = self.args.job_id
 
         # write total rows in each sheet
-        count = 38
+        count = 34
 
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(count, 2).value = sheet
@@ -124,7 +117,8 @@ class excel():
             self.summary[f"A{count}"].font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-            for ref in self.refs:
+
+            for ref in list(set(self.refs)):
                 self.summary.cell(count, 2).value = ref
                 count += 1
 
@@ -137,6 +131,20 @@ class excel():
             self.summary.cell(count, 2).value = self.args.filter
         else:
             self.summary.cell(count, 2).value = "None"
+
+        count += 2
+
+        self.summary.cell(count, 1).value = "Workflow:"
+        self.summary.cell(count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(count + 2, 1).value = "Report Job ID:"
+        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        self.summary[f"A{count + 1}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        self.summary[f"A{count + 2}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+
+        self.summary.cell(count, 2).value = self.args.workflow[0]
+        self.summary.cell(count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(count + 2, 2).value = self.args.job_id
+
 
         # write center reporting section tables
         self.summary.cell(9, 2).value = "Phenotype:"
@@ -291,6 +299,7 @@ class excel():
         written_sheet = written_sheet.iloc[1:]  # drop header on first row
 
         # openpyxl read sets NaNs to None, so match it
+        vcf = vcf.replace(r'^\s*$', np.nan, regex=True)
         vcf.fillna('None', inplace=True)
 
         # set all columns of both dfs to strings

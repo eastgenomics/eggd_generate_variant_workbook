@@ -77,15 +77,19 @@ class vcf():
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
             split_vcf = f"{Path(vcf).stem}.split.vcf"
+            split_vcf_gz = f"{Path(vcf).stem}.split.vcf.gz"
             filter_vcf = f"{Path(vcf).stem}.filter.vcf"
+            filter_vcf_gz = f"{Path(vcf).stem}.filter.vcf.gz"
 
             # first split multiple transcript annotation to separate VCF
             # records, and separate CSQ fields to separate INFO fields
             self.bcftools_pre_process(vcf, split_vcf)
+            self.bgzip(split_vcf)
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
                 filter(self.args).filter(split_vcf, filter_vcf)
+                self.bgzip(filter_vcf)
 
                 # filters.filter() writes temp filtered vcf containing the
                 # filtered variants to read into df
@@ -94,7 +98,7 @@ class vcf():
                 # get filtered out rows and read back to new df
                 _, columns = self.parse_header(vcf)
                 filtered_df = filter(self.args).get_filtered_rows(
-                    split_vcf, keep_df, columns
+                    split_vcf_gz, filter_vcf_gz, columns
                 )
 
                 # split out INFO and FORMAT column values to individual
@@ -106,9 +110,7 @@ class vcf():
                 self.filtered_vcfs.append(filtered_df)
 
                 if not self.args.keep_tmp:
-                    os.remove(filter_vcf)
-                else:
-                    self.bgzip(filter_vcf)
+                    os.remove(filter_vcf_gz)
 
                 # clean up some memory since big dataframes can use a lot
                 del keep_df, filtered_df
@@ -122,10 +124,17 @@ class vcf():
                 del vcf_df
 
             # delete tmp vcf from splitting CSQ str in bcftools_pre_process()
+            os.remove(split_vcf)
+
+            if self.args.filter:
+                os.remove(filter_vcf)
+
+                # indices only made when filtering
+                os.remove(f"{split_vcf_gz}.tbi")
+                os.remove(f"{filter_vcf_gz}.tbi")
+
             if not self.args.keep_tmp:
-                os.remove(split_vcf)
-            else:
-                self.bgzip(split_vcf)
+                os.remove(split_vcf_gz)
 
 
         if self.args.print_columns:
@@ -139,7 +148,7 @@ class vcf():
             # doing column operations and writing to Excel file
             self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
-            self.args.sheets.append('filtered')
+            self.args.sheets.append('excluded')
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
@@ -213,7 +222,8 @@ class vcf():
             Raised when non-zero exit code returned by bgzip
         """
         output = subprocess.run(
-            f"bgzip --force {file}", shell=True, capture_output=True
+            f"bgzip --force {file} -c > {file}.gz",
+            shell=True, capture_output=True
         )
 
         assert output.returncode == 0, (
@@ -256,10 +266,6 @@ class vcf():
         vcf_df = pd.read_csv(
             vcf, sep='\t', comment='#', names=columns, compression='infer'
         )
-
-        self.total_vcf_rows += len(vcf_df.index)  # update our total count
-        print(f"Total rows in current VCF: {len(vcf_df.index)}")
-        print(f"Total rows of all vcfs read in: {self.total_vcf_rows}\n")
 
         if self.args.add_name:
             # add sample name from filename as 1st column
@@ -331,6 +337,7 @@ class vcf():
         ref = next(
             iter([x for x in header if x.startswith('##reference')]), None
         )
+
         if ref:
             if ref not in self.refs:
                 # add reference file if found and same not already in list

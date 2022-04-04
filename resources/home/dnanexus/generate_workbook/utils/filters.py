@@ -1,13 +1,10 @@
-from email import header
 import fileinput
+import os
 import re
 import subprocess
 import sys
 
-import numpy as np
 import pandas as pd
-
-pd.options.mode.chained_assignment = None
 
 
 class filter():
@@ -72,17 +69,17 @@ class filter():
         )
 
 
-    def get_filtered_rows(self, vcf, keep_df, columns) -> pd.DataFrame():
+    def get_filtered_rows(self, split_vcf, filter_vcf, columns) -> pd.DataFrame():
         """
         Given dataframe of variants passing filter from vcf, return a
         dataframe of the filtered out variants
 
         Parameters
         ----------
-        vc : str
-            name of full vcf passed to .filter() to read all variants from
-        keep_df : pd.DataFrame
-            dataframe of variants passing filters
+        split_vcf : str
+            filename of vcf of all variants
+        filter_vcf : str
+            filename of vcf of filtered out variants
         columns : list
             column names read from header of vcf
 
@@ -91,32 +88,43 @@ class filter():
         filtered_out_df : pd.DataFrame
             dataframe of filtered out variants
         """
-        # read full unfiltered vcf into pandas df
-        full_df = pd.read_csv(
-            vcf, sep='\t', comment='#', names=columns, compression='infer'
+        os.makedirs('tmp', exist_ok=True)
+
+        # index both vcfs with tabix
+        split_index = f"tabix -f {split_vcf}"
+        filter_index = f"tabix -f {filter_vcf}"
+
+        split_output = subprocess.run(split_index, shell=True, capture_output=True)
+        filter_output = subprocess.run(filter_index, shell=True, capture_output=True)
+
+        assert split_output.returncode == 0 and filter_output.returncode == 0, (
+            f"\nError in indexing VCF(s)\nExit code for {split_vcf}: "
+            f"{split_output.returncode}\nExit code for {filter_vcf}: "
+            f"{filter_output.returncode}.\nstderr:\n{split_output.stderr.decode()}"
+            f"\n{filter_output.stderr.decode()}"
         )
 
-        # need to find filtered rows without FILTER column since this is
-        # modified with bcftools
-        columns.remove('FILTER')
+        # use bcftools isec to find excluded variants from bcftools filter
+        isec_command = f"bcftools isec -p tmp {split_vcf} {filter_vcf}"
+        isec_output = subprocess.run(isec_command, shell=True, capture_output=True)
 
-        # store the current dtypes to set later, set both to str for merging
-        dtypes = full_df.dtypes.to_dict()
-        keep_df = keep_df.astype(str)
-        full_df = full_df.astype(str)
-
-        # get the rows only present in original vcf => filtered out rows
-        filtered_out_df = full_df.merge(
-            keep_df, how='left', on=columns, indicator=True
+        assert isec_output.returncode == 0, (
+            f"\nError in bcftools isec\nReturncode: {isec_output.returncode}"
+            f"\n{isec_output.stderr.decode()}"
         )
-        filtered_out_df = filtered_out_df.query('_merge == "left_only"')
 
-        # drop unneeded column and rename filter
-        filtered_out_df.drop(['_merge', 'FILTER_y'], axis=1, inplace=True)
-        filtered_out_df.rename(columns={'FILTER_x': 'FILTER'}, inplace=True)
-        filtered_out_df.reset_index(inplace=True, drop=True)
+        # variants excluded will be in the 0000.vcf
+        filtered_out_df = pd.read_csv(
+            'tmp/0000.vcf', sep='\t', comment='#', names=columns, compression='infer'
+        )
 
-        filtered_out_df = filtered_out_df.astype(dtypes)
+        # tidy up bcftools isec output
+        os.remove('tmp/0000.vcf')
+        os.remove('tmp/0001.vcf')
+        os.remove('tmp/0002.vcf')
+        os.remove('tmp/0003.vcf')
+        os.remove('tmp/README.txt')
+        os.remove('tmp/sites.txt')
 
         return filtered_out_df
 
