@@ -78,7 +78,7 @@ class filter():
         ----------
         split_vcf : str
             filename of vcf of all variants
-        filtrr_vcf : str
+        filter_vcf : str
             filename of vcf of filtered out variants
         columns : list
             column names read from header of vcf
