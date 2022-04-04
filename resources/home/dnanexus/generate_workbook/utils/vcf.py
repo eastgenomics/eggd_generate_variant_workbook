@@ -125,15 +125,16 @@ class vcf():
 
             # delete tmp vcf from splitting CSQ str in bcftools_pre_process()
             os.remove(split_vcf)
-            os.remove(filter_vcf)
-
-            if not self.args.keep_tmp:
-                os.remove(split_vcf_gz)
 
             if self.args.filter:
+                os.remove(filter_vcf)
+
                 # indices only made when filtering
                 os.remove(f"{split_vcf_gz}.tbi")
                 os.remove(f"{filter_vcf_gz}.tbi")
+
+            if not self.args.keep_tmp:
+                os.remove(split_vcf_gz)
 
 
         if self.args.print_columns:
