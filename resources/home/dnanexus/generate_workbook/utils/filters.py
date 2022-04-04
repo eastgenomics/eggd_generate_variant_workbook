@@ -92,19 +92,40 @@ class filter():
         os.makedirs('tmp', exist_ok=True)
 
         # index both vcfs with tabix
-        split_index = f"tabix {split_vcf}"
-        filter_index = f"tabix {filter_vcf}"
+        split_index = f"tabix -f {split_vcf}"
+        filter_index = f"tabix -f {filter_vcf}"
 
         split_output = subprocess.run(split_index, shell=True, capture_output=True)
         filter_output = subprocess.run(filter_index, shell=True, capture_output=True)
 
+        assert split_output.returncode == 0 and filter_output.returncode == 0, (
+            f"\nError in indexing VCF(s)\nExit code for {split_vcf}: "
+            f"{split_output.returncode}\nExit code for {filter_vcf}: "
+            f"{filter_output.returncode}.\nstderr:\n{split_output.stderr.decode()}"
+            f"\n{filter_output.stderr.decode()}"
+        )
+
         # use bcftools isec to find excluded variants from bcftools filter
         isec_command = f"bcftools isec -p tmp {split_vcf} {filter_vcf}"
+        isec_output = subprocess.run(isec_command, shell=True, capture_output=True)
+
+        assert isec_output.returncode == 0, (
+            f"\nError in bcftools isec\nReturncode: {isec_output.returncode}"
+            f"\n{isec_output.stderr.decode()}"
+        )
 
         # variants excluded will be in the 0000.vcf
         filtered_out_df = pd.read_csv(
             'tmp/0000.vcf', sep='\t', comment='#', names=columns, compression='infer'
         )
+
+        # tidy up bcftools isec output
+        os.remove('tmp/0000.vcf')
+        os.remove('tmp/0001.vcf')
+        os.remove('tmp/0002.vcf')
+        os.remove('tmp/0003.vcf')
+        os.remove('tmp/README.txt')
+        os.remove('tmp/sites.txt')
 
         return filtered_out_df
 
