@@ -97,8 +97,11 @@ main() {
     dx-jobutil-add-output xlsx_report "$output_xlsx" --class=file
 
     if [ "$keep_tmp" == true ]; then
-        tmp_vcfs=$(find . \( -name "*.filter.vcf.gz" -o -name "*.split.vcf.gz" \))
-        uploaded_vcfs=$(dx upload "${tmp_vcfs}" --brief)
-        dx-jobutil-add-output tmp_vcfs "$uploaded_vcfs" --class=array:file
+        # upload intermediary vcfs
+        tmp_vcfs=$(find . \( -name "*.filter.vcf.gz" -o -name "*.split.vcf.gz" \) | tr '\n' ' ')
+        for file in $tmp_vcfs; do
+            id=$(dx upload "${file}" --brief)
+            dx-jobutil-add-output tmp_vcfs "$id" --class=array:file
+        done
     fi
 }
