@@ -500,7 +500,8 @@ class vcf():
             assert all(column in vcf.columns for column in columns), (
                 "Column(s) specified with --exclude not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
-                f"{vcf.columns.tolist()}. \n\nColumns specified: {columns}"
+                f"{vcf.columns.tolist()}. \n\nInvalid columns specified: "
+                f"{list(set(columns) - set(vcf.columns.tolist()))}"
             )
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')

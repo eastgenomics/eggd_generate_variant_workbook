@@ -146,13 +146,10 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "panel_bed",
-      "label": "Panel bed that matches panel name provided",
-      "class": "file",
+      "name": "panel",
+      "label": "String of panel information to display in report",
+      "class": "string",
       "optional": true,
-      "patterns": [
-        "*.bed"
-      ],
       "help": "",
       "group": "app"
     }

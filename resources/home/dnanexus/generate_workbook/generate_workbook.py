@@ -41,6 +41,17 @@ class arguments():
                 getattr(namespace, self.dest)[key] = value
 
 
+    class joinList(argparse.Action):
+        """
+        Merge a list input to a single string
+
+        Used where panels passed in and need to format as string to display
+        in summary of workbook
+        """
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, self.dest, ' '.join(values))
+
+
     def parse_args(self) -> argparse.Namespace:
         """
         Parse command line arguments
@@ -164,7 +175,7 @@ class arguments():
             help='Name and ID of workflow to display in summary'
         )
         parser.add_argument(
-            '--panel', default='',
+            '--panel', nargs='+', action=self.joinList,
             help='panel name to display in summary'
         )
         parser.add_argument(
