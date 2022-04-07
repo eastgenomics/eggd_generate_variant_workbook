@@ -45,8 +45,8 @@ class arguments():
         """
         Merge a list input to a single string
 
-        Used where panels passed in and need to format as string to display
-        in summary of workbook
+        Used where panels passed in as a list and need to format as
+        string to display in summary of workbook
         """
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, ' '.join(values))
