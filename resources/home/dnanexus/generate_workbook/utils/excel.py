@@ -276,6 +276,10 @@ class excel():
                 # read back the written sheet to check its written correctly
                 self.check_written_sheets(vcf, sheet)
 
+                # set Excel types for numeric cells to suppress Excel warnings
+                self.set_types(curr_worksheet)
+                self.workbook.save(self.args.output)
+
 
     def check_written_sheets(self, vcf, sheet) -> None:
         """"
@@ -302,9 +306,11 @@ class excel():
             sheet_data.values, columns=vcf.columns.tolist())
         written_sheet = written_sheet.iloc[1:]  # drop header on first row
 
-        # openpyxl read sets NaNs to None, so match it
+        # force nan values to be None strings for consistency on comparing
         vcf = vcf.replace(r'^\s*$', np.nan, regex=True)
         vcf.fillna('None', inplace=True)
+        written_sheet = written_sheet.replace(r'^\s*$', np.nan, regex=True)
+        written_sheet.fillna('None', inplace=True)
 
         # set all columns of both dfs to strings
         vcf = vcf.astype(str)
@@ -324,6 +330,41 @@ class excel():
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
         )
+
+
+    def set_types(self, worksheet) -> None:
+        """
+        Iterate over all worksheet cells and test if cell value can be numeric,
+        if so sets the type to numeric to suppress 'Number stored as text'
+        warning in Excel
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        """
+        for cells in worksheet.rows:
+            for cell in cells:
+                if self.is_numeric(cell.value):
+                    cell.data_type = 'n'
+
+
+    def is_numeric(self, value) -> bool:
+        """
+        Returns true if given value is in some form numeric
+
+        Parameters
+        ----------
+        value : str
+            string to check if can be cast to numeric type
+
+        Returns
+        -------
+        bool
+            True if value can be numeric
+        """
+        return str(value).lstrip('-').replace('.', '').replace(
+            'e-', '', 1).replace('e', '').isdigit()
 
 
     def set_font(self, worksheet) -> None:
