@@ -72,11 +72,11 @@
     },
     {
       "name": "keep_filtered",
-      "label": "Keep",
+      "label": "Keep filtered",
       "class": "boolean",
       "optional": true,
       "default": true,
-      "help": "Determines if to keep filtered variants in separate 'filtered' tab",
+      "help": "Determines if to keep filtered variants in separate 'excluded' tab",
       "group": "generate_workbook.py"
     },
     {
