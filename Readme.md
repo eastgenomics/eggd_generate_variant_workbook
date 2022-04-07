@@ -39,7 +39,7 @@ This app may be executed as a standalone app.
 
 `--keep_tmp` (`bool`): Determines if to upload the intermediate bcftools split and filtered vcfs. `*.split.vcf.gz` is the output from `bcftools split-vep` and `*.filter.vcf.gz` is the output from `bcftools filter`.
 
-`--keep_filtered` (`bool`): Determines if filtered rows from `--filter` are retained in a seperate 'filtered' tab (default: `True`).
+`--keep_filtered` (`bool`): Determines if filtered rows from `--filter` are retained in a seperate 'excluded' tab (default: `True`).
 
 `--add_samplename_column` (`bool`): Determines if to add sample name as first column in each sheet (default: `False`). Column will be named `sampleName`, will be first column unless `--reorder_columns` is specified.
 
@@ -52,6 +52,8 @@ This app may be executed as a standalone app.
 `--summary` (`string`): If to include summary sheet, specify key of assay. Currently only supports `dias`.
 
 `--panel` (`string`): Name of panel to display in summary sheet.
+
+`--clinical_indication` (`string`):  Clinical indication to display in summary sheet
 
 `--print_columns` (`bool`): Print column names of all vcfs that will be output to the xlsx and exit. Useful to identify what will be in the output to include/exclude.
 
@@ -76,7 +78,7 @@ The above will do the following:
 - set the type for gnomAD genomes AF in the vcf header to `Float` to allow filtering
 - rename the gnomAD genomes AF column
 - add the summary sheet for Dias
-- exlcude the `MLEAF`, `MGRankSum` and `MLEAC` columns from the output
+- exclude the `MLEAF`, `MGRankSum` and `MLEAC` columns from the output
 - keep the filtered out variants in a separate sheet (default behaviour)
 
 
