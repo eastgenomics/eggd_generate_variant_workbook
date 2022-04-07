@@ -38,6 +38,7 @@ _dias_report_setup () {
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
     export BCFTOOLS_PLUGINS=/usr/local/libexec/bcftools/
+    export PATH=$PATH:/home/dnanexus/.local/bin  # pip installs some packages here, add to path
 
     mark-section "Downloading inputs"
     mkdir vcfs
@@ -52,10 +53,7 @@ main() {
     mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
 
     mark-section "Installing packages"
-    python3 -m pip install --no-index --no-deps --user packages/*
-
-    echo "keep passed: ${keep}"
-    echo "merge passed: ${merge}"
+    sudo -H python3 -m pip install --no-index --no-deps packages/*
 
     # build string of input arguments
     mark-section "Building arguments"
