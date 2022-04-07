@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+from xml.etree.ElementInclude import include
 
 import pandas as pd
 
@@ -27,7 +28,7 @@ class filter():
 
     def filter(self, split_vcf, filter_vcf) -> None:
         """
-        Filter given vcf using bcftoolsd
+        Filter given vcf using bcftools
 
         Parameters
         ----------
@@ -135,6 +136,51 @@ class filter():
         os.remove('tmp/sites.txt')
 
         return filtered_out_df
+
+
+    def verify_total_variants(self, split_vcf, include_df, exclude_df) -> None:
+        """
+        Verify no variants are dropped from filtering by checking total
+        included and excluded dataframe rows against input VCF
+
+        Parameters
+        ----------
+        split_vcf : string
+            filename of vcf used for filtering
+        include_df : pd.DataFrame
+            dataframe of variants retained from bcftools filter
+        exclude_df : pd.DataFrame
+            dataframe of variants excluded by bcftools filter
+
+        Raises
+        ------
+        AssertionError
+            Raised when total variants in the include and exclude dataframe
+            do not equal the total variants in the input vcf
+        """
+        output = subprocess.run(
+            f"zgrep -v '^#' {split_vcf}", shell=True, capture_output=True
+        )
+
+        assert output.returncode == 0, (
+            f"\n\tError in reading total rows from vcf used for filtering\n"
+            f"\n\tExit code: {output.returncode}\n"
+            f"\n\tCommand: zgrep -v '^#' {split_vcf}\n"
+            f"\n\t{output.stderr.decode()}"
+        )
+
+        vcf_total = output.stdout.decode()
+
+        print(
+            f"Total variants in input vcf: {vcf_total}"
+            f"Total variants included: {len(include_df)}"
+            f"Total variants excluded: {len(exclude_df)}"
+        )
+
+        assert vcf_total == len(include_df) + len(exclude_df), (
+            "Total variants in input VCF does not match what is included + "
+            "excluded"
+        )
 
 
     def modify_header_types(self, vcf) -> list:

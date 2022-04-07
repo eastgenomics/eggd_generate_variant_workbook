@@ -73,6 +73,8 @@ class vcf():
             - self.add_hyperlinks()
             - self.rename_columns()
         """
+        filters = filter(self.args)
+
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
@@ -88,7 +90,7 @@ class vcf():
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filter(self.args).filter(split_vcf, filter_vcf)
+                filters.filter(split_vcf, filter_vcf)
                 self.bgzip(filter_vcf)
 
                 # filters.filter() writes temp filtered vcf containing the
@@ -97,9 +99,12 @@ class vcf():
 
                 # get filtered out rows and read back to new df
                 _, columns = self.parse_header(vcf)
-                filtered_df = filter(self.args).get_filtered_rows(
+                filtered_df = filters.get_filtered_rows(
                     split_vcf_gz, filter_vcf_gz, columns
                 )
+
+                # check we haven't dropped any variants
+                filters.verify_total_variants(split_vcf_gz, keep_df, filtered_df)
 
                 # split out INFO and FORMAT column values to individual
                 # columns in dataframe
