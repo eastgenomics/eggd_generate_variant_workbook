@@ -257,7 +257,7 @@ class excel():
                 # timing how long it takes to write because its slow
                 start = timer()
                 vcf.to_excel(
-                    self.writer, sheet_name=sheet, index=False,
+                    self.writer, sheet_name=sheet,
                     index=False, float_format="%.3f"
                 )
 
