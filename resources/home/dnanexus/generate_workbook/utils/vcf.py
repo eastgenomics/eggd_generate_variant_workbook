@@ -498,7 +498,7 @@ class vcf():
 
             # sense check given exclude columns are in the vcfs
             assert all(column in vcf.columns for column in columns), (
-                "Column(s) specified with --exclude not present in "
+                "Column(s) specified with -include / -exclude not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
                 f"{vcf.columns.tolist()}. \n\nInvalid columns specified: "
                 f"{list(set(columns) - set(vcf.columns.tolist()))}"

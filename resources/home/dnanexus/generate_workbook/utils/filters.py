@@ -91,11 +91,10 @@ class filter():
         os.makedirs('tmp', exist_ok=True)
 
         # index both vcfs with tabix
-        split_index = f"tabix -f {split_vcf}"
-        filter_index = f"tabix -f {filter_vcf}"
-
-        split_output = subprocess.run(split_index, shell=True, capture_output=True)
-        filter_output = subprocess.run(filter_index, shell=True, capture_output=True)
+        split_output = subprocess.run(
+            f"tabix -f {split_vcf}", shell=True, capture_output=True)
+        filter_output = subprocess.run(
+            f"tabix -f {filter_vcf}", shell=True, capture_output=True)
 
         assert split_output.returncode == 0 and filter_output.returncode == 0, (
             f"\nError in indexing VCF(s)\nExit code for {split_vcf}: "
@@ -115,8 +114,17 @@ class filter():
 
         # variants excluded will be in the 0000.vcf
         filtered_out_df = pd.read_csv(
-            'tmp/0000.vcf', sep='\t', comment='#', names=columns, compression='infer'
+            'tmp/0000.vcf', sep='\t', comment='#', names=columns,
+            compression='infer'
         )
+
+        if self.args.add_name:
+            # add sample name as first column
+            sample = split_vcf.replace('.vcf', '').replace('.gz', '')
+            if '_' in sample:
+                sample = sample.split('_')[0]
+
+            filtered_out_df.insert(loc=0, column='sampleName', value=sample)
 
         # tidy up bcftools isec output
         os.remove('tmp/0000.vcf')
