@@ -147,7 +147,15 @@
     },
     {
       "name": "panel",
-      "label": "String of panel information to display in report",
+      "label": "String of panel information to display in summary sheet",
+      "class": "string",
+      "optional": true,
+      "help": "",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "clinical_indication",
+      "label": "String of clinical indication to display in summary sheet",
       "class": "string",
       "optional": true,
       "help": "",

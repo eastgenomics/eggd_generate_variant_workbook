@@ -50,8 +50,8 @@ class arguments():
         """
         Merge a list input to a single string
 
-        Used where panels passed in as a list and need to format as
-        string to display in summary of workbook
+        Used where panels and clinical indication may be passed in as a list
+        and need to format as a string to display in summary of workbook
         """
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, ' '.join(values))
@@ -184,7 +184,7 @@ class arguments():
             help='panel name to display in summary'
         )
         parser.add_argument(
-            '--clinical_indication', default='',
+            '--clinical_indication', nargs='+', action=self.joinList,
             help="clinical indication to write into summary sheet"
         )
         parser.add_argument(

@@ -77,6 +77,7 @@ main() {
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
+    if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
