@@ -84,6 +84,12 @@ class filter():
         columns : list
             column names read from header of vcf
 
+        Raises
+        ------
+        AssertionError
+            Raised when non zero exit code returned from subprocess.run(),
+            either when indexing with tabix or intersecting with bcftools isec
+
         Returns
         -------
         filtered_out_df : pd.DataFrame
@@ -128,12 +134,12 @@ class filter():
             filtered_out_df.insert(loc=0, column='sampleName', value=sample)
 
         # tidy up bcftools isec output
-        os.remove('tmp/0000.vcf')
-        os.remove('tmp/0001.vcf')
-        os.remove('tmp/0002.vcf')
-        os.remove('tmp/0003.vcf')
-        os.remove('tmp/README.txt')
-        os.remove('tmp/sites.txt')
+        output_files = [
+            'tmp/0000.vcf', 'tmp/0001.vcf', 'tmp/0002.vcf', 'tmp/0003.vcf',
+            'tmp/README.txt', 'tmp/sites.txt'
+        ]
+        for file in output_files:
+            os.remove(file)
 
         return filtered_out_df
 
@@ -158,23 +164,25 @@ class filter():
             Raised when total variants in the include and exclude dataframe
             do not equal the total variants in the input vcf
         """
+        print(f"Verifying total variants after filtering\n")
         output = subprocess.run(
-            f"zgrep -v '^#' {split_vcf}", shell=True, capture_output=True
+            f"zgrep -v '^#' {split_vcf} | wc -l", shell=True,
+            capture_output=True
         )
 
         assert output.returncode == 0, (
             f"\n\tError in reading total rows from vcf used for filtering\n"
             f"\n\tExit code: {output.returncode}\n"
-            f"\n\tCommand: zgrep -v '^#' {split_vcf}\n"
+            f"\n\tCommand: zgrep -v '^#' {split_vcf} | wc -l\n"
             f"\n\t{output.stderr.decode()}"
         )
 
-        vcf_total = output.stdout.decode()
+        vcf_total = int(output.stdout.decode())
 
         print(
-            f"Total variants in input vcf: {vcf_total}"
-            f"Total variants included: {len(include_df)}"
-            f"Total variants excluded: {len(exclude_df)}"
+            f"Total variants in input vcf: {vcf_total}\n"
+            f"Total variants included: {len(include_df)}\n"
+            f"Total variants excluded: {len(exclude_df)}\n"
         )
 
         assert vcf_total == len(include_df) + len(exclude_df), (
