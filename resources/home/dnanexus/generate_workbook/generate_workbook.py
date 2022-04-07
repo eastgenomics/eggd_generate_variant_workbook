@@ -26,6 +26,11 @@ class arguments():
         self.set_sheet_names()
         self.verify_sheets()
 
+        print(f"Arguments passed: ", ''.join([
+            f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
+            for x in self.args.__dict__
+        ]))
+
 
     class parsePairs(argparse.Action):
         """
