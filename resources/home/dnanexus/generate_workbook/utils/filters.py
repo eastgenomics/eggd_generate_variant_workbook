@@ -164,7 +164,7 @@ class filter():
             Raised when total variants in the include and exclude dataframe
             do not equal the total variants in the input vcf
         """
-        print(f"Verifying total variants after filtering\n")
+        print(f"\nVerifying total variants after filtering\n")
         output = subprocess.run(
             f"zgrep -v '^#' {split_vcf} | wc -l", shell=True,
             capture_output=True
@@ -180,9 +180,9 @@ class filter():
         vcf_total = int(output.stdout.decode())
 
         print(
-            f"Total variants in input vcf: {vcf_total}\n"
-            f"Total variants included: {len(include_df)}\n"
-            f"Total variants excluded: {len(exclude_df)}\n"
+            f"\tTotal variants in input vcf: {vcf_total}\n"
+            f"\tTotal variants included: {len(include_df)}\n"
+            f"\tTotal variants excluded: {len(exclude_df)}\n\n"
         )
 
         assert vcf_total == len(include_df) + len(exclude_df), (
