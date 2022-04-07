@@ -258,7 +258,7 @@ class excel():
                 start = timer()
                 vcf.to_excel(
                     self.writer, sheet_name=sheet, index=False,
-                    float_format='{:f}'.format, encoding='utf-8'
+                    index=False, float_format="%.3f"
                 )
 
                 curr_worksheet = self.writer.sheets[sheet]
