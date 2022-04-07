@@ -110,19 +110,17 @@ class excel():
             )
             count += 1
 
-        count += 3
+        count += 5
 
+        # write genome reference(s) parsed from vcf header
         if self.refs:
             self.summary.cell(count, 1).value = "Reference:"
             self.summary[f"A{count}"].font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-
             for ref in list(set(self.refs)):
                 self.summary.cell(count, 2).value = ref
                 count += 1
-
-        count += 2
 
         # write args passed to script to generate report
         self.summary.cell(count, 1).value = "Filters applied:"
@@ -171,6 +169,12 @@ class excel():
 
         # merge some title columns that have longer text
         self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=2, end_column=4)
+        self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=6, end_column=11)
+        self.summary.merge_cells(
+            start_row=2, end_row=2, start_column=6, end_column=11)
+        self.summary.merge_cells(
             start_row=9, end_row=9, start_column=2, end_column=5)
         self.summary.merge_cells(
             start_row=21, end_row=21, start_column=2, end_column=8)
@@ -186,7 +190,7 @@ class excel():
             "A1", "A34", "A35", "A36","A38", "B1",
             "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
-            "F1", "F2", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in title_cells:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -196,7 +200,7 @@ class excel():
         self.summary.column_dimensions['B'].width = 13
         self.summary.column_dimensions['C'].width = 13
         self.summary.column_dimensions['D'].width = 13
-        self.summary.column_dimensions['E'].width = 18
+        self.summary.column_dimensions['E'].width = 22
         self.summary.column_dimensions['F'].width = 16
         self.summary.column_dimensions['G'].width = 16
         self.summary.column_dimensions['H'].width = 16
