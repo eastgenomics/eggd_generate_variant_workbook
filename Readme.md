@@ -37,11 +37,11 @@ This app may be executed as a standalone app.
 
 `--types` (`string`): `=` separated key value pairs of `{field}={type}` to overwrite in VCF header (i.e `CSQ_gnomADg_AF=Float`). This is required where the field is specified for filtering, but the type is wrongly set in the header. Field types for a given vcf may be inspected with `--print_header`.
 
-`--keep_tmp` (`bool`): Determines if to upload the intermediate bcftools split and filtered vcfs
+`--keep_tmp` (`bool`): Determines if to upload the intermediate bcftools split and filtered vcfs. `*.split.vcf.gz` is the output from `bcftools split-vep` and `*.filter.vcf.gz` is the output from `bcftools filter`.
 
 `--keep_filtered` (`bool`): Determines if filtered rows from `--filter` are retained in a seperate 'filtered' tab (default: `True`).
 
-`--add_samplename` (`bool`): Determines if to add sample name as first column in each sheet (default: `False`).
+`--add_samplename_column` (`bool`): Determines if to add sample name as first column in each sheet (default: `False`). Column will be named `sampleName`, will be first column unless `--reorder_columns` is specified.
 
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 
@@ -51,11 +51,11 @@ This app may be executed as a standalone app.
 
 `--summary` (`string`): If to include summary sheet, specify key of assay. Currently only supports `dias`.
 
-`--panel_bed` (`file`): Panel bed to filter VCF with before parsing to xlsx file.
+`--panel` (`string`): Name of panel to display in summary sheet.
 
-`--print_columns` (`bool`): Print column names of all vcfs that will be output to the xlsx. Useful to identify what will be in the output to include/exclude.
+`--print_columns` (`bool`): Print column names of all vcfs that will be output to the xlsx and exit. Useful to identify what will be in the output to include/exclude.
 
-`--print_header` (`bool`): Print header of first vcf, useful for inspecting all fields and types for filtering.
+`--print_header` (`bool`): Print header of first vcf and exit. Useful for inspecting all fields and types for filtering.
 
 
 **Example**:
@@ -63,7 +63,7 @@ This app may be executed as a standalone app.
 ```bash
 dx run app-eggd_vcf2xls/2.0.0 \
   -ivcfs="file-G70BB1j45jFpjkPJ2ZB10f47" \
-  -ifilter="bcftools filter -e 'CSQ_gnomAD_AF>0.02 | CSQ_gnomADg_AF>0.02'" \
+  -ifilter="bcftools filter -e 'CSQ_gnomAD_AF>0.02 | CSQ_gnomADg_AF>0.02 | CSQ_Consequence=\"synonymous_variant\"'" \
   -itypes="CSQ_gnomADg_AF=Float" \
   -irename_cols="gnomADg_AF=gnomAD_genomes_AF" \
   -isummary="dias" \
@@ -72,7 +72,7 @@ dx run app-eggd_vcf2xls/2.0.0 \
 
 The above will do the following:
 
-- filter **out** variants with gnomAD exomes or genomes AF above 2%
+- filter **out** variants with gnomAD exomes or genomes AF above 2%, or a synonymous variant
 - set the type for gnomAD genomes AF in the vcf header to `Float` to allow filtering
 - rename the gnomAD genomes AF column
 - add the summary sheet for Dias
@@ -84,7 +84,7 @@ The above will do the following:
 
 - `-summary` currently only accepts `dias` as an option, which adds the summary sheet specific for samples processed through the Dias pipeline
 - filtering with `-filter` accepts any valid `bcftools` command where the vcf would be passed at the end (i.e. `bcftools filter -e 'CSQ_gnomAD_AF>0.02' sample.vcf`). Commands that are chained with pipes where the vcf is passed to the first command will NOT work (i.e. `bcftools filter -e 'CSQ_gnomAD_AF>0.02' sample.vcf | bcftoools ...`). See the filtering section below for examples.
-- `-include` and `-exclude` are mutually exclusive and can not be passed together
+- `-include_columns` and `-exclude_columns` are mutually exclusive and can not be passed together
 - any arguments that are strings and passing multiple should be one space seperated string (i.e. `-iexclude="MLEAF MQRankSum MLEAC"`)
 - Fields in `INFO` and `FORMAT` columns will be split to individual columns, with the field key as the column name. If any duplicates are in the **FORMAT** column, these will have the suffix `(FMT)` (i.e. if depth is present in both `INFO` and `FORMAT`, the depth from `INFO` will be in column `DP` and the depth from `FORMAT` will be in `DP (FMT)`).
 
