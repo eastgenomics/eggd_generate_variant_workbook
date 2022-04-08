@@ -110,19 +110,17 @@ class excel():
             )
             count += 1
 
-        count += 3
+        count += 5
 
+        # write genome reference(s) parsed from vcf header
         if self.refs:
             self.summary.cell(count, 1).value = "Reference:"
             self.summary[f"A{count}"].font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-
             for ref in list(set(self.refs)):
                 self.summary.cell(count, 2).value = ref
                 count += 1
-
-        count += 2
 
         # write args passed to script to generate report
         self.summary.cell(count, 1).value = "Filters applied:"
@@ -171,6 +169,12 @@ class excel():
 
         # merge some title columns that have longer text
         self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=2, end_column=4)
+        self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=6, end_column=11)
+        self.summary.merge_cells(
+            start_row=2, end_row=2, start_column=6, end_column=11)
+        self.summary.merge_cells(
             start_row=9, end_row=9, start_column=2, end_column=5)
         self.summary.merge_cells(
             start_row=21, end_row=21, start_column=2, end_column=8)
@@ -186,7 +190,7 @@ class excel():
             "A1", "A34", "A35", "A36","A38", "B1",
             "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
-            "F1", "F2", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in title_cells:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -196,7 +200,7 @@ class excel():
         self.summary.column_dimensions['B'].width = 13
         self.summary.column_dimensions['C'].width = 13
         self.summary.column_dimensions['D'].width = 13
-        self.summary.column_dimensions['E'].width = 18
+        self.summary.column_dimensions['E'].width = 22
         self.summary.column_dimensions['F'].width = 16
         self.summary.column_dimensions['G'].width = 16
         self.summary.column_dimensions['H'].width = 16
@@ -272,6 +276,10 @@ class excel():
                 # read back the written sheet to check its written correctly
                 self.check_written_sheets(vcf, sheet)
 
+                # set Excel types for numeric cells to suppress Excel warnings
+                self.set_types(curr_worksheet)
+                self.workbook.save(self.args.output)
+
 
     def check_written_sheets(self, vcf, sheet) -> None:
         """"
@@ -298,9 +306,11 @@ class excel():
             sheet_data.values, columns=vcf.columns.tolist())
         written_sheet = written_sheet.iloc[1:]  # drop header on first row
 
-        # openpyxl read sets NaNs to None, so match it
+        # force nan values to be None strings for consistency on comparing
         vcf = vcf.replace(r'^\s*$', np.nan, regex=True)
         vcf.fillna('None', inplace=True)
+        written_sheet = written_sheet.replace(r'^\s*$', np.nan, regex=True)
+        written_sheet.fillna('None', inplace=True)
 
         # set all columns of both dfs to strings
         vcf = vcf.astype(str)
@@ -320,6 +330,41 @@ class excel():
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
         )
+
+
+    def set_types(self, worksheet) -> None:
+        """
+        Iterate over all worksheet cells and test if cell value can be numeric,
+        if so sets the type to numeric to suppress 'Number stored as text'
+        warning in Excel
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        """
+        for cells in worksheet.rows:
+            for cell in cells:
+                if self.is_numeric(cell.value):
+                    cell.data_type = 'n'
+
+
+    def is_numeric(self, value) -> bool:
+        """
+        Returns true if given value is in some form numeric
+
+        Parameters
+        ----------
+        value : str
+            string to check if can be cast to numeric type
+
+        Returns
+        -------
+        bool
+            True if value can be numeric
+        """
+        return str(value).lstrip('-').replace('.', '').replace(
+            'e-', '', 1).replace('e', '').isdigit()
 
 
     def set_font(self, worksheet) -> None:
@@ -386,7 +431,12 @@ class excel():
             "consequence": 25,
             "hgvsc": 27,
             "hgvsp": 27,
-            "gnomad": 13,
+            "gnomad_af": 20,
+            "gnomad_exomes_af": 20,
+            "gnomad_genomes_af": 20,
+            "hgmd": 13,
+            "hgmd_phen": 15,
+            "spliceai": 16,
             "existing variation": 18,
             "clinvar": 10,
             "clinvar clndn": 18,

@@ -26,6 +26,11 @@ class arguments():
         self.set_sheet_names()
         self.verify_sheets()
 
+        print(f"Arguments passed: ", ''.join([
+            f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
+            for x in self.args.__dict__
+        ]))
+
 
     class parsePairs(argparse.Action):
         """
@@ -39,6 +44,17 @@ class arguments():
             for value in values:
                 key, value = value.split('=')
                 getattr(namespace, self.dest)[key] = value
+
+
+    class joinList(argparse.Action):
+        """
+        Merge a list input to a single string
+
+        Used where panels and clinical indication may be passed in as a list
+        and need to format as a string to display in summary of workbook
+        """
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, self.dest, ' '.join(values))
 
 
     def parse_args(self) -> argparse.Namespace:
@@ -164,11 +180,11 @@ class arguments():
             help='Name and ID of workflow to display in summary'
         )
         parser.add_argument(
-            '--panel', default='',
+            '--panel', nargs='+', action=self.joinList,
             help='panel name to display in summary'
         )
         parser.add_argument(
-            '--clinical_indication', default='',
+            '--clinical_indication', nargs='+', action=self.joinList,
             help="clinical indication to write into summary sheet"
         )
         parser.add_argument(

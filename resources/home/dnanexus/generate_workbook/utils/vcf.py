@@ -47,10 +47,10 @@ class vcf():
         self.expanded_vcf_rows = 0
         self.filtered_vcfs = []
         self.urls = {
-            "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
-            "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
-            "mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
+            "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
+            "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
+            "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
+            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
         }
 
 
@@ -69,10 +69,11 @@ class vcf():
             - self.reorder()
             - self.rename()
             - self.format_strings()
-            - self.strip_csq_prefix()
             - self.add_hyperlinks()
             - self.rename_columns()
         """
+        filters = filter(self.args)
+
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
@@ -88,7 +89,7 @@ class vcf():
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filter(self.args).filter(split_vcf, filter_vcf)
+                filters.filter(split_vcf, filter_vcf)
                 self.bgzip(filter_vcf)
 
                 # filters.filter() writes temp filtered vcf containing the
@@ -97,9 +98,12 @@ class vcf():
 
                 # get filtered out rows and read back to new df
                 _, columns = self.parse_header(vcf)
-                filtered_df = filter(self.args).get_filtered_rows(
+                filtered_df = filters.get_filtered_rows(
                     split_vcf_gz, filter_vcf_gz, columns
                 )
+
+                # check we haven't dropped any variants
+                filters.verify_total_variants(split_vcf_gz, keep_df, filtered_df)
 
                 # split out INFO and FORMAT column values to individual
                 # columns in dataframe
@@ -157,7 +161,6 @@ class vcf():
             self.order_columns()
 
         self.format_strings()
-        self.strip_csq_prefix()
         self.add_hyperlinks()
         self.rename_columns()
 
@@ -360,8 +363,8 @@ class vcf():
 
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
-                "gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r2_1",
-                "gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r2_1"
+                "csq_gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r2_1",
+                "csq_gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r2_1"
             })
         elif '38' in reference:
             self.urls.update({
@@ -498,9 +501,10 @@ class vcf():
 
             # sense check given exclude columns are in the vcfs
             assert all(column in vcf.columns for column in columns), (
-                "Column(s) specified with --exclude not present in "
+                "Column(s) specified with -include / -exclude not present in "
                 "one or more of the given vcfs. \n\nValid column names: "
-                f"{vcf.columns.tolist()}. \n\nColumns specified: {columns}"
+                f"{vcf.columns.tolist()}. \n\nInvalid columns specified: "
+                f"{list(set(columns) - set(vcf.columns.tolist()))}"
             )
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
@@ -575,25 +579,36 @@ class vcf():
                     columns=dict(self.args.rename.items()), inplace=True
                 )
 
+            # strip prefix from column name if present and not already a column
+            self.vcfs[idx].columns = self.strip_csq_prefix(self.vcfs[idx])
+
             # remove underscores from all column names
             self.vcfs[idx].columns = [
                 x.replace('_', ' ') for x in self.vcfs[idx].columns
             ]
 
 
-    def strip_csq_prefix(self) -> None:
+    def strip_csq_prefix(self, vcf) -> list:
         """
         Strip CSQ prefix added by bcftools -split-vep from column names
 
         Any conflicts in names with already present columns will retain prefix
+
+        Parameters
+        ----------
+        vcf : pd.DataFrame
+            dataframe to modify column names of
+
+        Returns
+        -------
+        list
+            list of column names with CSQ_ prefixes removed
         """
-        for idx, vcf in enumerate(self.vcfs):
-            # strip prefix from column name if present and not already a column
-            self.vcfs[idx].columns = [
-                x.replace('CSQ_', '', 1) if (
-                    x.startswith('CSQ_') and x.replace('CSQ_', '') not in vcf.columns
-                ) else x for x in vcf.columns
-            ]
+        return [
+            x.replace('CSQ_', '', 1) if (
+                x.startswith('CSQ_') and x.replace('CSQ_', '') not in vcf.columns
+            ) else x for x in vcf.columns
+        ]
 
 
     def merge(self, vcfs) -> None:

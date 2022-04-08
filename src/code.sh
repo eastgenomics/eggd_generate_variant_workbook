@@ -38,6 +38,7 @@ _dias_report_setup () {
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
     export BCFTOOLS_PLUGINS=/usr/local/libexec/bcftools/
+    export PATH=$PATH:/home/dnanexus/.local/bin  # pip installs some packages here, add to path
 
     mark-section "Downloading inputs"
     mkdir vcfs
@@ -52,10 +53,7 @@ main() {
     mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
 
     mark-section "Installing packages"
-    python3 -m pip install --no-index --no-deps --user packages/*
-
-    echo "keep passed: ${keep}"
-    echo "merge passed: ${merge}"
+    sudo -H python3 -m pip install --no-index --no-deps packages/*
 
     # build string of input arguments
     mark-section "Building arguments"
@@ -79,6 +77,7 @@ main() {
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
+    if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
@@ -97,8 +96,11 @@ main() {
     dx-jobutil-add-output xlsx_report "$output_xlsx" --class=file
 
     if [ "$keep_tmp" == true ]; then
-        tmp_vcfs=$(find . \( -name "*.filter.vcf.gz" -o -name "*.split.vcf.gz" \))
-        uploaded_vcfs=$(dx upload "${tmp_vcfs}" --brief)
-        dx-jobutil-add-output tmp_vcfs "$uploaded_vcfs" --class=array:file
+        # upload intermediary vcfs
+        tmp_vcfs=$(find . \( -name "*.filter.vcf.gz" -o -name "*.split.vcf.gz" \) | tr '\n' ' ')
+        for file in $tmp_vcfs; do
+            id=$(dx upload "${file}" --brief)
+            dx-jobutil-add-output tmp_vcfs "$id" --class=array:file
+        done
     fi
 }

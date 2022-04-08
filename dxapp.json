@@ -72,11 +72,11 @@
     },
     {
       "name": "keep_filtered",
-      "label": "Keep",
+      "label": "Keep filtered",
       "class": "boolean",
       "optional": true,
       "default": true,
-      "help": "Determines if to keep filtered variants in separate 'filtered' tab",
+      "help": "Determines if to keep filtered variants in separate 'excluded' tab",
       "group": "generate_workbook.py"
     },
     {
@@ -146,13 +146,18 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "panel_bed",
-      "label": "Panel bed that matches panel name provided",
-      "class": "file",
+      "name": "panel",
+      "label": "String of panel information to display in summary sheet",
+      "class": "string",
       "optional": true,
-      "patterns": [
-        "*.bed"
-      ],
+      "help": "",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "clinical_indication",
+      "label": "String of clinical indication to display in summary sheet",
+      "class": "string",
+      "optional": true,
       "help": "",
       "group": "app"
     }

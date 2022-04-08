@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+from xml.etree.ElementInclude import include
 
 import pandas as pd
 
@@ -27,7 +28,7 @@ class filter():
 
     def filter(self, split_vcf, filter_vcf) -> None:
         """
-        Filter given vcf using bcftoolsd
+        Filter given vcf using bcftools
 
         Parameters
         ----------
@@ -83,6 +84,12 @@ class filter():
         columns : list
             column names read from header of vcf
 
+        Raises
+        ------
+        AssertionError
+            Raised when non zero exit code returned from subprocess.run(),
+            either when indexing with tabix or intersecting with bcftools isec
+
         Returns
         -------
         filtered_out_df : pd.DataFrame
@@ -91,11 +98,10 @@ class filter():
         os.makedirs('tmp', exist_ok=True)
 
         # index both vcfs with tabix
-        split_index = f"tabix -f {split_vcf}"
-        filter_index = f"tabix -f {filter_vcf}"
-
-        split_output = subprocess.run(split_index, shell=True, capture_output=True)
-        filter_output = subprocess.run(filter_index, shell=True, capture_output=True)
+        split_output = subprocess.run(
+            f"tabix -f {split_vcf}", shell=True, capture_output=True)
+        filter_output = subprocess.run(
+            f"tabix -f {filter_vcf}", shell=True, capture_output=True)
 
         assert split_output.returncode == 0 and filter_output.returncode == 0, (
             f"\nError in indexing VCF(s)\nExit code for {split_vcf}: "
@@ -115,18 +121,74 @@ class filter():
 
         # variants excluded will be in the 0000.vcf
         filtered_out_df = pd.read_csv(
-            'tmp/0000.vcf', sep='\t', comment='#', names=columns, compression='infer'
+            'tmp/0000.vcf', sep='\t', comment='#', names=columns,
+            compression='infer'
         )
 
+        if self.args.add_name:
+            # add sample name as first column
+            sample = split_vcf.replace('.vcf', '').replace('.gz', '')
+            if '_' in sample:
+                sample = sample.split('_')[0]
+
+            filtered_out_df.insert(loc=0, column='sampleName', value=sample)
+
         # tidy up bcftools isec output
-        os.remove('tmp/0000.vcf')
-        os.remove('tmp/0001.vcf')
-        os.remove('tmp/0002.vcf')
-        os.remove('tmp/0003.vcf')
-        os.remove('tmp/README.txt')
-        os.remove('tmp/sites.txt')
+        output_files = [
+            'tmp/0000.vcf', 'tmp/0001.vcf', 'tmp/0002.vcf', 'tmp/0003.vcf',
+            'tmp/README.txt', 'tmp/sites.txt'
+        ]
+        for file in output_files:
+            os.remove(file)
 
         return filtered_out_df
+
+
+    def verify_total_variants(self, split_vcf, include_df, exclude_df) -> None:
+        """
+        Verify no variants are dropped from filtering by checking total
+        included and excluded dataframe rows against input VCF
+
+        Parameters
+        ----------
+        split_vcf : string
+            filename of vcf used for filtering
+        include_df : pd.DataFrame
+            dataframe of variants retained from bcftools filter
+        exclude_df : pd.DataFrame
+            dataframe of variants excluded by bcftools filter
+
+        Raises
+        ------
+        AssertionError
+            Raised when total variants in the include and exclude dataframe
+            do not equal the total variants in the input vcf
+        """
+        print(f"\nVerifying total variants after filtering\n")
+        output = subprocess.run(
+            f"zgrep -v '^#' {split_vcf} | wc -l", shell=True,
+            capture_output=True
+        )
+
+        assert output.returncode == 0, (
+            f"\n\tError in reading total rows from vcf used for filtering\n"
+            f"\n\tExit code: {output.returncode}\n"
+            f"\n\tCommand: zgrep -v '^#' {split_vcf} | wc -l\n"
+            f"\n\t{output.stderr.decode()}"
+        )
+
+        vcf_total = int(output.stdout.decode())
+
+        print(
+            f"\tTotal variants in input vcf: {vcf_total}\n"
+            f"\tTotal variants included: {len(include_df)}\n"
+            f"\tTotal variants excluded: {len(exclude_df)}\n\n"
+        )
+
+        assert vcf_total == len(include_df) + len(exclude_df), (
+            "Total variants in input VCF does not match what is included + "
+            "excluded"
+        )
 
 
     def modify_header_types(self, vcf) -> list:
