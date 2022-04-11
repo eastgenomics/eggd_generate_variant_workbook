@@ -28,8 +28,8 @@ _dias_report_setup () {
     if [ -z "$output_prefix" ]; then
         while [ $matching_files -ne 0 ]; do
             version=$((version+1))
-            output_name="${sample_id}_${version}*"
-            matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
+            output_prefix="${output_prefix}_${version}*"
+            matching_files=$(dx find data --path "${project_id}":/ --name "$output_prefix" --brief | wc -l)
         done;
     fi
 }
@@ -44,6 +44,11 @@ main() {
     mkdir vcfs
     dx-download-all-inputs --parallel
     find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
+
+    if [ "$output_prefix" ]; then
+        # store without version (for Dias) for passing to summary later
+        output_name="$output_prefix"
+    fi
 
     if [ "$summary" == "dias" ]; then
         # do dias specific things
@@ -71,8 +76,8 @@ main() {
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
     if [ "$print_header" ]; then args+="--print_header "; fi
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
-    if [ "$output" ]; then args+="--sample ${output} "; fi
-    if [ "$output" ]; then args+="--output ${output} "; fi
+    if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
+    if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi
