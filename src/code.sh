@@ -26,11 +26,15 @@ _dias_report_setup () {
     version=0
     matching_files=1
     if [ -z "$output_prefix" ]; then
+        # get prefix from vcf name
+        output_prefix=$(find ~/vcfs/ -name "*vcf*" -type f -printf "%P\n" | head -n1 | cut -d'-' -f1)
+
         while [ $matching_files -ne 0 ]; do
             version=$((version+1))
-            output_prefix="${output_prefix}_${version}*"
-            matching_files=$(dx find data --path "${project_id}":/ --name "$output_prefix" --brief | wc -l)
+            match_name="${output_prefix}_${version}"
+            matching_files=$(dx find data --path "${project_id}":/ --name "${match_name}*" --brief | wc -l)
         done;
+        output_prefix="${output_prefix}_${version}"
     fi
 }
 
@@ -45,14 +49,12 @@ main() {
     dx-download-all-inputs --parallel
     find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
 
-    if [ "$output_prefix" ]; then
-        # store without version (for Dias) for passing to summary later
-        output_name="$output_prefix"
-    fi
-
     if [ "$summary" == "dias" ]; then
         # do dias specific things
         _dias_report_setup
+
+        # name is to store in summary sheet
+        output_name=$(find ~/vcfs/ -name "*vcf*" -type f -printf "%P\n" | head -n1 | cut -d'_' -f1)
     fi
 
     mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
