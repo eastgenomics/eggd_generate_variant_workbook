@@ -53,7 +53,7 @@ main() {
         # do dias specific things
         _dias_report_setup
 
-        # name is to store in summary sheet
+        # name is to display in summary sheet
         output_name=$(find ~/vcfs/ -name "*vcf*" -type f -printf "%P\n" | head -n1 | cut -d'_' -f1)
     fi
 
