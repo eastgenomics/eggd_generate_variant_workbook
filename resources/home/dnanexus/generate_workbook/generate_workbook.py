@@ -172,6 +172,10 @@ class arguments():
             help='summary sheet to include, must be one of: dias'
         )
         parser.add_argument(
+            '--acmg', action='store_true',
+            help='add extra ACMG reporting template sheet'
+        )
+        parser.add_argument(
             '--job_id', required=False,
             help='Job ID of eggd_generate_workbook to add to Dias summary'
         )

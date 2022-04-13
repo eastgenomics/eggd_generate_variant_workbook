@@ -58,7 +58,8 @@ class excel():
         Calls all methods in excel() to generate output file
         """
         self.write_summary()
-        self.write_reporting_template()
+        if self.args.acmg:
+            self.write_reporting_template()
         self.write_variants()
 
         self.workbook.save(self.args.output)

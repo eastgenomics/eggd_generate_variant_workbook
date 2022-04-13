@@ -130,6 +130,15 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "acmg",
+      "label": "ACMG",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Determines if to add extra sheet with ACMG reporting criteria",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "print_columns",
       "label": "Print columns",
       "class": "boolean",
