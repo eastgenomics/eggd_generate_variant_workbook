@@ -499,13 +499,20 @@ class vcf():
             else:
                 continue
 
-            # sense check given exclude columns are in the vcfs
-            assert all(column in vcf.columns for column in columns), (
-                "Column(s) specified with -include / -exclude not present in "
-                "one or more of the given vcfs. \n\nValid column names: "
-                f"{vcf.columns.tolist()}. \n\nInvalid columns specified: "
-                f"{list(set(columns) - set(vcf.columns.tolist()))}"
-            )
+            # get any columns passed that aren't present in vcf
+            invalid = list(set(columns) - set(vcf.columns))
+
+            if invalid:
+                print(
+                    f"WARNING: Columns passed with `--include / --exlcude not "
+                    f"present in vcf ({invalid}), skipping these columns..."
+                )
+                if self.args.exclude:
+                    # only need to remove in the case of excluding since
+                    # include has already selected valid columns
+                    for col in invalid:
+                        to_drop.remove(col)
+
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
