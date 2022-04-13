@@ -530,14 +530,7 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             vcf_columns = list(vcf.columns)
 
-            # sense check given exclude columns is in the vcfs
-            for x in self.args.reorder:
-                assert x in vcf_columns, (
-                    f"\n\nColumn '{x}' specified with --reorder not "
-                    "present in one or more of the given vcfs. Valid column "
-                    f"names: \n{vcf.columns}"
-                )
-
+            # check columns given are present in vcf
             invalid = list(set(self.args.reorder) - set(vcf_columns))
             if invalid:
                 print(
