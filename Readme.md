@@ -51,6 +51,8 @@ This app may be executed as a standalone app.
 
 `--summary` (`string`): If to include summary sheet, specify key of assay. Currently only supports `dias`.
 
+`--acmg` (`bool`): Adds extra sheet to workbook with reporting criteria against ACMG classifications
+
 `--panel` (`string`): Name of panel to display in summary sheet.
 
 `--clinical_indication` (`string`):  Clinical indication to display in summary sheet
