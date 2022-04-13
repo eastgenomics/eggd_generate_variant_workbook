@@ -605,7 +605,7 @@ class excel():
             "gnomad_genomes_af": 20,
             "hgmd": 13,
             "hgmd_phen": 15,
-            "spliceai": 16,
+            "spliceai_ds": 18,
             "existing variation": 18,
             "clinvar": 10,
             "clinvar clndn": 18,
