@@ -235,7 +235,7 @@ class excel():
     def write_reporting_template(self) -> None:
         """
         Writes sheet to Excel file with formatting for reporting against
-        ACGS criteria
+        ACMG criteria
         """
         report = self.workbook.create_sheet('report')
 

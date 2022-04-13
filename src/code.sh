@@ -5,7 +5,7 @@ set -exo pipefail
 _dias_report_setup () {
     # function to handle parsing values and reading
     # manifest / g2t etc. for Dias sampels
-    mark-section "Parsing values"
+    mark-section "Getting values for Dias"
 
     # get job id creating the annotated vcf
     vcf=$(awk -F'"' '{print $4}' <<< "${vcfs[0]}")
