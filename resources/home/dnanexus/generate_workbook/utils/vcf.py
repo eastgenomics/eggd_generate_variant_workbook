@@ -513,7 +513,6 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
-
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
@@ -538,6 +537,15 @@ class vcf():
                     "present in one or more of the given vcfs. Valid column "
                     f"names: \n{vcf.columns}"
                 )
+
+            invalid = list(set(self.args.reorder) - set(vcf_columns))
+            if invalid:
+                print(
+                    f"WARNING: columns passed to --reorder not present in vcf:"
+                    f" {invalid}. Skipping these columns and continuing..."
+                )
+                for col in invalid:
+                    self.args.reorder.remove(col)
 
             [vcf_columns.remove(x) for x in self.args.reorder]
             column_order = self.args.reorder + vcf_columns
