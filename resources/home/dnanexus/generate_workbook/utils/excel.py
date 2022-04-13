@@ -237,7 +237,7 @@ class excel():
         Writes sheet to Excel file with formatting for reporting against
         ACGS criteria
         """
-        report = self.workbook.create_sheet('to_report')
+        report = self.workbook.create_sheet('report')
 
         titles = {
             "Gene": [2, 2],
@@ -315,7 +315,7 @@ class excel():
             for val in values:
                 report.cell(val[0], val[1]).value = key
 
-        # nice formatting of titles
+        # nice formatting of title text
         for cell in report['B']:
             breaks = str(cell.value).count("\n") + 1
             report.row_dimensions[cell.row].height = 20 * breaks
