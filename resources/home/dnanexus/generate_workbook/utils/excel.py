@@ -319,7 +319,8 @@ class excel():
             breaks = str(cell.value).count("\n") + 1
             report.row_dimensions[cell.row].height = 20 * breaks
             report[f"B{cell.row}"].alignment = Alignment(
-                wrapText=True, vertical="center", indent=10)
+                wrapText=True, vertical="center"
+            )
 
         # merge evidence cells
         for row in range(4, 26):
@@ -393,15 +394,6 @@ class excel():
                         if side == 'vertical_thick':
                             cell_border.left = MEDIUM
                         cell.border = cell_border
-
-                    # print(cell.border.top)
-                    # sys.exit()
-
-        # for cells in report.rows:
-        #     for cell in cells:
-        #         report[cell.coordinate].alignment = Alignment(indent=20.0)
-
-
 
 
     def write_variants(self) -> None:
