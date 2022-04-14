@@ -193,6 +193,13 @@ class vcf():
             Raised when non-zero exit code returned by bcftools
         """
         print(f"Splitting {vcf} with bcftools +split-vep")
+
+        # check total rows before splitting
+        pre_split_total = subprocess.run(
+            f"zgrep -v '^#' {vcf} | wc -l", shell=True,
+            capture_output=True
+        )
+
         cmd = (
             f"bcftools +split-vep --columns - -a CSQ -Ou -p 'CSQ_' -d {vcf} | "
             f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
@@ -204,6 +211,17 @@ class vcf():
             f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
             f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
+        )
+
+        # check total rows after splitting
+        post_split_total = subprocess.run(
+            f"zgrep -v '^#' {output_vcf} | wc -l", shell=True,
+            capture_output=True
+        )
+
+        print(
+            f"Total lines before splitting: {pre_split_total.stdout.decode()}"
+            f"Total lines after splitting: {post_split_total.stdout.decode()}"
         )
 
 
