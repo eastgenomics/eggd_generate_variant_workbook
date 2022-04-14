@@ -5,7 +5,7 @@ set -exo pipefail
 _dias_report_setup () {
     # function to handle parsing values and reading
     # manifest / g2t etc. for Dias sampels
-    mark-section "Parsing values"
+    mark-section "Getting values for Dias"
 
     # get job id creating the annotated vcf
     vcf=$(awk -F'"' '{print $4}' <<< "${vcfs[0]}")
@@ -26,11 +26,15 @@ _dias_report_setup () {
     version=0
     matching_files=1
     if [ -z "$output_prefix" ]; then
+        # get prefix from vcf name
+        output_prefix=$(find ~/vcfs/ -name "*vcf*" -type f -printf "%P\n" | head -n1 | cut -d'-' -f1)
+
         while [ $matching_files -ne 0 ]; do
             version=$((version+1))
-            output_name="${sample_id}_${version}*"
-            matching_files=$(dx find data --path "${project_id}":/ --name "$output_name" --brief | wc -l)
+            match_name="${output_prefix}_${version}"
+            matching_files=$(dx find data --path "${project_id}":/ --name "${match_name}*" --brief | wc -l)
         done;
+        output_prefix="${output_prefix}_${version}"
     fi
 }
 
@@ -48,6 +52,9 @@ main() {
     if [ "$summary" == "dias" ]; then
         # do dias specific things
         _dias_report_setup
+
+        # name is to display in summary sheet
+        output_name=$(find ~/vcfs/ -name "*vcf*" -type f -printf "%P\n" | head -n1 | cut -d'_' -f1)
     fi
 
     mkdir -p /home/dnanexus/out/xlsx_reports && sudo chmod 757 /home/dnanexus/out/xlsx_reports
@@ -67,12 +74,13 @@ main() {
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
+    if [ "$acmg" ]; then args+="--acmg "; fi
     if [ "$keep_filtered" == true ]; then args+="--keep "; fi
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
     if [ "$print_header" ]; then args+="--print_header "; fi
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
-    if [ "$output" ]; then args+="--sample ${output} "; fi
-    if [ "$output" ]; then args+="--output ${output} "; fi
+    if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
+    if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
     if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi

@@ -24,14 +24,6 @@ class vcf():
         list of dataframe(s) of vcf data read in and formatted
     refs : list
         list of genome reference files used for given VCFs
-    total_vcf_rows : int
-        value to keep total number of rows read in to ensure we don't drop
-        any unless --filter is used and --keep is not and => intentionally
-        dropping filtered rows
-    expanded_vcf_rows : int
-        value to track total rows expanded out when multiple transcript
-        annotations for one variant are present, resulting in one row per
-        transcript annotation per variant in resultant dataframe
     filtered_rows : list
         list of dataframes of rows filtered out from vcfs
     urls : dict
@@ -43,8 +35,6 @@ class vcf():
         self.args = args
         self.vcfs = []
         self.refs = []
-        self.total_vcf_rows = 0
-        self.expanded_vcf_rows = 0
         self.filtered_vcfs = []
         self.urls = {
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
@@ -67,7 +57,6 @@ class vcf():
             - self.merge()
             - self.drop_columns()
             - self.reorder()
-            - self.rename()
             - self.format_strings()
             - self.add_hyperlinks()
             - self.rename_columns()
@@ -106,9 +95,26 @@ class vcf():
                 filters.verify_total_variants(split_vcf_gz, keep_df, filtered_df)
 
                 # split out INFO and FORMAT column values to individual
-                # columns in dataframe
-                keep_df = splitColumns().split(keep_df)
-                filtered_df = splitColumns().split(filtered_df)
+                # columns in dataframe, need to handle cases where one or both
+                # may be empty to not raise errors downstream
+                if not keep_df.empty and not filtered_df.empty:
+                    # both have variants
+                    keep_df = splitColumns().split(keep_df)
+                    filtered_df = splitColumns().split(filtered_df)
+                elif keep_df.empty and not filtered_df.empty:
+                    # everything excluded, make empty keep df with same columns
+                    # as those in excluded/filtered df
+                    filtered_df = splitColumns().split(filtered_df)
+                    keep_df = filtered_df.copy().drop(filtered_df.index)
+                elif not keep_df.empty and filtered_df.empty:
+                    # nothing filtered out, make empty filtered df with same
+                    # columns as included variants
+                    keep_df = splitColumns().split(keep_df)
+                    filtered_df = keep_df.copy().drop(keep_df.index)
+                else:
+                    # both empty, we can't magic up columns names so just
+                    # continue and workbook will have standard VCF columns
+                    pass
 
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)
@@ -122,7 +128,8 @@ class vcf():
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
                 vcf_df = self.read(split_vcf, Path(vcf).stem)
-                vcf_df = splitColumns().split(vcf_df)
+                if not vcf_df.empty:
+                    vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
                 del vcf_df
@@ -140,7 +147,6 @@ class vcf():
             if not self.args.keep_tmp:
                 os.remove(split_vcf_gz)
 
-
         if self.args.print_columns:
             self.print_columns()
 
@@ -150,7 +156,8 @@ class vcf():
         if self.args.filter and self.args.keep:
             # merge all filtered dataframes to one and add to list of vcfs for
             # doing column operations and writing to Excel file
-            self.filtered_vcfs = self.merge(self.filtered_vcfs)
+            if not all(x.empty for x in self.filtered_vcfs):
+                self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
 
@@ -193,6 +200,13 @@ class vcf():
             Raised when non-zero exit code returned by bcftools
         """
         print(f"Splitting {vcf} with bcftools +split-vep")
+
+        # check total rows before splitting
+        pre_split_total = subprocess.run(
+            f"zgrep -v '^#' {vcf} | wc -l", shell=True,
+            capture_output=True
+        )
+
         cmd = (
             f"bcftools +split-vep --columns - -a CSQ -Ou -p 'CSQ_' -d {vcf} | "
             f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
@@ -204,6 +218,17 @@ class vcf():
             f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
             f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
+        )
+
+        # check total rows after splitting
+        post_split_total = subprocess.run(
+            f"zgrep -v '^#' {output_vcf} | wc -l", shell=True,
+            capture_output=True
+        )
+
+        print(
+            f"Total lines before splitting: {pre_split_total.stdout.decode()}"
+            f"Total lines after splitting: {post_split_total.stdout.decode()}"
         )
 
 
@@ -373,6 +398,9 @@ class vcf():
             })
 
         for idx, vcf in enumerate(self.vcfs):
+            if vcf.empty:
+                # empty dataframe => nothing to add links to
+                continue
             for col in vcf.columns:
                 if self.urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
@@ -499,13 +527,19 @@ class vcf():
             else:
                 continue
 
-            # sense check given exclude columns are in the vcfs
-            assert all(column in vcf.columns for column in columns), (
-                "Column(s) specified with -include / -exclude not present in "
-                "one or more of the given vcfs. \n\nValid column names: "
-                f"{vcf.columns.tolist()}. \n\nInvalid columns specified: "
-                f"{list(set(columns) - set(vcf.columns.tolist()))}"
-            )
+            # get any columns passed that aren't present in vcf
+            invalid = list(set(columns) - set(vcf.columns))
+
+            if invalid:
+                print(
+                    f"WARNING: Columns passed with `--include / --exlcude not "
+                    f"present in vcf ({invalid}), skipping these columns..."
+                )
+                if self.args.exclude:
+                    # only need to remove in the case of excluding since
+                    # include has already selected valid columns
+                    for col in invalid:
+                        to_drop.remove(col)
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
@@ -524,13 +558,15 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             vcf_columns = list(vcf.columns)
 
-            # sense check given exclude columns is in the vcfs
-            for x in self.args.reorder:
-                assert x in vcf_columns, (
-                    f"\n\nColumn '{x}' specified with --reorder not "
-                    "present in one or more of the given vcfs. Valid column "
-                    f"names: \n{vcf.columns}"
+            # check columns given are present in vcf
+            invalid = list(set(self.args.reorder) - set(vcf_columns))
+            if invalid:
+                print(
+                    f"WARNING: columns passed to --reorder not present in vcf:"
+                    f" {invalid}. Skipping these columns and continuing..."
                 )
+                for col in invalid:
+                    self.args.reorder.remove(col)
 
             [vcf_columns.remove(x) for x in self.args.reorder]
             column_order = self.args.reorder + vcf_columns
@@ -555,16 +591,6 @@ class vcf():
         """
         for idx, vcf in enumerate(self.vcfs):
             if self.args.rename:
-                # sense check given reorder keys are in the vcfs
-                assert all(
-                    x in vcf.columns for x in self.args.rename.keys()
-                ), (
-                    f"Column(s) specified with --rename not present in one or "
-                    f"more of the given vcfs. \n\nValid column names: "
-                    f"\n\n\t{vcf.columns}. \n\nColumn names passed to "
-                    f"--rename: \n\n\t{list(self.args.rename.keys())}"
-                )
-
                 # check the given new name(s) not already a column name
                 assert all(
                     x not in vcf.columns for x in self.args.rename.values()
@@ -575,8 +601,24 @@ class vcf():
                     f"--rename: \n\n\t{list(self.args.rename.values())}"
                 )
 
+                # check specified columns are present in vcf, if not print
+                # warning, remove and continue
+                new_names_dict = self.args.rename.copy()
+
+                invalid = list(
+                    set(new_names_dict.keys()) - set(vcf.columns.tolist())
+                )
+
+                if invalid:
+                    print(
+                        f"WARNING: columns passed to --rename not present in vcf:"
+                        f" {invalid}. Skipping these columns and continuing..."
+                    )
+                    for key in invalid:
+                        new_names_dict.pop(key)
+
                 self.vcfs[idx].rename(
-                    columns=dict(self.args.rename.items()), inplace=True
+                    columns=dict(new_names_dict.items()), inplace=True
                 )
 
             # strip prefix from column name if present and not already a column
@@ -617,4 +659,7 @@ class vcf():
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
+        # don't attmept to merge empty vcfs as likely to have diff. columns
+        vcfs = [x for x in vcfs if not x.empty]
+
         return [pd.concat(vcfs).reset_index(drop=True)]

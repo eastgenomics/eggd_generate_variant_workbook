@@ -3,8 +3,6 @@ import os
 from pathlib import Path
 import sys
 
-import pandas as pd
-
 from utils.excel import excel
 from utils.vcf import vcf
 
@@ -170,6 +168,10 @@ class arguments():
         parser.add_argument(
             '--summary', required=False,
             help='summary sheet to include, must be one of: dias'
+        )
+        parser.add_argument(
+            '--acmg', action='store_true',
+            help='add extra ACMG reporting template sheet'
         )
         parser.add_argument(
             '--job_id', required=False,

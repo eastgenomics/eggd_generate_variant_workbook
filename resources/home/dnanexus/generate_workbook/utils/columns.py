@@ -49,7 +49,7 @@ class splitColumns():
         """
         if 'COSMIC' in vcf_df.columns:
             vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
-                lambda x: '&'.join(set(x.split('&')))
+                lambda x: ' & '.join(set(x.split('&')))
             )
         return vcf_df
 
