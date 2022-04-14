@@ -3,8 +3,6 @@ import os
 from pathlib import Path
 import sys
 
-import pandas as pd
-
 from utils.excel import excel
 from utils.vcf import vcf
 
