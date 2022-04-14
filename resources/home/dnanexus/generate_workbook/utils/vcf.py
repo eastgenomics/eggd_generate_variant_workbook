@@ -649,4 +649,7 @@ class vcf():
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
+        # don't attmept to merge empty vcfs as likely to have diff. columns
+        vcfs = [x for x in vcfs if not x.empty()]
+
         return [pd.concat(vcfs).reset_index(drop=True)]
