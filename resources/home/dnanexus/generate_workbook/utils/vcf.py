@@ -106,9 +106,26 @@ class vcf():
                 filters.verify_total_variants(split_vcf_gz, keep_df, filtered_df)
 
                 # split out INFO and FORMAT column values to individual
-                # columns in dataframe
-                keep_df = splitColumns().split(keep_df)
-                filtered_df = splitColumns().split(filtered_df)
+                # columns in dataframe, need to handle cases where one or both
+                # may be empty to not raise errors downstream
+                if not keep_df.empty and not filtered_df.empty:
+                    # both have variants
+                    keep_df = splitColumns().split(keep_df)
+                    filtered_df = splitColumns().split(filtered_df)
+                elif keep_df.empty and not filtered_df.empty:
+                    # everything excluded, make empty keep df with same columns
+                    # as those in excluded/filtered df
+                    filtered_df = splitColumns().split(filtered_df)
+                    keep_df = filtered_df.copy().drop(filtered_df.index)
+                elif not keep_df.empty and filtered_df.empty:
+                    # nothing filtered out, make empty filtered df with same
+                    # columns as included variants
+                    keep_df = splitColumns().split(keep_df)
+                    filtered_df = keep_df.copy().drop(keep_df.index)
+                else:
+                    # both empty, we can't magic up columns names so just
+                    # continue and workbook will have standard VCF columns
+                    pass
 
                 self.vcfs.append(keep_df)
                 self.filtered_vcfs.append(filtered_df)
@@ -122,7 +139,8 @@ class vcf():
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
                 vcf_df = self.read(split_vcf, Path(vcf).stem)
-                vcf_df = splitColumns().split(vcf_df)
+                if not vcf_df.empty():
+                    vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
                 del vcf_df
@@ -140,7 +158,6 @@ class vcf():
             if not self.args.keep_tmp:
                 os.remove(split_vcf_gz)
 
-
         if self.args.print_columns:
             self.print_columns()
 
@@ -150,7 +167,8 @@ class vcf():
         if self.args.filter and self.args.keep:
             # merge all filtered dataframes to one and add to list of vcfs for
             # doing column operations and writing to Excel file
-            self.filtered_vcfs = self.merge(self.filtered_vcfs)
+            if not all(x.empty for x in self.filtered_vcfs):
+                self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
 
@@ -391,6 +409,8 @@ class vcf():
             })
 
         for idx, vcf in enumerate(self.vcfs):
+            if vcf.empty:
+                continue
             for col in vcf.columns:
                 if self.urls.get(col.lower(), None):
                     # column has a linked url => add appropriate hyperlink
@@ -650,6 +670,6 @@ class vcf():
         is important
         """
         # don't attmept to merge empty vcfs as likely to have diff. columns
-        vcfs = [x for x in vcfs if not x.empty()]
+        vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
