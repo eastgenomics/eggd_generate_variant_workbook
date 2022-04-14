@@ -410,6 +410,7 @@ class vcf():
 
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
+                # empty dataframe => nothing to add links to
                 continue
             for col in vcf.columns:
                 if self.urls.get(col.lower(), None):
