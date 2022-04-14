@@ -128,7 +128,7 @@ class vcf():
                 # not filtering vcf, read in full vcf and split out INFO and
                 # FORMAT/SAMPLE column values to individual columns in df
                 vcf_df = self.read(split_vcf, Path(vcf).stem)
-                if not vcf_df.empty():
+                if not vcf_df.empty:
                     vcf_df = splitColumns().split(vcf_df)
                 self.vcfs.append(vcf_df)
 
