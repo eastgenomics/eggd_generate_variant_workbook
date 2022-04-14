@@ -24,14 +24,6 @@ class vcf():
         list of dataframe(s) of vcf data read in and formatted
     refs : list
         list of genome reference files used for given VCFs
-    total_vcf_rows : int
-        value to keep total number of rows read in to ensure we don't drop
-        any unless --filter is used and --keep is not and => intentionally
-        dropping filtered rows
-    expanded_vcf_rows : int
-        value to track total rows expanded out when multiple transcript
-        annotations for one variant are present, resulting in one row per
-        transcript annotation per variant in resultant dataframe
     filtered_rows : list
         list of dataframes of rows filtered out from vcfs
     urls : dict
@@ -43,8 +35,6 @@ class vcf():
         self.args = args
         self.vcfs = []
         self.refs = []
-        self.total_vcf_rows = 0
-        self.expanded_vcf_rows = 0
         self.filtered_vcfs = []
         self.urls = {
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
@@ -67,7 +57,6 @@ class vcf():
             - self.merge()
             - self.drop_columns()
             - self.reorder()
-            - self.rename()
             - self.format_strings()
             - self.add_hyperlinks()
             - self.rename_columns()
