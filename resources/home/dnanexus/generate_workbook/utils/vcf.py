@@ -581,16 +581,6 @@ class vcf():
         """
         for idx, vcf in enumerate(self.vcfs):
             if self.args.rename:
-                # sense check given reorder keys are in the vcfs
-                assert all(
-                    x in vcf.columns for x in self.args.rename.keys()
-                ), (
-                    f"Column(s) specified with --rename not present in one or "
-                    f"more of the given vcfs. \n\nValid column names: "
-                    f"\n\n\t{vcf.columns}. \n\nColumn names passed to "
-                    f"--rename: \n\n\t{list(self.args.rename.keys())}"
-                )
-
                 # check the given new name(s) not already a column name
                 assert all(
                     x not in vcf.columns for x in self.args.rename.values()
@@ -601,8 +591,24 @@ class vcf():
                     f"--rename: \n\n\t{list(self.args.rename.values())}"
                 )
 
+                # check specified columns are present in vcf, if not print
+                # warning, remove and continue
+                new_names_dict = self.args.rename.copy()
+
+                invalid = list(
+                    set(new_names_dict.keys()) - set(vcf.columns.tolist())
+                )
+
+                if invalid:
+                    print(
+                        f"WARNING: columns passed to --rename not present in vcf:"
+                        f" {invalid}. Skipping these columns and continuing..."
+                    )
+                    for key in invalid:
+                        new_names_dict.pop(key)
+
                 self.vcfs[idx].rename(
-                    columns=dict(self.args.rename.items()), inplace=True
+                    columns=dict(new_names_dict.items()), inplace=True
                 )
 
             # strip prefix from column name if present and not already a column
