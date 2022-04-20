@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sys
 from types import new_class
+from bleach import clean
 
 import pytest
 
@@ -26,9 +27,8 @@ class TestHeader():
     header_test_vcf = os.path.join(TEST_DATA_DIR, "header_test.vcf")
 
     # read in header from our test vcf, call functions to parse reference and
-    # csq feilds from read in header
+    # from read in header
     header, columns = vcf_handler.parse_header(header_test_vcf)
-    csq_fields = vcf_handler.parse_csq_fields(header)
     vcf_handler.parse_reference(header)
 
 
@@ -69,6 +69,13 @@ class TestDataFrameActions():
     Tests for functions that modify dataframes of variants (i.e. reorder(),
     rename(), merge()...)
     """
+    # test data vcf
+    columns_vcf = os.path.join(TEST_DATA_DIR, "column_methods_test.vcf.gz")
+
+    # names for intermediary vcfs
+    split_vcf = f"{Path(columns_vcf).stem}.split.vcf"
+    split_vcf_gz = f"{Path(columns_vcf).stem}.split.vcf.gz"
+
     def read_vcf(self):
         """
         Read in vcf with valid argparse NameSpace for testing, call in every
@@ -79,9 +86,6 @@ class TestDataFrameActions():
         vcf_handler : utils.vcf.vcf
             class instance of vcf from utils
         """
-        # test data vcf
-        columns_vcf = os.path.join(TEST_DATA_DIR, "column_methods_test.vcf")
-
         # initialise vcf class with a valid argparse input to
         # allow calling .read()
         vcf_handler = vcf(argparse.Namespace(
@@ -89,25 +93,36 @@ class TestDataFrameActions():
             filter=None, keep=False, merge=False,
             reorder=[], exclude=None, include=None,
             out_dir='', output='',
-            panel='', print_columns=False, reads='', rename=None,
-            sample='', sheets=['variants'], summary=None, usable_reads='',
-            vcfs=[columns_vcf], workflow=('', '')
+            panel='', print_columns=False, print_header=False, reads='',
+            rename=None, sample='', sheets=['variants'], summary=None,
+            vcfs=[self.columns_vcf], workflow=('', '')
         ))
-        vcf_df, csq_fields = vcf_handler.read(columns_vcf)
+
+        # first split multiple transcript annotation to separate VCF
+        # records, and separate CSQ fields to separate INFO fields
+        vcf_handler.bcftools_pre_process(self.columns_vcf, self.split_vcf)
+        vcf_handler.bgzip(self.split_vcf)
+
+        vcf_df = vcf_handler.read(self.columns_vcf, Path(self.columns_vcf).stem)
 
         # call methods like in vcf.read() to process df and add to self
-        vcf_df, expanded_vcf_rows = splitColumns.csq(vcf_df, csq_fields)
-        vcf_df = splitColumns.info(vcf_df)
-        vcf_df = splitColumns.format_fields(vcf_df)
-
-        # set correct dtypes, required for setting numeric & object types
-        # to ensure correct filtering filtering
-        vcf_df = vcf_handler.set_types(vcf_df)
-
+        vcf_df = splitColumns().split(vcf_df)
         vcf_handler.vcfs.append(vcf_df)
+
         vcf_handler.add_hyperlinks()
 
         return vcf_handler
+
+
+    def clean_up(self):
+        """
+        Reading and processing vcf with bcftools for every test creates
+        intermediate files, delete these to not end up with a mess
+        """
+        pass
+        os.remove(self.split_vcf)
+        os.remove(self.split_vcf_gz)
+
 
 
     def test_drop_columns_exclude(self):
@@ -127,6 +142,8 @@ class TestDataFrameActions():
             set(vcf_handler.vcfs[0].columns.tolist())
         ))
 
+        self.clean_up()
+
         assert columns == ["Allele", "Gene", "HGNC"], (
             "Columns specified with --exlcude not dropped from dataframe"
         )
@@ -145,6 +162,8 @@ class TestDataFrameActions():
 
         vcf_handler.drop_columns()
 
+        self.clean_up()
+
         assert vcf_handler.vcfs[0].columns.tolist() == include_cols, (
             "Columns after calling vcf.drop_columns() with --include not "
             "as expected"
@@ -161,10 +180,12 @@ class TestDataFrameActions():
         # capture original order to compare against
         original_cols = vcf_handler.vcfs[0].columns.tolist()
 
-        order_cols = ["SYMBOL", "ClinVar_CLNSIG", "ID", "CHROM", "POS"]
+        order_cols = ["CSQ_SYMBOL", "CSQ_ClinVar_CLNSIG", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
 
         vcf_handler.order_columns()
+
+        self.clean_up()
 
         assert vcf_handler.vcfs[0].columns.tolist()[:5] == order_cols, (
             "Reordered columns are not in correct order"
@@ -180,7 +201,7 @@ class TestDataFrameActions():
         # capture original order to compare against
         original_cols = vcf_handler.vcfs[0].columns.tolist()
 
-        order_cols = ["SYMBOL", "ClinVar_CLNSIG", "ID", "CHROM", "POS"]
+        order_cols = ["CSQ_SYMBOL", "CSQ_ClinVar_CLNSIG", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
 
         vcf_handler.order_columns()
@@ -188,6 +209,8 @@ class TestDataFrameActions():
         # sort both original and new columns to compare
         original_cols = sorted(original_cols)
         new_cols = sorted(vcf_handler.vcfs[0].columns.tolist())
+
+        self.clean_up()
 
         assert original_cols == new_cols, (
             "Columns dropped wrongly when reordering"
@@ -206,7 +229,6 @@ class TestDataFrameActions():
         rename_dict = {
             "CHROM": "chrom",
             "POS": "pos",
-            "VARIANT_CLASS": "class"
         }
 
         vcf_handler.args.rename = rename_dict
@@ -223,6 +245,8 @@ class TestDataFrameActions():
         rename_vals.prev_columns = prev_columns
         rename_vals.new_columns = new_columns
         rename_vals.rename_dict = rename_dict
+
+        self.clean_up()
 
         return rename_vals
 
