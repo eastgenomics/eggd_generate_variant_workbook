@@ -105,7 +105,7 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "output",
+      "name": "output_prefix",
       "label": "Output prefix",
       "class": "string",
       "optional": true,
@@ -127,6 +127,15 @@
       "class": "string",
       "optional": true,
       "help": "If to include summary sheet, specify key of assay",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "acmg",
+      "label": "ACMG",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Determines if to add extra sheet with ACMG reporting criteria",
       "group": "generate_workbook.py"
     },
     {
