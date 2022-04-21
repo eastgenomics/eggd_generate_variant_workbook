@@ -18,7 +18,7 @@ from utils.vcf import vcf
 from tests import TEST_DATA_DIR
 
 # initialise vcf class that contains functions for parsing header
-vcf_handler = vcf(argparse.Namespace)
+# vcf_handler = vcf(argparse.Namespace)
 
 # vcf we are using for testing, ~5000 variants with multiple transcript
 # annotation for each
@@ -83,7 +83,7 @@ class TestModifyingFieldTypes():
         shutil.copy(self.columns_vcf, test_vcf)
 
         # call method to overwrite with new header
-        filter(vcf_handler.args).write_header(test_vcf, self.new_header)
+        filter(self.vcf_handler.args).write_header(test_vcf, self.new_header)
 
         with open(self.columns_vcf) as fh:
             # read variants from unmodified testing vcf
@@ -119,7 +119,13 @@ class TestFilters():
     of variants
     """
     # test data vcf
-    columns_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
+    test_vcf = os.path.join(TEST_DATA_DIR, TEST_VCF)
+
+    # names for intermediary vcfs
+    split_vcf = f"{Path(test_vcf).stem}.split.vcf"
+    split_vcf_gz = f"{Path(test_vcf).stem}.split.vcf.gz"
+    filter_vcf = f"{Path(test_vcf).stem}.filter.vcf"
+    filter_vcf_gz = f"{Path(test_vcf).stem}.filter.vcf.gz"
 
     # initialise vcf class with a valid argparse input to allow
     # calling .read()
@@ -130,15 +136,8 @@ class TestFilters():
         out_dir='', output='', always_keep=pd.DataFrame(),
         panel='', print_columns=False, print_header=False, reads='',
         rename=None, sample='', sheets=['variants'], summary=None,
-        usable_reads='', vcfs=[columns_vcf], workflow=('', ''), types=None
+        usable_reads='', vcfs=[test_vcf], workflow=('', ''), types=None
     ))
-
-    # names for output vcfs
-    test_processed_vcf = columns_vcf.replace('.vcf', '.split.vcf')
-    test_filter_vcf = columns_vcf.replace('.vcf', '.filter.vcf')
-
-    # process with bcftools +split-vep ready for filtering
-    vcf_handler.bcftools_pre_process(columns_vcf, test_processed_vcf)
 
 
     def filter_vcf_and_read(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
@@ -158,21 +157,27 @@ class TestFilters():
         filtered_df : pd.DataFrame
             df of filtered out variants
         """
+        # process with bcftools +split-vep ready for filtering
+        self.vcf_handler.bcftools_pre_process(self.test_vcf, self.split_vcf)
+        self.vcf_handler.bgzip(self.split_vcf)
+
         self.vcf_handler.args.filter = filter_str
         self.vcf_handler.args.keep = True
 
         filter_handle = filter(self.vcf_handler.args)
 
-        # apply filter, read in filtered vcf, then get the filtered out rows
-        filter_handle.filter(self.test_processed_vcf, self.test_filter_vcf)
+        # filter vcf against specified filters using bcftools
+        filter_handle.filter(self.split_vcf, self.filter_vcf)
+        self.vcf_handler.bgzip(self.filter_vcf)
 
-        keep_df = self.vcf_handler.read(
-            self.test_filter_vcf, Path(self.columns_vcf).stem
-        )
-        _, columns = vcf_handler.parse_header(self.test_processed_vcf)
+        # filters.filter() writes temp filtered vcf containing the
+        # filtered variants to read into df
+        keep_df = self.vcf_handler.read(self.filter_vcf, Path(self.test_vcf).stem)
 
+        # get filtered out rows and read back to new df
+        _, columns = self.vcf_handler.parse_header(self.test_vcf)
         filtered_df = filter_handle.get_filtered_rows(
-            self.test_processed_vcf, keep_df, columns
+            self.split_vcf_gz, self.filter_vcf_gz, columns
         )
 
         # split out INFO and FORMAT column values to individual
@@ -181,12 +186,17 @@ class TestFilters():
         filtered_df = splitColumns().split(filtered_df)
 
         # delete the filtered vcf file
-        os.remove(self.test_filter_vcf)
+        os.remove(self.split_vcf)
+        os.remove(self.split_vcf_gz)
+        os.remove(self.filter_vcf)
+        os.remove(self.filter_vcf_gz)
+        os.remove(f"{self.split_vcf_gz}.tbi")
+        os.remove(f"{self.filter_vcf_gz}.tbi")
 
         return keep_df, filtered_df
 
 
-    def test_correct_rows_filtered_with_include_eq(self):
+    def test_filter_with_include_eq(self):
         """
         Test when using include with equal operator filter is correctly applied
         """
@@ -206,7 +216,7 @@ class TestFilters():
         )
 
 
-    def test_correct_rows_filtered_with_exclude_eq(self):
+    def test_filter_with_exclude_eq(self):
         """
         Test when using exclude with equal operator filter is correctly applied
         """
@@ -227,7 +237,7 @@ class TestFilters():
         )
 
 
-    def test_correct_rows_filtered_with_exclude_gt(self):
+    def test_filter_with_exclude_gt(self):
         """
         Test when using exclude with gt operator filter is correctly applied
         """
@@ -262,6 +272,7 @@ if __name__ == "__main__":
 
 
     t = TestFilters()
-    t.test_correct_rows_filtered_with_include_eq()
-    t.test_correct_rows_filtered_with_exclude_eq()
-    t.test_correct_rows_filtered_with_exclude_gt()
+
+    t.test_filter_with_include_eq()
+    t.test_filter_with_exclude_eq()
+    t.test_filter_with_exclude_gt()
