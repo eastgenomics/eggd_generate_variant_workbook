@@ -17,9 +17,6 @@ from utils.filters import filter
 from utils.vcf import vcf
 from tests import TEST_DATA_DIR
 
-# initialise vcf class that contains functions for parsing header
-# vcf_handler = vcf(argparse.Namespace)
-
 # vcf we are using for testing, ~5000 variants with multiple transcript
 # annotation for each
 TEST_VCF = "NA12878_unittest.vcf"
@@ -140,7 +137,7 @@ class TestFilters():
     ))
 
 
-    def filter_vcf_and_read(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
+    def filter(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
         """
         Given a bcftools filter string, run the filter and get the filtered and
         filtered out rows of the vcf as 2 dataframes
@@ -167,7 +164,7 @@ class TestFilters():
         filter_handle = filter(self.vcf_handler.args)
 
         # filter vcf against specified filters using bcftools
-        filter_handle.filter(self.split_vcf, self.filter_vcf)
+        filter_handle.filter(self.split_vcf_gz, self.filter_vcf)
         self.vcf_handler.bgzip(self.filter_vcf)
 
         # filters.filter() writes temp filtered vcf containing the
@@ -200,7 +197,7 @@ class TestFilters():
         """
         Test when using include with equal operator filter is correctly applied
         """
-        keep_df, filtered_df = self.filter_vcf_and_read(
+        keep_df, filtered_df = self.filter(
             "bcftools filter -i 'CHROM==\"4\"'"
         )
 
@@ -220,7 +217,7 @@ class TestFilters():
         """
         Test when using exclude with equal operator filter is correctly applied
         """
-        keep_df, filtered_df = self.filter_vcf_and_read(
+        keep_df, filtered_df = self.filter(
             "bcftools filter -e 'CHROM==\"4\"'"
         )
 
@@ -241,7 +238,7 @@ class TestFilters():
         """
         Test when using exclude with gt operator filter is correctly applied
         """
-        keep_df, filtered_df = self.filter_vcf_and_read(
+        keep_df, filtered_df = self.filter(
             "bcftools filter -e 'CSQ_gnomAD_AF>0.02'"
         )
 
