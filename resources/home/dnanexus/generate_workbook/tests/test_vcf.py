@@ -132,19 +132,19 @@ class TestDataFrameActions():
         vcf_handler = self.read_vcf()
 
         # update namespace with columns to test dropping
-        vcf_handler.args.exclude = ["SYMBOL", "ClinVar_CLNSIG", "ID"]
+        vcf_handler.args.exclude = ["POS", "AF", "ID"]
 
         vcf_handler.drop_columns()
 
         # ensure columns in exclude are no longer in df columns
         columns = sorted(list(
-            set(["Allele", "Gene", "HGNC"]) -
+            set(["AF", "ID", "POS"]) -
             set(vcf_handler.vcfs[0].columns.tolist())
         ))
 
         self.clean_up()
 
-        assert columns == ["Allele", "Gene", "HGNC"], (
+        assert columns == ["AF", "ID", "POS"], (
             "Columns specified with --exlcude not dropped from dataframe"
         )
 
@@ -156,7 +156,7 @@ class TestDataFrameActions():
         """
         vcf_handler = self.read_vcf()
 
-        # update namespace with columns to test dropping
+        # update namespace with columns to test dropping everything else
         include_cols = ['CHROM', 'POS', 'REF', 'ALT']
         vcf_handler.args.include = include_cols
 
@@ -177,10 +177,7 @@ class TestDataFrameActions():
         """
         vcf_handler = self.read_vcf()
 
-        # capture original order to compare against
-        original_cols = vcf_handler.vcfs[0].columns.tolist()
-
-        order_cols = ["CSQ_SYMBOL", "CSQ_ClinVar_CLNSIG", "ID", "CHROM", "POS"]
+        order_cols = ["ALT", "REF", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
 
         vcf_handler.order_columns()
@@ -198,23 +195,21 @@ class TestDataFrameActions():
         """
         vcf_handler = self.read_vcf()
 
-        # capture original order to compare against
-        original_cols = vcf_handler.vcfs[0].columns.tolist()
-
-        order_cols = ["CSQ_SYMBOL", "CSQ_ClinVar_CLNSIG", "ID", "CHROM", "POS"]
+        order_cols = ["ALT", "REF", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
+
+        # capture original order to compare against with ordered cols removed
+        original_cols = vcf_handler.vcfs[0].columns.tolist()
+        original_cols = [x for x in original_cols if x not in order_cols]
 
         vcf_handler.order_columns()
 
-        # sort both original and new columns to compare
-        original_cols = sorted(original_cols)
-        new_cols = sorted(vcf_handler.vcfs[0].columns.tolist())
-
         self.clean_up()
 
-        assert original_cols == new_cols, (
-            "Columns dropped wrongly when reordering"
+        assert vcf_handler.vcfs[0].columns.tolist()[5:] == original_cols, (
+            "Original columns after reordering not in correct order"
         )
+
 
     @pytest.fixture
     def rename(self):
@@ -285,5 +280,3 @@ if __name__ == "__main__":
     header.test_column_names()
 
     df_actions = TestDataFrameActions()
-    df_actions.read_vcf()
-    # df_actions.test_exclude()
