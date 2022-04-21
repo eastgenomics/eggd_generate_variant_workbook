@@ -155,6 +155,7 @@ class TestFilters():
             df of filtered out variants
         """
         # process with bcftools +split-vep ready for filtering
+        _, columns = self.vcf_handler.parse_header(self.split_vcf)
         self.vcf_handler.bcftools_pre_process(self.test_vcf, self.split_vcf)
         self.vcf_handler.bgzip(self.split_vcf)
 
@@ -164,7 +165,7 @@ class TestFilters():
         filter_handle = filter(self.vcf_handler.args)
 
         # filter vcf against specified filters using bcftools
-        filter_handle.filter(self.split_vcf_gz, self.filter_vcf)
+        filter_handle.filter(self.split_vcf_gz, self.filter_vcf, columns)
         self.vcf_handler.bgzip(self.filter_vcf)
 
         # filters.filter() writes temp filtered vcf containing the
@@ -174,7 +175,7 @@ class TestFilters():
         # get filtered out rows and read back to new df
         _, columns = self.vcf_handler.parse_header(self.test_vcf)
         filtered_df = filter_handle.get_filtered_rows(
-            self.split_vcf_gz, self.filter_vcf_gz, columns
+            self.split_vcf, self.filter_vcf, columns
         )
 
         # split out INFO and FORMAT column values to individual
@@ -183,9 +184,9 @@ class TestFilters():
         filtered_df = splitColumns().split(filtered_df)
 
         # delete the filtered vcf file
-        os.remove(self.split_vcf)
+        # os.remove(self.split_vcf)
         os.remove(self.split_vcf_gz)
-        os.remove(self.filter_vcf)
+        # os.remove(self.filter_vcf)
         os.remove(self.filter_vcf_gz)
         os.remove(f"{self.split_vcf_gz}.tbi")
         os.remove(f"{self.filter_vcf_gz}.tbi")
@@ -261,15 +262,83 @@ class TestFilters():
         )
 
 
+    def test_combined_exclude_float_and_string(self):
+        """
+        Test filtering on gnomAD at 2%, and filtering out synonymous and
+        intronic variants
+        """
+        keep_df, filtered_df = self.filter(
+            "bcftools filter -e 'CSQ_gnomAD_AF>0.01 "
+            "| CSQ_gnomADg_AF>0.01 "
+            "| CSQ_Consequence=\"synonymous_variant\" "
+            "| CSQ_Consequence=\"intron_variant\"'"
+        )
+
+        # set '.' to 0 to allow column to be a float for comparing
+        keep_df['CSQ_gnomAD_AF'] = keep_df['CSQ_gnomAD_AF'].apply(
+            lambda x: '0' if x == '.' else x
+        ).astype(float)
+        keep_df['CSQ_gnomADg_AF'] = keep_df['CSQ_gnomADg_AF'].apply(
+            lambda x: '0' if x == '.' else x
+        ).astype(float)
+        filtered_df['CSQ_gnomAD_AF'] = filtered_df['CSQ_gnomAD_AF'].apply(
+            lambda x: '0' if x == '.' else x
+        ).astype(float)
+        filtered_df['CSQ_gnomADg_AF'] = filtered_df['CSQ_gnomADg_AF'].apply(
+            lambda x: '0' if x == '.' else x
+        ).astype(float)
+
+        # check we have correctly filtered variants
+        assert all(keep_df['CSQ_gnomAD_AF'] <= 0.01) & \
+                all(keep_df['CSQ_Consequence'] != 'synonymous_variant') & \
+                    all(keep_df['CSQ_Consequence'] != 'intron_variant'), (
+            "Filtering to exclude gnomAD_AF>0.01 and synonymous/intronic "
+            "variants did not filter out the correct variants"
+        )
+
+
+        filtered_df['check'] = filtered_df.apply(
+                lambda x: x['CSQ_gnomAD_AF'] > 0.01 or \
+                x['CSQ_gnomADg_AF'] > 0.01 or \
+                x['CSQ_Consequence'] == 'synonymous_variant' or \
+                x['CSQ_Consequence'] == 'intron_variant', axis=1
+            )
+
+        df = filtered_df[[
+            'CHROM', 'POS', 'REF', 'ALT', 'CSQ_SYMBOL', 'CSQ_Feature',
+            'CSQ_gnomAD_AF', 'CSQ_gnomADg_AF', 'CSQ_Consequence', 'check']]
+
+        print(df[df['check'] == False])
+
+        print(len(keep_df))
+        print(len(filtered_df))
+        print(len(keep_df) + len(filtered_df))
+
+
+        assert all(
+            filtered_df.apply(
+                lambda x: x['CSQ_gnomAD_AF'] > 0.01 or \
+                x['CSQ_gnomADg_AF'] > 0.01 or \
+                x['CSQ_Consequence'] == 'synonymous_variant' or \
+                x['CSQ_Consequence'] == 'intron_variant', axis=1
+            )
+        ), (
+            "Filtering to exclude gnomAD_AF>0.01 and synonymous/intronic "
+            "variants filtered out the wrong variants"
+        )
+
+
+
 if __name__ == "__main__":
 
-    modify_header = TestModifyingFieldTypes()
-    modify_header.test_type_correctly_modified()
-    modify_header.test_header_overwritten_correctly()
+    # modify_header = TestModifyingFieldTypes()
+    # modify_header.test_type_correctly_modified()
+    # modify_header.test_header_overwritten_correctly()
 
 
     t = TestFilters()
 
-    t.test_filter_with_include_eq()
-    t.test_filter_with_exclude_eq()
-    t.test_filter_with_exclude_gt()
+    # t.test_filter_with_include_eq()
+    # t.test_filter_with_exclude_eq()
+    # t.test_filter_with_exclude_gt()
+    t.test_combined_exclude_float_and_string()

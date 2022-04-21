@@ -78,7 +78,8 @@ class vcf():
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filters.filter(split_vcf, filter_vcf)
+                _, columns = self.parse_header(vcf)
+                filters.filter(split_vcf, filter_vcf, columns)
                 self.bgzip(filter_vcf)
 
                 # filters.filter() writes temp filtered vcf containing the
