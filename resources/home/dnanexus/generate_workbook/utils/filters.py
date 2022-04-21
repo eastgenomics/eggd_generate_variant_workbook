@@ -76,11 +76,6 @@ class filter():
             f"\n\t{output.stderr.decode()}"
         )
 
-        all_variants = pd.read_csv(
-            filter_vcf, sep='\t', comment='#',
-            names=columns, compression='infer'
-        )
-
 
     def split_include_exclude(self, variant_df) -> Union[pd.DataFrame, pd.DataFrame]:
         """
@@ -99,8 +94,8 @@ class filter():
         exclude_df : pd.DataFrame
             dataframe of variants not passing specified filter(s)
         """
-        include_df = variant_df[variant_df['FILTER'] != 'EXCLUDE']
-        exclude_df = variant_df[variant_df['FILTER'] == 'EXCLUDE']
+        include_df = variant_df[variant_df['FILTER'] != 'EXCLUDE'].reset_index(drop=True)
+        exclude_df = variant_df[variant_df['FILTER'] == 'EXCLUDE'].reset_index(drop=True)
 
         return include_df, exclude_df
 
