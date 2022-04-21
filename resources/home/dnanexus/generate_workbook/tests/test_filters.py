@@ -170,13 +170,10 @@ class TestFilters():
 
         # filters.filter() writes temp filtered vcf containing the
         # filtered variants to read into df
-        keep_df = self.vcf_handler.read(self.filter_vcf, Path(self.test_vcf).stem)
+        variant_df = self.vcf_handler.read(self.filter_vcf, Path(self.test_vcf).stem)
 
-        # get filtered out rows and read back to new df
-        _, columns = self.vcf_handler.parse_header(self.test_vcf)
-        filtered_df = filter_handle.get_filtered_rows(
-            self.split_vcf, self.filter_vcf, columns
-        )
+        # get filtered out rows and read back to new dfs
+        keep_df, filtered_df = filter_handle.split_include_exclude(variant_df)
 
         # split out INFO and FORMAT column values to individual
         # columns in dataframe
@@ -184,12 +181,10 @@ class TestFilters():
         filtered_df = splitColumns().split(filtered_df)
 
         # delete the filtered vcf file
-        # os.remove(self.split_vcf)
+        os.remove(self.split_vcf)
         os.remove(self.split_vcf_gz)
-        # os.remove(self.filter_vcf)
+        os.remove(self.filter_vcf)
         os.remove(self.filter_vcf_gz)
-        os.remove(f"{self.split_vcf_gz}.tbi")
-        os.remove(f"{self.filter_vcf_gz}.tbi")
 
         return keep_df, filtered_df
 
