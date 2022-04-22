@@ -185,6 +185,9 @@ class TestFilters():
         os.remove(self.filter_vcf)
         os.remove(self.filter_vcf_gz)
 
+        # check no variants have been dropped
+        filter_handle.verify_total_variants(self.split_vcf, keep_df, filtered_df)
+
         return keep_df, filtered_df
 
 
@@ -303,6 +306,8 @@ class TestFilters():
             "Filtering to exclude gnomAD_AF>0.01 and synonymous/intronic "
             "variants filtered out the wrong variants"
         )
+
+        
 
 
 
