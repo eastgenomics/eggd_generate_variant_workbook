@@ -3,8 +3,11 @@ import os
 import re
 import subprocess
 import sys
+from typing import Union
 
 import pandas as pd
+
+from utils.columns import splitColumns
 
 
 class filter():
@@ -25,7 +28,7 @@ class filter():
         self.args = args
 
 
-    def filter(self, split_vcf, filter_vcf) -> None:
+    def filter(self, split_vcf, filter_vcf, columns) -> None:
         """
         Filter given vcf using bcftools
 
@@ -39,7 +42,7 @@ class filter():
         Outputs
         -------
         filter_vcf : file
-            vcf file filtered with bedtools and specified filters
+            vcf file with PASS/EXCLUDE added to FILTER columns
 
         Raises
         ------
@@ -50,6 +53,11 @@ class filter():
         if self.args.types:
             new_header = self.modify_header_types(split_vcf)
             self.write_header(split_vcf, new_header)
+
+        # add string EXLCUDE to sites that don't meet given filter
+        self.args.filter = self.args.filter.replace(
+            'filter', 'filter --soft-filter \"EXCLUDE\"'
+        )
 
         # write to temporary vcf files to read from with vcf.read()
         command = f"{self.args.filter} {split_vcf} -o {filter_vcf}"
@@ -69,78 +77,28 @@ class filter():
         )
 
 
-    def get_filtered_rows(self, split_vcf, filter_vcf, columns) -> pd.DataFrame():
+    def split_include_exclude(self, variant_df) -> Union[pd.DataFrame, pd.DataFrame]:
         """
-        Given dataframe of variants passing filter from vcf, return a
-        dataframe of the filtered out variants
+        Split out given dataframe of variants by FILTER column when filtered
+        through self.filter()
 
         Parameters
         ----------
-        split_vcf : str
-            filename of vcf of all variants
-        filter_vcf : str
-            filename of vcf of filtered out variants
-        columns : list
-            column names read from header of vcf
-
-        Raises
-        ------
-        AssertionError
-            Raised when non zero exit code returned from subprocess.run(),
-            either when indexing with tabix or intersecting with bcftools isec
+        variant_df : pd.DataFrame
+            dataframe of variants read from vcf output by self.filter()
 
         Returns
         -------
-        filtered_out_df : pd.DataFrame
-            dataframe of filtered out variants
+        include_df : pd.DataFrame
+            dataframe of variants passing specified filter(s)
+        exclude_df : pd.DataFrame
+            dataframe of variants not passing specified filter(s)
         """
-        os.makedirs('tmp', exist_ok=True)
+        include_df = variant_df[variant_df['FILTER'] != 'EXCLUDE'].reset_index(drop=True)
+        exclude_df = variant_df[variant_df['FILTER'] == 'EXCLUDE'].reset_index(drop=True)
 
-        # index both vcfs with tabix
-        split_output = subprocess.run(
-            f"tabix -f {split_vcf}", shell=True, capture_output=True)
-        filter_output = subprocess.run(
-            f"tabix -f {filter_vcf}", shell=True, capture_output=True)
+        return include_df, exclude_df
 
-        assert split_output.returncode == 0 and filter_output.returncode == 0, (
-            f"\nError in indexing VCF(s)\nExit code for {split_vcf}: "
-            f"{split_output.returncode}\nExit code for {filter_vcf}: "
-            f"{filter_output.returncode}.\nstderr:\n{split_output.stderr.decode()}"
-            f"\n{filter_output.stderr.decode()}"
-        )
-
-        # use bcftools isec to find excluded variants from bcftools filter
-        isec_command = f"bcftools isec -p tmp {split_vcf} {filter_vcf}"
-        isec_output = subprocess.run(isec_command, shell=True, capture_output=True)
-
-        assert isec_output.returncode == 0, (
-            f"\nError in bcftools isec\nReturncode: {isec_output.returncode}"
-            f"\n{isec_output.stderr.decode()}"
-        )
-
-        # variants excluded will be in the 0000.vcf
-        filtered_out_df = pd.read_csv(
-            'tmp/0000.vcf', sep='\t', comment='#', names=columns,
-            compression='infer'
-        )
-
-        if self.args.add_name:
-            # add sample name as first column
-            sample = split_vcf.replace('.vcf', '').replace('.gz', '')
-            if '_' in sample:
-                sample = sample.split('_')[0]
-
-            filtered_out_df.insert(loc=0, column='sampleName', value=sample)
-
-        # tidy up bcftools isec output
-        output_files = [
-            'tmp/0000.vcf', 'tmp/0001.vcf', 'tmp/0002.vcf', 'tmp/0003.vcf',
-            'tmp/README.txt', 'tmp/sites.txt'
-        ]
-        for file in output_files:
-            os.remove(file)
-
-        return filtered_out_df
 
 
     def verify_total_variants(self, split_vcf, include_df, exclude_df) -> None:

@@ -78,18 +78,15 @@ class vcf():
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
-                filters.filter(split_vcf, filter_vcf)
+                _, columns = self.parse_header(vcf)
+                filters.filter(split_vcf, filter_vcf, columns)
                 self.bgzip(filter_vcf)
 
-                # filters.filter() writes temp filtered vcf containing the
-                # filtered variants to read into df
-                keep_df = self.read(filter_vcf, Path(vcf).stem)
+                # filters.filter() writes temp vcf with modified FILTER column
+                variant_df = self.read(filter_vcf, Path(vcf).stem)
 
-                # get filtered out rows and read back to new df
-                _, columns = self.parse_header(vcf)
-                filtered_df = filters.get_filtered_rows(
-                    split_vcf_gz, filter_vcf_gz, columns
-                )
+                # get filtered rows and read back to new dfs
+                keep_df, filtered_df = filters.split_include_exclude(variant_df)
 
                 # check we haven't dropped any variants
                 filters.verify_total_variants(split_vcf_gz, keep_df, filtered_df)
@@ -139,10 +136,6 @@ class vcf():
 
             if self.args.filter:
                 os.remove(filter_vcf)
-
-                # indices only made when filtering
-                os.remove(f"{split_vcf_gz}.tbi")
-                os.remove(f"{filter_vcf_gz}.tbi")
 
             if not self.args.keep_tmp:
                 os.remove(split_vcf_gz)

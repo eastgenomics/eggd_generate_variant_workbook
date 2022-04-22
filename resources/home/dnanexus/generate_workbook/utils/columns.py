@@ -193,14 +193,8 @@ class splitColumns():
             info_values.append(pair_values)
 
         # build df of values to add to main df
-        info_df = pd.DataFrame(
-            info_values, columns=info_keys
-        )
-
-
-        for col in info_keys:
-            # add all info values to main vcf df
-            vcf_df[col] = info_df[col]
+        info_df = pd.DataFrame(info_values, columns=info_keys)
+        vcf_df = pd.concat([vcf_df, info_df], axis=1)
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO'], axis=1, inplace=True)
