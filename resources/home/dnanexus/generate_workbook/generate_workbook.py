@@ -137,6 +137,10 @@ class arguments():
             help='Add sample name from filename as first column'
         )
         parser.add_argument(
+            '-c', '--add_comment_column', action='store_true',
+            help='Add empty comment column to end of each sheet'
+        )
+        parser.add_argument(
             '-s', '--sheets', nargs='+',
             help=(
                 'Names to use for multiple sheets, these MUST be the same '
