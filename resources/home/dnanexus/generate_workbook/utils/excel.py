@@ -628,11 +628,13 @@ class excel():
         for idx, column in enumerate(sheet_columns):
             # loop over column names, select width by closest match from dict
             # and set width in sheet letter
-            width = self.get_closest_match(column.lower(), widths)
+            width = self.get_closest_match(
+                worksheet, column_list[idx], column.lower(), widths
+            )
             worksheet.column_dimensions[column_list[idx]].width = width
 
 
-    def get_closest_match(self, column, widths) -> int:
+    def get_closest_match(self, worksheet, col_letter, col, widths) -> int:
         """
         Given a column name, find the closest match (if there is one) in the
         widths dict and return its width value to set. Using imprecise name
@@ -641,7 +643,11 @@ class excel():
 
         Parameters
         ----------
-        column : str
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        col_letter : str
+            letter of column in worksheet
+        col : str
             name of column
         widths : dict
             dict of common column names and widths
@@ -651,14 +657,18 @@ class excel():
         width : int
             column width value to set
         """
-        distances = {x: levenshtein.distance(column, x) for x in widths.keys()}
+        distances = {x: levenshtein.distance(col, x) for x in widths.keys()}
         closest_match = min(distances, key=distances.get)
 
         if distances[closest_match] <= 5:
             # close enough match to probably be correct
             width = widths[closest_match]
         else:
-            # no close matches to name, use default width
-            width = 13
+            # no close matches to name, use title multipled by factor
+            title = worksheet[f"{col_letter}1"].value
+            width = len(title) * 1.15
+            if width < 13:
+                # make minimum of 13
+                width = 13
 
         return width
