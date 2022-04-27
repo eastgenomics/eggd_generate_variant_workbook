@@ -381,13 +381,11 @@ class vcf():
 
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
-                "csq_gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r2_1",
-                "csq_gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r2_1"
+                "gnomad": f"{gnomad_base_url}?dataset=gnomad_r2_1"
             })
         elif '38' in reference:
             self.urls.update({
-                "gnomad_af": f"{gnomad_base_url}?dataset=gnomad_r3",
-                "gnomadg_af": f"{gnomad_base_url}?dataset=gnomad_r3"
+                "gnomad": f"{gnomad_base_url}?dataset=gnomad_r3"
             })
 
         for idx, vcf in enumerate(self.vcfs):
@@ -395,11 +393,17 @@ class vcf():
                 # empty dataframe => nothing to add links to
                 continue
             for col in vcf.columns:
-                if self.urls.get(col.lower(), None):
+                if 'gnomad' in col.lower():
+                    # gnomAD columns won't be exact match on name to dict
+                    url = self.urls.get('gnomad')
+                else:
+                    url = self.urls.get(col.lower(), None)
+
+                if url:
                     # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx].apply(
                         lambda x: self.make_hyperlink(
-                            col, self.urls.get(col.lower()), x
+                            column=col, url=url, value=x
                         ), axis=1
                     )
 
