@@ -37,6 +37,7 @@ class vcf():
         self.refs = []
         self.filtered_vcfs = []
         self.urls = {
+            "csq_existing_variation": "https://www.ncbi.nlm.nih.gov/snp/",
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
