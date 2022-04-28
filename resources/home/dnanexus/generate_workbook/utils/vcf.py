@@ -37,6 +37,7 @@ class vcf():
         self.refs = []
         self.filtered_vcfs = []
         self.urls = {
+            "csq_existing_variation": "https://www.ncbi.nlm.nih.gov/snp/",
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
@@ -426,10 +427,19 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if not value[column] or pd.isna(value[column]) or \
-            value[column] == 'nan' or value[column] == '.':
-                # no value to build hyperlink
-                return value[column]
+        if (
+            not value[column] or pd.isna(value[column]) or
+            value[column] == 'nan' or value[column] == '.'
+        ):
+            # no value to build hyperlink
+            return value[column]
+
+        if (
+            column.lower() == 'existing_variation' and
+            not value[column].startswith('rs')
+        ):
+            # non-rsID in Existing_variation column => return without URL
+            return value[column]
 
         if 'gnomad' in column.lower():
             # handle gnomad differently as it requires chrom, pos, ref and
