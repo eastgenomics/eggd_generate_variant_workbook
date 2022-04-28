@@ -56,7 +56,7 @@ class filter():
 
         # add string EXLCUDE to sites that don't meet given filter
         self.args.filter = self.args.filter.replace(
-            'filter', 'filter --soft-filter \"EXCLUDE\"'
+            'filter', 'filter --soft-filter \"EXCLUDE\" -m +'
         )
 
         # write to temporary vcf files to read from with vcf.read()
@@ -96,6 +96,11 @@ class filter():
         """
         include_df = variant_df[variant_df['FILTER'] != 'EXCLUDE'].reset_index(drop=True)
         exclude_df = variant_df[variant_df['FILTER'] == 'EXCLUDE'].reset_index(drop=True)
+
+        # remove our added soft filter tag from FILTER column
+        exclude_df['FILTER'] = exclude_df['FILTER'].apply(
+            lambda x: x.replace('EXCLUDE', '')
+        )
 
         return include_df, exclude_df
 
