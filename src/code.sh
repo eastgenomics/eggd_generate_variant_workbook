@@ -82,7 +82,7 @@ main() {
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
     if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
-    if [ "$workflow" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
+    if [ "$workflow_id" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
     if [ "$job_id" ]; then args+="--job_id ${job_id} "; fi
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
