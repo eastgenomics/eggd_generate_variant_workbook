@@ -74,6 +74,7 @@ main() {
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
+    if [ "$human_filter" ]; then args+="--human_filter ${human_filter} "; fi
     if [ "$acmg" ]; then args+="--acmg "; fi
     if [ "$keep_filtered" == true ]; then args+="--keep "; fi
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
