@@ -51,6 +51,8 @@ This app may be executed as a standalone app.
 
 `--summary` (`string`): If to include summary sheet, specify key of assay. Currently only supports `dias`.
 
+`--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
+
 `--acmg` (`bool`): Adds extra sheet to workbook with reporting criteria against ACMG classifications
 
 `--panel` (`string`): Name of panel to display in summary sheet.
@@ -113,6 +115,10 @@ Please be aware of the difference between using `-i / --include` and `-e / --exc
 
 # filtering out synonymous consequence
 -ifilter="bcftools filter -e 'CSQ_Consequence==\"synonymous_variant\"'"
+
+# filter out gnomAD exomes and genomes at 2%, and synonymous/intronic variants EXCEPT if pathogenic in ClinVar (with or without conflicts)
+-ifilter="bcftools filter -e '(CSQ_Consequence==\"synonymous_variant\" | CSQ_Consequence==\"intron_variant\" | CSQ_gnomADe_AF>0.02 | CSQ_gnomADg_AF>0.02) & CSQ_ClinVar_CLNSIG!~ \"pathogenic\/i\" & CSQ_ClinVar_CLNSIGCONF!~ \"pathogenic\/i\"'"
+
 ```
 
 Useful resources:

@@ -126,8 +126,18 @@ class excel():
                 self.summary.cell(count, 2).value = ref
                 count += 1
 
+        count += 1
+
+        if self.args.human_filter:
+            self.summary.cell(count, 1).value = "Filters applied:"
+            self.summary[f"A{count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(count, 2).value = self.args.human_filter
+
+            count += 2
+
         # write args passed to script to generate report
-        self.summary.cell(count, 1).value = "Filters applied:"
+        self.summary.cell(count, 1).value = "Filter command:"
         self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
         if self.args.filter:
             self.summary.cell(count, 2).value = self.args.filter

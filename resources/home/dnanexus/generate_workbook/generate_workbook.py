@@ -174,6 +174,14 @@ class arguments():
             help='summary sheet to include, must be one of: dias'
         )
         parser.add_argument(
+            '--human_filter',  nargs='+', action=self.joinList,
+            help=(
+                'String to add to summary sheet with humanly readable form of '
+                'the given filter string. No checking is done of this matching'
+                ' the actual filter(s) used.'
+            )
+        )
+        parser.add_argument(
             '--acmg', action='store_true',
             help='add extra ACMG reporting template sheet'
         )

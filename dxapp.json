@@ -130,6 +130,14 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "human_filter",
+      "label": "Human filter",
+      "class": "string",
+      "optional": true,
+      "help": "String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "acmg",
       "label": "ACMG",
       "class": "boolean",
