@@ -115,6 +115,11 @@ Please be aware of the difference between using `-i / --include` and `-e / --exc
 
 # filtering out synonymous consequence
 -ifilter="bcftools filter -e 'CSQ_Consequence==\"synonymous_variant\"'"
+
+# filter out gnomAD exomes and genomes at 2%, and synonymous/intronic variants EXCEPT if pathogenic in ClinVar (with or without conflicts)
+
+-ifilter="bcftools filter -e '(CSQ_Consequence==\"synonymous_variant\" | CSQ_Consequence==\"intron_variant\" | CSQ_gnomADe_AF>0.02 | CSQ_gnomADg_AF>0.02) & CSQ_ClinVar_CLNSIG!~ \"pathogenic\/i\" & CSQ_ClinVar_CLNSIGCONF!~ \"pathogenic\/i\"'"
+
 ```
 
 Useful resources:
