@@ -16,6 +16,9 @@ _dias_report_setup () {
 
         if [ "$workflow_id" != "null" ]; then
             workflow_name=$(dx describe --json "${workflow_id}" | jq -r '.executableName')
+        else
+            # unset from null string if not from workflow
+            unset workflow_id
         fi
     fi
 
