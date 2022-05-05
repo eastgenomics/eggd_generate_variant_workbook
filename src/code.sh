@@ -74,6 +74,7 @@ main() {
     if [ "$reorder_columns" ]; then args+="--reorder ${reorder_columns} "; fi
     if [ "$rename_columns" ]; then args+="--rename ${rename_columns} "; fi
     if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
+    if [ "$add_comment_column" == true ]; then args+="--add_comment_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$print_columns" ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi

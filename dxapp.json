@@ -97,6 +97,15 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "add_comment_column",
+      "label": "Add comment column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty comment column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",
