@@ -434,7 +434,7 @@ class excel():
                 )
 
                 if self.args.add_comment_column:
-                    vcf['comment'] = ''
+                    vcf['Comment'] = ''
 
                 # timing how long it takes to write because its slow
                 start = timer()
