@@ -453,6 +453,11 @@ class vcf():
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
 
+        if len(f'=HYPERLINK("{url}", "{value[column]}")') > 242:
+            # Excel has a limit of 255 characters inside a formula, display
+            # just the raw value instead of a hyperlink if too long
+            return value[column]
+
         return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
