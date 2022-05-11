@@ -126,6 +126,20 @@ Useful resources:
 - [bcftools expressions](bcftools-expressions)
 
 
+## Hyperlinks in output Excel file
+
+Some columns will be formatted with URLs as hyperlinks in the output variant sheets, this is dependent on the INFO field names from the VCF. Currently, the following INFO fields (case insensitive, either exact match or contains given name) and URLs are used:
+
+| INFO field | URL |
+|---         | --- |
+| gnomad (contains) | https://gnomad.broadinstitute.org/variant/ |
+| existing_variation (exact) | https://www.ncbi.nlm.nih.gov/snp/ |
+| clinvar (exact) | https://www.ncbi.nlm.nih.gov/clinvar/variation/ |
+| cosmic (exact) | https://cancer.sanger.ac.uk/cosmic/search?q= |
+| hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
+| mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
+
+
 
 ## What does this app output?
 
