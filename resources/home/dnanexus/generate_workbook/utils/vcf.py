@@ -487,7 +487,8 @@ class vcf():
 
     def map_chr_to_nc(self, chrom, build) -> str:
         """
-        Maps given chromosome to NC value for generating MasterMind URL
+        Maps given chromosome to NC value for generating MasterMind URL, taken
+        from here: https://www.genomenon.com/mastermind-faq/#How%20can%20I%20search%20for%20variants%20in%20Mastermind
 
         Parameters
         ----------
