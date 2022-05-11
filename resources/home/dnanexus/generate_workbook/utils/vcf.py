@@ -455,6 +455,9 @@ class vcf():
             url = url.replace('POS', str(value.POS))
             url = url.replace('REF', str(value.REF))
             url = url.replace('ALT', str(value.ALT))
+
+            return f'=HYPERLINK("{url}", {value[column]})'
+
         elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
             # build URL for MasterMind on genomic position
             # get chromosome NC value for given chrom and build
