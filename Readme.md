@@ -43,6 +43,8 @@ This app may be executed as a standalone app.
 
 `--add_samplename_column` (`bool`): Determines if to add sample name as first column in each sheet (default: `False`). Column will be named `sampleName`, will be first column unless `--reorder_columns` is specified.
 
+`--add_comment_column` (`bool`): Determines if to append empty 'Comment' column to end of each sheet of variants.
+
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 
 `--output_prefix` (`string`): Prefix for naming output xlsx file. If not given for single file, the VCF prefix will be used. For 2+ input VCFs this must be specified.
@@ -124,6 +126,20 @@ Please be aware of the difference between using `-i / --include` and `-e / --exc
 Useful resources:
 
 - [bcftools expressions](bcftools-expressions)
+
+
+## Hyperlinks in output Excel file
+
+Some columns will be formatted with URLs as hyperlinks in the output variant sheets, this is dependent on the INFO field names from the VCF. Currently, the following INFO fields (case insensitive, either exact match or contains given name) and URLs are used:
+
+| INFO field | URL |
+|---         | --- |
+| gnomad (contains) | https://gnomad.broadinstitute.org/variant/ |
+| existing_variation (exact) | https://www.ncbi.nlm.nih.gov/snp/ |
+| clinvar (exact) | https://www.ncbi.nlm.nih.gov/clinvar/variation/ |
+| cosmic (exact) | https://cancer.sanger.ac.uk/cosmic/search?q= |
+| hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
+| mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
 
 
 

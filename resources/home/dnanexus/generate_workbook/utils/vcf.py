@@ -379,15 +379,18 @@ class vcf():
         # some URLs are build specific, infer which to use from build in header
         reference = self.refs[0].lower()
         gnomad_base_url = "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
+        build = None
 
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
                 "gnomad": f"{gnomad_base_url}?dataset=gnomad_r2_1"
             })
+            build = 37
         elif '38' in reference:
             self.urls.update({
                 "gnomad": f"{gnomad_base_url}?dataset=gnomad_r3"
             })
+            build = 38
 
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
@@ -404,12 +407,12 @@ class vcf():
                     # column has a linked url => add appropriate hyperlink
                     self.vcfs[idx][col] = self.vcfs[idx].apply(
                         lambda x: self.make_hyperlink(
-                            column=col, url=url, value=x
+                            column=col, url=url, value=x, build=build
                         ), axis=1
                     )
 
 
-    def make_hyperlink(self, column, url, value):
+    def make_hyperlink(self, column, url, value, build):
         """
         Return Excel formatted hyperlink from given url and value
 
@@ -421,6 +424,9 @@ class vcf():
             URL string to add value(s) to
         value : pd.Series
             current row values to use for formatting of URL
+        build : int
+            reference build inferred from reference stored in vcf header,
+            will be either 37, 38 or None if can't be parsed
 
         Returns
         -------
@@ -449,11 +455,86 @@ class vcf():
             url = url.replace('POS', str(value.POS))
             url = url.replace('REF', str(value.REF))
             url = url.replace('ALT', str(value.ALT))
+        elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
+            # build URL for MasterMind on genomic position
+            # get chromosome NC value for given chrom and build
+            if not build:
+                # no reference build, can't generate URL
+                return value[column]
+
+            # get NC value for chromosome
+            nc_id = self.map_chr_to_nc(value.CHROM.replace('chr', ''), build)
+
+            # build URL and set value to display equal to what is in the URL
+            url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
+            value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
 
+        if len(f'=HYPERLINK("{url}", "{value[column]}")') > 242:
+            # Excel has a limit of 255 characters inside a formula, display
+            # just the maximum possible of value[column]
+            max_len = 255 - len(f'=HYPERLINK("{url}", ')
+            if max_len > 0:
+                value[column] = value[column][:max_len]
+            else:
+                # URL is too long for excel, just show the value without URL
+                return value[column]
+
         return f'=HYPERLINK("{url}", "{value[column]}")'
+
+
+    def map_chr_to_nc(self, chrom, build) -> str:
+        """
+        Maps given chromosome to NC value for generating MasterMind URL, taken
+        from here: https://www.genomenon.com/mastermind-faq/#How%20can%20I%20search%20for%20variants%20in%20Mastermind
+
+        Parameters
+        ----------
+        chrom : str
+            chromsome to return NC value of
+        build : int
+            reference build inferred from reference stored in vcf header,
+            will be either 37 or 38
+
+        Returns
+        -------
+        nc_id : str
+            mapped NC value from chromosome
+        """
+        mapping = {
+            "1": {37: "NC_000001.10", 38: "NC_000001.11"},
+            "2": {37: "NC_000002.11", 38: "NC_000002.12"},
+            "3": {37: "NC_000003.11", 38: "NC_000003.12"},
+            "4": {37: "NC_000004.11", 38: "NC_000004.12"},
+            "5": {37: "NC_000005.9", 38: "NC_000005.10"},
+            "6": {37: "NC_000006.11", 38: "NC_000006.12"},
+            "7": {37: "NC_000007.13", 38: "NC_000007.14"},
+            "8": {37: "NC_000008.10", 38: "NC_000008."},
+            "9": {37: "NC_000009.11", 38: "NC_000009.12"},
+            "10": {37: "NC_000010.10", 38: "NC_000010.11"},
+            "11": {37: "NC_000011.9", 38: "NC_000011.10"},
+            "12": {37: "NC_000012.11", 38: "NC_000012.12"},
+            "13": {37: "NC_000013.10", 38: "NC_000013.11"},
+            "14": {37: "NC_000014.8", 38: "NC_000014.9"},
+            "15": {37: "NC_000015.9", 38: "NC_000015.10"},
+            "16": {37: "NC_000016.9", 38: "NC_000016.10"},
+            "17": {37: "NC_000017.10", 38: "NC_000017.11"},
+            "18": {37: "NC_000018.9", 38: "NC_000018.10"},
+            "19": {37: "NC_000019.9", 38: "NC_000019.10"},
+            "20": {37: "NC_000020.10", 38: "NC_000020.11"},
+            "21": {37: "NC_000021.8", 38: "NC_000021.9"},
+            "22": {37: "NC_000022.10", 38: "NC_000022.11"},
+            "X": {37: "NC_000023.10", 38: "NC_000023.11"},
+            "Y": {37: "NC_000024.9", 38: "NC_000024.10"}
+        }
+
+        nc_id = mapping.get(chrom, None)
+        if nc_id:
+            nc_id = nc_id.get(build, None)
+
+        return nc_id
 
 
     def format_strings(self) -> None:
