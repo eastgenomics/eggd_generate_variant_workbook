@@ -43,6 +43,8 @@ This app may be executed as a standalone app.
 
 `--add_samplename_column` (`bool`): Determines if to add sample name as first column in each sheet (default: `False`). Column will be named `sampleName`, will be first column unless `--reorder_columns` is specified.
 
+`--add_comment_column` (`bool`): Determines if to append empty 'Comment' column to end of each sheet of variants.
+
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 
 `--output_prefix` (`string`): Prefix for naming output xlsx file. If not given for single file, the VCF prefix will be used. For 2+ input VCFs this must be specified.
