@@ -257,8 +257,6 @@ if __name__ == "__main__":
     columns.test_pos()
     columns.test_id()
     columns.test_ref()
-    sys.exit()
-
 
     info = TestInfoColumn()
     info.test_parsed_correct_columns_from_info_records()
