@@ -124,6 +124,7 @@ class TestMainColumns():
         Test the QUAL column is unchanged
         """
         vcf_col = read_column_from_vcf(self.test_vcf, 6)
+        vcf_col = [float(x) for x in vcf_col]  # read in as strings
 
         assert self.vcf_df['QUAL'].tolist() == vcf_col, (
             "QUAL values in df do not match VCF"
@@ -256,6 +257,7 @@ if __name__ == "__main__":
     columns.test_pos()
     columns.test_id()
     columns.test_ref()
+    columns.test_qual()
 
     info = TestInfoColumn()
     info.test_parsed_correct_columns_from_info_records()
