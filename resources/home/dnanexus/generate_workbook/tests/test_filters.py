@@ -405,13 +405,11 @@ if __name__ == "__main__":
 
     modify_header = TestModifyingFieldTypes()
     modify_header.test_type_correctly_modified()
-    # modify_header.test_header_overwritten_correctly()
+    modify_header.test_header_overwritten_correctly()
 
 
     t = TestFilters()
     t.test_combined_filter_and_recover()
-    sys.exit()
-
     t.test_filter_with_include_eq()
     t.test_filter_with_exclude_eq()
     t.test_filter_with_exclude_gt()
