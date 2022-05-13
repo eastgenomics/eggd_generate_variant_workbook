@@ -68,27 +68,27 @@ class TestInfoColumn():
         )
 
 
-    def test_parsed_correct_gnomAD_AF_values(self):
+    def test_parsed_correct_gnomADe_AF_values(self):
         """
-        Test values read into dataframe for gnomAD_AF match the values
+        Test values read into dataframe for gnomADe_AF match the values
         above from the VCF
         """
-        # read gnomAD_AF values from vcf
+        # read gnomADe_AF values from vcf
         output = subprocess.run(
             (
                 f"grep -v '^#' {self.test_vcf} | grep -oh "
-                f"'gnomAD_AF=[0-9\.e\-]*;' | sort | uniq"
+                f"'gnomADe_AF=[0-9\.e\-]*;' | sort | uniq"
             ), shell=True, capture_output=True
         )
 
         # clean up values
         stdout = output.stdout.decode().splitlines()
         stdout = sorted(list([
-            x.replace(';', '').replace('gnomAD_AF=', '') for x in stdout
+            x.replace(';', '').replace('gnomADe_AF=', '') for x in stdout
         ]))
 
         # get AF values from dataframe
-        df_values = sorted(list(self.vcf_df['CSQ_gnomAD_AF'].unique().tolist()))
+        df_values = sorted(list(self.vcf_df['CSQ_gnomADe_AF'].unique().tolist()))
 
         assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
             "gnomAD AF values in VCF do not match those in dataframe"
@@ -101,12 +101,11 @@ class TestFormatSample():
     fields, combining with respective values from SAMPLE column
     """
     # run dataframe through splitColumns.format_fields() to split out FORMAT/SAMPLE
-    test_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.split.vcf")
+    test_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.vcf")
 
     # run dataframe through splitColumns.info() to split out INFO column
     vcf_df = read_test_vcf(vcf_file=test_vcf)
     vcf_df = splitColumns().split(vcf_df)
-
 
     # get list of FORMAT fields from VCF FORMAT column
     output = subprocess.run((
@@ -118,8 +117,8 @@ class TestFormatSample():
     # fields already present in df from INFO column will have had suffix added,
     # therefore we will check if they are there to select the correct fields
     for idx, field in enumerate(format_fields):
-        if f"{field} (FMT)" in vcf_df.columns:
-            format_fields[idx] = f"{field} (FMT)"
+        if f"{field}_FMT" in vcf_df.columns:
+            format_fields[idx] = f"{field}_FMT"
 
     # get all SAMPLE values from vcf
     output = subprocess.run((
@@ -147,7 +146,7 @@ class TestFormatSample():
 if __name__ == "__main__":
     info = TestInfoColumn()
     info.test_parsed_correct_columns_from_info_records()
-    info.test_parsed_correct_gnomAD_AF_values()
+    info.test_parsed_correct_gnomADe_AF_values()
 
     format = TestFormatSample()
     format.test_format_sample_values_are_correct()
