@@ -273,18 +273,9 @@ class TestFilters():
         )
 
         # set '.' to 0 to allow column to be a float for comparing
-        keep_df['CSQ_gnomADe_AF'] = keep_df['CSQ_gnomADe_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).fillna(0)
-        keep_df['CSQ_gnomADg_AF'] = keep_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomADe_AF'] = filtered_df['CSQ_gnomADe_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomADg_AF'] = filtered_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
+        keep_df = set_zero(keep_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF'])
+        filtered_df = set_zero(
+            filtered_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF'])
 
 
         # check we have correctly filtered and INCLUDED variants
@@ -337,24 +328,10 @@ class TestFilters():
         )
 
         # set '.' to 0 to allow column to be a float for comparing
-        keep_df['CSQ_gnomADe_AF'] = keep_df['CSQ_gnomADe_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).fillna(0)
-        keep_df['CSQ_gnomADg_AF'] = keep_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        keep_df['CSQ_TWE_AF'] = keep_df['CSQ_TWE_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomADe_AF'] = filtered_df['CSQ_gnomADe_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomADg_AF'] = filtered_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_TWE_AF'] = filtered_df['CSQ_TWE_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
+        keep_df = set_zero(
+            keep_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF', 'CSQ_TWE_AF'])
+        filtered_df = set_zero(
+            filtered_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF', 'CSQ_TWE_AF'])
 
         # check we have correctly filtered and INCLUDED variants
         assert all([any([
@@ -398,6 +375,30 @@ class TestFilters():
         ]) for x in filtered_df.iterrows()]), (
             "Error in excluding with complex filter and recovering variants"
         )
+
+
+def set_zero(df, columns):
+    """
+    Sets '.' values in dataframe column(s) to 0 to allow for comparing with
+    numerical operators
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to modify
+    columns : list
+        list of column names to modify
+
+    Returns
+    -------
+    df : pd.DataFrame
+        modified dataframe
+    """
+    for column in columns:
+        df[column] = df[column].apply(
+            lambda x: '0' if x == '.' else x).astype(float).fillna(0)
+
+    return df
 
 
 if __name__ == "__main__":
