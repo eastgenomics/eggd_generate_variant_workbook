@@ -62,8 +62,9 @@ class TestModifyingFieldTypes():
         header_diff = list(set(self.new_header) - set(self.file_header))
 
         correct_diff = [(
-            '##INFO=<ID=gnomADg_AF,Number=.,Type=Float,Description=\"AF field '
-            'from /opt/vep/.vep/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz\">'
+            "##INFO=<ID=gnomADg_AF,Number=.,Type=Float,Description=\"AF field "
+            "from /opt/vep/.vep/gnomad.genomes.r2.0.1.sites.noVEP_normalised_"
+            "decomposed_PASS.vcf.gz\">"
         )]
 
         assert header_diff == correct_diff, (
@@ -237,23 +238,23 @@ class TestFilters():
         Test when using exclude with gt operator filter is correctly applied
         """
         keep_df, filtered_df = self.filter(
-            "bcftools filter -e 'CSQ_gnomAD_AF>0.02'"
+            "bcftools filter -e 'CSQ_gnomADe_AF>0.02'"
         )
 
         # set '.' to 0 to allow column to be a float for comparing
-        keep_df['CSQ_gnomAD_AF'] = keep_df['CSQ_gnomAD_AF'].apply(
+        keep_df['CSQ_gnomADe_AF'] = keep_df['CSQ_gnomADe_AF'].apply(
             lambda x: '0' if x == '.' else x
         ).astype(float)
 
-        filtered_df['CSQ_gnomAD_AF'] = filtered_df['CSQ_gnomAD_AF'].astype(float)
+        filtered_df['CSQ_gnomADe_AF'] = filtered_df['CSQ_gnomADe_AF'].astype(float)
 
 
-        assert all(keep_df['CSQ_gnomAD_AF'] <= 0.02), (
+        assert all(keep_df['CSQ_gnomADe_AF'] <= 0.02), (
             "Filtering bcftools filter -e 'gnomAD_AF>0.02' operator returned "
             "incorrect rows"
         )
 
-        assert all(filtered_df['CSQ_gnomAD_AF'] > 0.02), (
+        assert all(filtered_df['CSQ_gnomADe_AF'] > 0.02), (
             "Filtering with bcftools filter -e 'gnomAD_AF>0.02' operator "
             "filtered out incorrect rows"
         )
@@ -265,29 +266,20 @@ class TestFilters():
         intronic variants
         """
         keep_df, filtered_df = self.filter(
-            "bcftools filter -e 'CSQ_gnomAD_AF>0.01 "
+            "bcftools filter -e 'CSQ_gnomADe_AF>0.01 "
             "| CSQ_gnomADg_AF>0.01 "
             "| CSQ_Consequence=\"synonymous_variant\" "
             "| CSQ_Consequence=\"intron_variant\"'"
         )
 
         # set '.' to 0 to allow column to be a float for comparing
-        keep_df['CSQ_gnomAD_AF'] = keep_df['CSQ_gnomAD_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).fillna(0)
-        keep_df['CSQ_gnomADg_AF'] = keep_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomAD_AF'] = filtered_df['CSQ_gnomAD_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
-        filtered_df['CSQ_gnomADg_AF'] = filtered_df['CSQ_gnomADg_AF'].apply(
-            lambda x: '0' if x == '.' else x
-        ).astype(float).astype(float).fillna(0)
+        keep_df = set_zero(keep_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF'])
+        filtered_df = set_zero(
+            filtered_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF'])
 
 
         # check we have correctly filtered and INCLUDED variants
-        assert all(keep_df['CSQ_gnomAD_AF'] <= 0.01) & \
+        assert all(keep_df['CSQ_gnomADe_AF'] <= 0.01) & \
                 all(keep_df['CSQ_Consequence'] != 'synonymous_variant') & \
                     all(keep_df['CSQ_Consequence'] != 'intron_variant'), (
             "Filtering to exclude gnomAD_AF>0.01 and synonymous/intronic "
@@ -297,7 +289,7 @@ class TestFilters():
         # check we have correctly filtered and EXCLUDED variants
         assert all(
             filtered_df.apply(
-                lambda x: x['CSQ_gnomAD_AF'] > 0.01 or \
+                lambda x: x['CSQ_gnomADe_AF'] > 0.01 or \
                 x['CSQ_gnomADg_AF'] > 0.01 or \
                 x['CSQ_Consequence'] == 'synonymous_variant' or \
                 x['CSQ_Consequence'] == 'intron_variant', axis=1
@@ -307,19 +299,117 @@ class TestFilters():
             "variants filtered out the wrong variants"
         )
 
-        
 
+    def test_combined_filter_and_recover(self):
+        """
+        Test with filter for excluding:
+            - synonymous, intronic, intergenic, upsteam and downstream variants
+            - gnomAD exomes and genomes AF at 1%
+            - TWE AF at 5%
+            EXCEPT
+            - (likely?) pathogenic in ClinVar
+            - DM in HGMD CLASS
+        """
+        keep_df, filtered_df = self.filter(
+            "bcftools filter -e '("
+            "CSQ_Consequence==\"synonymous_variant\" "
+            "| CSQ_Consequence==\"intron_variant\" "
+            "| CSQ_Consequence==\"upstream_gene_variant\" "
+            "| CSQ_Consequence==\"downstream_gene_variant\" "
+            "| CSQ_Consequence==\"intergenic_variant\" "
+            "| CSQ_Consequence==\"5_prime_UTR_variant\" "
+            "| CSQ_Consequence==\"3_prime_UTR_variant\" "
+            "| CSQ_gnomADe_AF>0.02 "
+            "| CSQ_gnomADg_AF>0.02 "
+            "| CSQ_TWE_AF>0.05) "
+            "& CSQ_HGMD_CLASS!~ \"DM\" "
+            "& CSQ_ClinVar_CLNSIG!~ \"pathogenic/i\" "
+            "& CSQ_ClinVar_CLNSIGCONF!~ \"pathogenic/i\"'"
+        )
+
+        # set '.' to 0 to allow column to be a float for comparing
+        keep_df = set_zero(
+            keep_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF', 'CSQ_TWE_AF'])
+        filtered_df = set_zero(
+            filtered_df, ['CSQ_gnomADe_AF', 'CSQ_gnomADg_AF', 'CSQ_TWE_AF'])
+
+        # check we have correctly filtered and INCLUDED variants
+        assert all([any([
+                all([
+                    x[1]['CSQ_Consequence'] != 'synonymous_variant',
+                    x[1]['CSQ_Consequence'] != 'intron_variant',
+                    x[1]['CSQ_Consequence'] != 'upstream_gene_variant',
+                    x[1]['CSQ_Consequence'] != 'downstream_gene_variant',
+                    x[1]['CSQ_Consequence'] != 'intergenic_variant',
+                    x[1]['CSQ_Consequence'] != '5_prime_UTR_variant',
+                    x[1]['CSQ_Consequence'] != '3_prime_UTR_variant'
+                ]),
+                x[1]['CSQ_gnomADe_AF'] <= 0.02,
+                x[1]['CSQ_gnomADg_AF'] <= 0.02,
+                x[1]['CSQ_TWE_AF'] <= 0.05,
+                'DM' in x[1]['CSQ_HGMD_CLASS'],
+                'pathogenic' in x[1]['CSQ_ClinVar_CLNSIG'],
+                'pathogenic' in x[1]['CSQ_ClinVar_CLNSIGCONF']
+
+            ]) for x in keep_df.iterrows()]), (
+                "Error in including with complex filter and recovering variants"
+            )
+
+        # check we have correctly filtered and EXCLUDED variants
+        assert all([any([
+            all([
+                x[1]['CSQ_Consequence'] == 'synonymous_variant',
+                x[1]['CSQ_Consequence'] == 'intron_variant',
+                x[1]['CSQ_Consequence'] == 'upstream_gene_variant',
+                x[1]['CSQ_Consequence'] == 'downstream_gene_variant',
+                x[1]['CSQ_Consequence'] == 'intergenic_variant',
+                x[1]['CSQ_Consequence'] == '5_prime_UTR_variant',
+                x[1]['CSQ_Consequence'] == '3_prime_UTR_variant'
+            ]),
+            x[1]['CSQ_gnomADe_AF'] > 0.02,
+            x[1]['CSQ_gnomADg_AF'] > 0.02,
+            x[1]['CSQ_TWE_AF'] > 0.05,
+            'DM' not in x[1]['CSQ_HGMD_CLASS'],
+            'pathogenic' not in x[1]['CSQ_ClinVar_CLNSIG'],
+            'pathogenic' not in x[1]['CSQ_ClinVar_CLNSIGCONF']
+        ]) for x in filtered_df.iterrows()]), (
+            "Error in excluding with complex filter and recovering variants"
+        )
+
+
+def set_zero(df, columns):
+    """
+    Sets '.' values in dataframe column(s) to 0 to allow for comparing with
+    numerical operators
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to modify
+    columns : list
+        list of column names to modify
+
+    Returns
+    -------
+    df : pd.DataFrame
+        modified dataframe
+    """
+    for column in columns:
+        df[column] = df[column].apply(
+            lambda x: '0' if x == '.' else x).astype(float).fillna(0)
+
+    return df
 
 
 if __name__ == "__main__":
 
-    # modify_header = TestModifyingFieldTypes()
-    # modify_header.test_type_correctly_modified()
-    # modify_header.test_header_overwritten_correctly()
+    modify_header = TestModifyingFieldTypes()
+    modify_header.test_type_correctly_modified()
+    modify_header.test_header_overwritten_correctly()
 
 
     t = TestFilters()
-
+    t.test_combined_filter_and_recover()
     t.test_filter_with_include_eq()
     t.test_filter_with_exclude_eq()
     t.test_filter_with_exclude_gt()
