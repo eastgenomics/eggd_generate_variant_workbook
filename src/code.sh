@@ -76,13 +76,13 @@ main() {
     if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
     if [ "$add_comment_column" == true ]; then args+="--add_comment_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
-    if [ "$print_columns" ]; then args+="--print_columns "; fi
+    if [ "$print_columns" == true ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$human_filter" ]; then args+="--human_filter ${human_filter} "; fi
-    if [ "$acmg" ]; then args+="--acmg "; fi
+    if [ "$acmg" == true ]; then args+="--acmg "; fi
     if [ "$keep_filtered" == true ]; then args+="--keep "; fi
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
-    if [ "$print_header" ]; then args+="--print_header "; fi
+    if [ "$print_header" == true ]; then args+="--print_header "; fi
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
     if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
