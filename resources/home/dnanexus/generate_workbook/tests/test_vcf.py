@@ -24,7 +24,7 @@ class TestHeader():
     """
     Tests for checking header attributes are correct from parse_header()
     """
-    header_test_vcf = os.path.join(TEST_DATA_DIR, "header_test.vcf")
+    header_test_vcf = os.path.join(TEST_DATA_DIR, "NA12878_unittest.vcf")
 
     # read in header from our test vcf, call functions to parse reference and
     # from read in header
