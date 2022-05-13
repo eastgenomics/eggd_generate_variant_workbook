@@ -1,8 +1,10 @@
 import argparse
+from cgi import test
 import os
 from pathlib import Path
 import subprocess
 import sys
+from unittest.mock import NonCallableMagicMock
 
 import pytest
 
@@ -32,6 +34,111 @@ def read_test_vcf(vcf_file):
     vcf_df = vcf_handler.read(vcf_file)
 
     return vcf_df
+
+
+def read_column_from_vcf(vcf, column) -> list:
+    """
+    Read specified column from VCF
+
+    Parameters
+    ----------
+    vcf : str
+        vcf to read from
+    column : int
+        column number to read
+
+    Returns
+    -------
+    list : column data read from vcf
+    """
+    output = subprocess.run(
+        f"grep -v '^#' {vcf} | cut -f{column}", shell=True, capture_output=True
+    )
+
+    return output.stdout.decode().splitlines()
+
+class TestMainColumns():
+    """
+    Tests for ensuring the CHROM, POS, REF, ALT, ID, QUAL and FILTER
+    columns are identical to what is in the VCF and are unmodified
+    """
+    test_vcf = f"{TEST_DATA_DIR}/NA12878_unittest.split.vcf"
+
+    # run dataframe through splitColumns.info() to split out INFO column
+    vcf_df = read_test_vcf(vcf_file=test_vcf)
+    vcf_df = splitColumns().split(vcf_df)
+
+    def test_chrom(self) -> None:
+        """
+        Test the CHROM column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 1)
+
+        assert self.vcf_df['CHROM'].tolist() == vcf_col, (
+            "CHROM values in df do not match VCF"
+        )
+
+    def test_pos(self) -> None:
+        """
+        Test the POS column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 2)
+        vcf_col = [int(x) for x in vcf_col]  # read in as strings
+
+        assert self.vcf_df['POS'].tolist() == vcf_col, (
+            "POS values in df do not match VCF"
+        )
+
+    def test_id(self) -> None:
+        """
+        Test the ID column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 3)
+
+        assert self.vcf_df['ID'].tolist() == vcf_col, (
+            "POS values in df do not match VCF"
+        )
+
+
+    def test_ref(self) -> None:
+        """
+        Test the REF column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 4)
+
+        assert self.vcf_df['REF'].tolist() == vcf_col, (
+            "REF values in df do not match VCF"
+        )
+
+    def test_alt(self) -> None:
+        """
+        Test the ALT column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 5)
+
+        assert self.vcf_df['ALT'].tolist() == vcf_col, (
+            "REF values in df do not match VCF"
+        )
+
+    def test_qual(self) -> None:
+        """
+        Test the QUAL column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 6)
+
+        assert self.vcf_df['QUAL'].tolist() == vcf_col, (
+            "QUAL values in df do not match VCF"
+        )
+
+    def test_filter(self) -> None:
+        """
+        Test the FILTER column is unchanged
+        """
+        vcf_col = read_column_from_vcf(self.test_vcf, 7)
+
+        assert self.vcf_df['FILTER'].tolist() == vcf_col, (
+            "QUAL values in df do not match VCF"
+        )
 
 
 class TestInfoColumn():
@@ -144,6 +251,15 @@ class TestFormatSample():
 
 
 if __name__ == "__main__":
+    columns = TestMainColumns()
+    columns.test_filter()
+    columns.test_chrom()
+    columns.test_pos()
+    columns.test_id()
+    columns.test_ref()
+    sys.exit()
+
+
     info = TestInfoColumn()
     info.test_parsed_correct_columns_from_info_records()
     info.test_parsed_correct_gnomADe_AF_values()
