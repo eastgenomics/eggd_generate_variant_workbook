@@ -96,9 +96,8 @@ class TestMainColumns():
         vcf_col = read_column_from_vcf(self.test_vcf, 3)
 
         assert self.vcf_df['ID'].tolist() == vcf_col, (
-            "POS values in df do not match VCF"
+            "ID values in df do not match VCF"
         )
-
 
     def test_ref(self) -> None:
         """
@@ -117,7 +116,7 @@ class TestMainColumns():
         vcf_col = read_column_from_vcf(self.test_vcf, 5)
 
         assert self.vcf_df['ALT'].tolist() == vcf_col, (
-            "REF values in df do not match VCF"
+            "ALT values in df do not match VCF"
         )
 
     def test_qual(self) -> None:
@@ -137,7 +136,7 @@ class TestMainColumns():
         vcf_col = read_column_from_vcf(self.test_vcf, 7)
 
         assert self.vcf_df['FILTER'].tolist() == vcf_col, (
-            "QUAL values in df do not match VCF"
+            "FILTER values in df do not match VCF"
         )
 
 
