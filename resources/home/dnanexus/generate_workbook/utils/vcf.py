@@ -466,7 +466,7 @@ class vcf():
                 return value[column]
 
             # get NC value for chromosome
-            nc_id = self.map_chr_to_nc(value.CHROM.replace('chr', ''), build)
+            nc_id = self.map_chr_to_nc(str(value.CHROM).replace('chr', ''), build)
 
             # build URL and set value to display equal to what is in the URL
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
