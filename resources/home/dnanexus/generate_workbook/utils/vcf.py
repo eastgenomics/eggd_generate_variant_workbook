@@ -41,7 +41,7 @@ class vcf():
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
-            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
+            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
             "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
         }
 
