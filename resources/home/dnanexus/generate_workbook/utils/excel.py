@@ -272,14 +272,15 @@ class excel():
             "Confirmation of in trans/in cis with pathogenic variant": [16, 2],
             "In frame protein length change, non repeating vs. repeating": [17, 2],
             "Same AA as a different pathogenic change": [18, 2],
-            "Cosegregation with disease in family, not in unnaffected": [18, 2],
+            "Assumed de novo (no confirmation)": [19, 2],
+            "Cosegregation with disease in family, not in unnaffected": [20, 2],
             ("Missense where low rate of benign missense and common\nmechanism"
-                "(Z score >3), or missense where LOF common\nmechanism"): [19, 2],
-            "Multiple lines of computational evidence (Cant use with PS3)": [20, 2],
+                "(Z score >3), or missense where LOF common\nmechanism"): [21, 2],
+            "Multiple lines of computational evidence (Cant use with PS3)": [22, 2],
             ("Phenotype/FH specific for disease of single etiology, or\n"
-                "alternative genetic cause of disease detected"): [21, 2],
-            "Reputable source reports but evidence not available": [22, 2],
-            "Synonymous change, no affect on splicing, not conserved": [23, 2],
+                "alternative genetic cause of disease detected"): [23, 2],
+            "Reputable source reports but evidence not available": [24, 2],
+            "Synonymous change, no affect on splicing, not conserved": [25, 2],
             "ACMG Classification": [26, 2],
         }
 
