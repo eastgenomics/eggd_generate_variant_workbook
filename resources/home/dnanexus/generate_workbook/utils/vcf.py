@@ -478,7 +478,15 @@ class vcf():
             # If URL is too long just display the value
             return value[column]
         else:
-            return f'=HYPERLINK("{url}", "{value[column]}")'
+            if 'gnomad' in column.lower():
+                # Special treatment for gnomad since it contains mixed type
+                # values in hyperlink formulae. Types need to retained
+                # to enable sorting in the workbook
+                return f'=HYPERLINK("{url}", {value[column]})'
+            else:
+                # Values for everything else which is hyperlinked
+                # needs to be cast to string
+                return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def map_chr_to_nc(self, chrom, build) -> str:
