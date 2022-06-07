@@ -456,8 +456,6 @@ class vcf():
             url = url.replace('REF', str(value.REF))
             url = url.replace('ALT', str(value.ALT))
 
-            return f'=HYPERLINK("{url}", {value[column]})'
-
         elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
             # build URL for MasterMind on genomic position
             # get chromosome NC value for given chrom and build
@@ -475,17 +473,12 @@ class vcf():
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
 
-        if len(f'=HYPERLINK("{url}", "{value[column]}")') > 242:
-            # Excel has a limit of 255 characters inside a formula, display
-            # just the maximum possible of value[column]
-            max_len = 255 - len(f'=HYPERLINK("{url}", ')
-            if max_len > 0:
-                value[column] = value[column][:max_len]
-            else:
-                # URL is too long for excel, just show the value without URL
-                return value[column]
-
-        return f'=HYPERLINK("{url}", "{value[column]}")'
+        if len(url) > 255:
+            # Excel has a string limit of 255 characters inside a formula
+            # If URL is too long just display the value
+            return value[column]
+        else:
+            return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def map_chr_to_nc(self, chrom, build) -> str:
