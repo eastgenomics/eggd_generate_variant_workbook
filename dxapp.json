@@ -1,6 +1,6 @@
 {
-  "name": "eggd_generate_workbook",
-  "title": "eggd_generate_workbook",
+  "name": "eggd_generate_variant_workbook",
+  "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
   "version": "2.0.3",
