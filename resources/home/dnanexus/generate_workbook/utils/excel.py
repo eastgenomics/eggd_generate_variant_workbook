@@ -530,6 +530,11 @@ class excel():
             for cell in cells:
                 if self.is_numeric(cell.value):
                     cell.data_type = 'n'
+                if cell.value == '.':
+                    # change absent '.' values to 0 but display still as '.'
+                    # to enable correct logical sorting
+                    cell.value = 0
+                    cell.number_format = '.'
 
 
     def is_numeric(self, value) -> bool:
