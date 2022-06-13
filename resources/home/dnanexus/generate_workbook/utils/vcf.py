@@ -477,16 +477,14 @@ class vcf():
             # Excel has a string limit of 255 characters inside a formula
             # If URL is too long just display the value
             return value[column]
+
+        if any([value[column].endswith(x) for x in ['_AC', '_AF', '_AN']]):
+            # return numeric values not wrapped in quotes
+            return f'=HYPERLINK("{url}", {value[column]})'
         else:
-            if 'gnomad' in column.lower():
-                # Special treatment for gnomad since it contains mixed type
-                # values in hyperlink formulae. Types need to retained
-                # to enable sorting in the workbook
-                return f'=HYPERLINK("{url}", {value[column]})'
-            else:
-                # Values for everything else which is hyperlinked
-                # needs to be cast to string
-                return f'=HYPERLINK("{url}", "{value[column]}")'
+            # values for everything else which is hyperlinked
+            # needs to be cast to string
+            return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def map_chr_to_nc(self, chrom, build) -> str:
