@@ -481,7 +481,7 @@ class excel():
         AssertionError
             Raised when data written to sheet does not match the dataframe
         """
-        print(f"\nVerifying data written to file for {sheet} sheet\n")
+        print(f"\nVerifying data written to file for {sheet} sheet...\n")
 
         # read in written sheet using openpyxl to deal with Excel oddities
         sheet_data = load_workbook(filename=self.args.output)[sheet]
@@ -508,7 +508,6 @@ class excel():
             lambda x: x.replace('.0', '') if x.endswith('.0') else x
         )
 
-        print("Checking")
         assert vcf.equals(written_sheet), (
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
@@ -526,13 +525,21 @@ class excel():
         worksheet : openpyxl.Writer
             writer object for current sheet
         """
+        # generate dict of column letters to those that are numeric AF, AC
+        # or AN values
+        numeric_cols = {x.column_letter: x.value for x in worksheet[1]}
+        numeric_cols = {
+            k: any(v.endswith(x) for x in ['AF', 'AC', 'AN'])
+            for k, v in numeric_cols.items()
+        }
+
         for cells in worksheet.rows:
             for cell in cells:
                 if self.is_numeric(cell.value):
                     cell.data_type = 'n'
-                if cell.value == '.':
+                if numeric_cols[cell.column_letter] and cell.value == '.':
                     # change absent '.' values to 0 but display still as '.'
-                    # to enable correct logical sorting
+                    # to enable correct logical sorting for numeric columns
                     cell.value = 0
                     cell.number_format = '.'
 
