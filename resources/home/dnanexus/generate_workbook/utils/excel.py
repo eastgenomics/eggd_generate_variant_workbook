@@ -449,6 +449,9 @@ class excel():
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
 
+                # freeze header so scrolling keeps it in view
+                curr_worksheet.freeze_panes = 'A2'
+
                 self.workbook.save(self.args.output)
                 end = timer()
                 print(
@@ -457,7 +460,7 @@ class excel():
                 )
 
                 # read back the written sheet to check its written correctly
-                self.check_written_sheets(vcf, sheet)
+                # self.check_written_sheets(vcf, sheet)
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
