@@ -272,14 +272,15 @@ class excel():
             "Confirmation of in trans/in cis with pathogenic variant": [16, 2],
             "In frame protein length change, non repeating vs. repeating": [17, 2],
             "Same AA as a different pathogenic change": [18, 2],
-            "Cosegregation with disease in family, not in unnaffected": [18, 2],
+            "Assumed de novo (no confirmation)": [19, 2],
+            "Cosegregation with disease in family, not in unnaffected": [20, 2],
             ("Missense where low rate of benign missense and common\nmechanism"
-                "(Z score >3), or missense where LOF common\nmechanism"): [19, 2],
-            "Multiple lines of computational evidence (Cant use with PS3)": [20, 2],
+                "(Z score >3), or missense where LOF common\nmechanism"): [21, 2],
+            "Multiple lines of computational evidence (Cant use with PS3)": [22, 2],
             ("Phenotype/FH specific for disease of single etiology, or\n"
-                "alternative genetic cause of disease detected"): [21, 2],
-            "Reputable source reports but evidence not available": [22, 2],
-            "Synonymous change, no affect on splicing, not conserved": [23, 2],
+                "alternative genetic cause of disease detected"): [23, 2],
+            "Reputable source reports but evidence not available": [24, 2],
+            "Synonymous change, no affect on splicing, not conserved": [25, 2],
             "ACMG Classification": [26, 2],
         }
 
@@ -480,7 +481,7 @@ class excel():
         AssertionError
             Raised when data written to sheet does not match the dataframe
         """
-        print(f"\nVerifying data written to file for {sheet} sheet\n")
+        print(f"\nVerifying data written to file for {sheet} sheet...\n")
 
         # read in written sheet using openpyxl to deal with Excel oddities
         sheet_data = load_workbook(filename=self.args.output)[sheet]
@@ -507,7 +508,6 @@ class excel():
             lambda x: x.replace('.0', '') if x.endswith('.0') else x
         )
 
-        print("Checking")
         assert vcf.equals(written_sheet), (
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
@@ -525,10 +525,23 @@ class excel():
         worksheet : openpyxl.Writer
             writer object for current sheet
         """
+        # generate dict of column letters to those that are numeric AF, AC
+        # or AN values
+        numeric_cols = {x.column_letter: x.value for x in worksheet[1]}
+        numeric_cols = {
+            k: any(v.endswith(x) for x in ['AF', 'AC', 'AN'])
+            for k, v in numeric_cols.items()
+        }
+
         for cells in worksheet.rows:
             for cell in cells:
                 if self.is_numeric(cell.value):
                     cell.data_type = 'n'
+                if numeric_cols[cell.column_letter] and cell.value == '.':
+                    # change absent '.' values to 0 but display still as '.'
+                    # to enable correct logical sorting for numeric columns
+                    cell.value = 0
+                    cell.number_format = '.'
 
 
     def is_numeric(self, value) -> bool:
