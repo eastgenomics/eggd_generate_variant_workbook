@@ -460,7 +460,7 @@ class excel():
                 )
 
                 # read back the written sheet to check its written correctly
-                # self.check_written_sheets(vcf, sheet)
+                self.check_written_sheets(vcf, sheet)
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
