@@ -450,6 +450,9 @@ class excel():
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
 
+                # freeze header so scrolling keeps it in view
+                curr_worksheet.freeze_panes = 'A2'
+
                 self.workbook.save(self.args.output)
                 end = timer()
                 print(
