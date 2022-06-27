@@ -94,8 +94,10 @@ class filter():
         exclude_df : pd.DataFrame
             dataframe of variants not passing specified filter(s)
         """
-        include_df = variant_df[variant_df['FILTER'].str.endswith('EXCLUDE')].reset_index(drop=True)
-        exclude_df = variant_df[variant_df['FILTER'].str.endswith('EXCLUDE')].reset_index(drop=True)
+        include_df = variant_df[~variant_df['FILTER'].str.endswith(
+            'EXCLUDE')].reset_index(drop=True)
+        exclude_df = variant_df[variant_df['FILTER'].str.endswith(
+            'EXCLUDE')].reset_index(drop=True)
 
         # remove our added soft filter tag from FILTER column
         exclude_df['FILTER'] = exclude_df['FILTER'].apply(
