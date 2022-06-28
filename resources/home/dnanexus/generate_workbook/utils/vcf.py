@@ -388,12 +388,12 @@ class vcf():
 
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
-                "gnomad": f"{self.gnomad_base_url}?dataset=gnomad_r2_1"
+                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r2_1"
             })
             build = 37
         elif '38' in reference:
             self.urls.update({
-                "gnomad": f"{self.gnomad_base_url}?dataset=gnomad_r3"
+                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
             })
             build = 38
 
