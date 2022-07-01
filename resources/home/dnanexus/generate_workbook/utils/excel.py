@@ -529,23 +529,10 @@ class excel():
         worksheet : openpyxl.Writer
             writer object for current sheet
         """
-        # generate dict of column letters to those that are numeric AF, AC
-        # or AN values
-        numeric_cols = {x.column_letter: x.value for x in worksheet[1]}
-        numeric_cols = {
-            k: any(v.endswith(x) for x in ['AF', 'AC', 'AN'])
-            for k, v in numeric_cols.items()
-        }
-
         for cells in worksheet.rows:
             for cell in cells:
                 if self.is_numeric(cell.value):
                     cell.data_type = 'n'
-                if numeric_cols[cell.column_letter] and cell.value == '.':
-                    # change absent '.' values to 0 but display still as '.'
-                    # to enable correct logical sorting for numeric columns
-                    cell.value = 0
-                    cell.number_format = '.'
 
 
     def is_numeric(self, value) -> bool:
