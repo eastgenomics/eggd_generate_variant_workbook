@@ -107,7 +107,7 @@ Furthermore, the filtering allows for using the logic described in the [bcftools
 
 Please be aware of the difference between using `-i / --include` and `-e / --exclude`, as they may not filter the same (i.e. including under 2% (`-i 'gnomAD_AF<0.02'`) != excluding over 2% (`-e gnomAD_AF>0.02`)). In this case, missing values (represented in the vcf with a `'.'`) will be filtered **out** with `--include` as they will not meet the filter. If they should be retained, `--exclude` should be used.
 
-If running the filtering with any operator containing `!` (i.e. `CSQ_ClinVar_CLNSIG!~ \"pathogenic\/i\"`) via an interactive shell, the `set +H` first first be set to stop shell history substitution, see the GNU set builtin [documentation][set-docs] for details.
+If running the filtering with any operator containing `!` (i.e. `CSQ_ClinVar_CLNSIG!~ \"pathogenic\/i\"`) via an interactive shell, `set +H` must first be set to stop shell history substitution, see the GNU set builtin [documentation][set-docs] for details.
 
 **Examples of filters**
 ```
