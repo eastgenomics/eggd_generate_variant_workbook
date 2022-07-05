@@ -41,7 +41,8 @@ class vcf():
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
-            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation="
+            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
+            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
         }
 
 
@@ -377,18 +378,22 @@ class vcf():
         Format column value as an Excel hyperlink if URL for column specified
         """
         # some URLs are build specific, infer which to use from build in header
-        reference = self.refs[0].lower()
-        gnomad_base_url = "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
+        if self.refs:
+            reference = self.refs[0].lower()
+        else:
+            # no reference parsed from VCF header(s) => can't infer build
+            reference = ''
+
         build = None
 
         if '37' in reference or 'hg19' in reference:
             self.urls.update({
-                "gnomad": f"{gnomad_base_url}?dataset=gnomad_r2_1"
+                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r2_1"
             })
             build = 37
         elif '38' in reference:
             self.urls.update({
-                "gnomad": f"{gnomad_base_url}?dataset=gnomad_r3"
+                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
             })
             build = 38
 
@@ -477,16 +482,14 @@ class vcf():
             # Excel has a string limit of 255 characters inside a formula
             # If URL is too long just display the value
             return value[column]
+
+        if any([value[column].endswith(x) for x in ['_AC', '_AF', '_AN']]):
+            # return numeric values not wrapped in quotes
+            return f'=HYPERLINK("{url}", {value[column]})'
         else:
-            if 'gnomad' in column.lower():
-                # Special treatment for gnomad since it contains mixed type
-                # values in hyperlink formulae. Types need to retained
-                # to enable sorting in the workbook
-                return f'=HYPERLINK("{url}", {value[column]})'
-            else:
-                # Values for everything else which is hyperlinked
-                # needs to be cast to string
-                return f'=HYPERLINK("{url}", "{value[column]}")'
+            # values for everything else which is hyperlinked
+            # needs to be cast to string
+            return f'=HYPERLINK("{url}", "{value[column]}")'
 
 
     def map_chr_to_nc(self, chrom, build) -> str:

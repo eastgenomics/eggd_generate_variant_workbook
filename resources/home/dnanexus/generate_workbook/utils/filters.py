@@ -80,7 +80,11 @@ class filter():
     def split_include_exclude(self, variant_df) -> Union[pd.DataFrame, pd.DataFrame]:
         """
         Split out given dataframe of variants by FILTER column when filtered
-        through self.filter()
+        through self.filter().
+
+        self.filter() applies a soft filter with bcftools and appends the term
+        EXCLUDE to the end of the FILTER column fields, this is used to
+        identify which variants met the given filter and should be excluded.
 
         Parameters
         ----------
@@ -94,8 +98,10 @@ class filter():
         exclude_df : pd.DataFrame
             dataframe of variants not passing specified filter(s)
         """
-        include_df = variant_df[variant_df['FILTER'] != 'EXCLUDE'].reset_index(drop=True)
-        exclude_df = variant_df[variant_df['FILTER'] == 'EXCLUDE'].reset_index(drop=True)
+        include_df = variant_df[~variant_df['FILTER'].str.endswith(
+            'EXCLUDE')].reset_index(drop=True)
+        exclude_df = variant_df[variant_df['FILTER'].str.endswith(
+            'EXCLUDE')].reset_index(drop=True)
 
         # remove our added soft filter tag from FILTER column
         exclude_df['FILTER'] = exclude_df['FILTER'].apply(

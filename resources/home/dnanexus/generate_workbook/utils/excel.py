@@ -185,9 +185,9 @@ class excel():
         self.summary.merge_cells(
             start_row=1, end_row=1, start_column=2, end_column=4)
         self.summary.merge_cells(
-            start_row=1, end_row=1, start_column=6, end_column=11)
+            start_row=1, end_row=1, start_column=6, end_column=20)
         self.summary.merge_cells(
-            start_row=2, end_row=2, start_column=6, end_column=11)
+            start_row=2, end_row=2, start_column=6, end_column=20)
         self.summary.merge_cells(
             start_row=9, end_row=9, start_column=2, end_column=5)
         self.summary.merge_cells(
@@ -358,6 +358,7 @@ class excel():
             'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G24'],
             '00B0F0': ['I8', 'I11', 'I12', 'I20'],
             '92D050': ['I16', 'I17', 'I21', 'I22', 'I23', 'I24', 'I25'],
+            '0070C0': ['I15'],
             'FF0000': ['G9'],
             'D9D9D9': [
                 'I9', 'I10', 'J9', 'J10', 'I13', 'I14', 'J13', 'J14',
@@ -449,6 +450,9 @@ class excel():
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
 
+                # freeze header so scrolling keeps it in view
+                curr_worksheet.freeze_panes = 'A2'
+
                 self.workbook.save(self.args.output)
                 end = timer()
                 print(
@@ -481,7 +485,7 @@ class excel():
         AssertionError
             Raised when data written to sheet does not match the dataframe
         """
-        print(f"\nVerifying data written to file for {sheet} sheet\n")
+        print(f"\nVerifying data written to file for {sheet} sheet...\n")
 
         # read in written sheet using openpyxl to deal with Excel oddities
         sheet_data = load_workbook(filename=self.args.output)[sheet]
@@ -508,7 +512,6 @@ class excel():
             lambda x: x.replace('.0', '') if x.endswith('.0') else x
         )
 
-        print("Checking")
         assert vcf.equals(written_sheet), (
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
@@ -614,11 +617,12 @@ class excel():
             "consequence": 25,
             "hgvsc": 27,
             "hgvsp": 27,
-            "gnomad_af": 20,
-            "gnomad_exomes_af": 20,
-            "gnomad_genomes_af": 20,
+            "gnomad_af": 16,
+            "gnomad_exomes_af": 16,
+            "gnomad_genomes_af": 16,
             "hgmd": 13,
             "hgmd_phen": 15,
+            "hgmd_rankscore": 16,
             "spliceai_ds": 18,
             "existing variation": 18,
             "clinvar": 10,

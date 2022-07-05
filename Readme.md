@@ -103,9 +103,11 @@ Filtering of the input vcf(s) is achieved by passing `bcftools` commands to the 
 
 If the type is wrongly set in the vcf header (i.e. AF values set `String`), these will not be valid for filtering. Therefore, if you are specifying these fields for filtering, the `-types` argument must also be passed to specify the correct field type for the given column (i.e. `-itypes="CSQ_gnomADg_AF=Float"`).
 
-Furthermore, the filtering allows for using the logic described in the [bcftools documentation](bcftools). No checking of what is being filtered is done (other than if bcftools returns a non-zero exit code, in which case an AssertionError will be raised). Therefore, it is up to the user to ensure the bcftools command being passed filters as intended.
+Furthermore, the filtering allows for using the logic described in the [bcftools documentation][bcftools]. No checking of what is being filtered is done (other than if bcftools returns a non-zero exit code, in which case an AssertionError will be raised). Therefore, it is up to the user to ensure the bcftools command being passed filters as intended.
 
 Please be aware of the difference between using `-i / --include` and `-e / --exclude`, as they may not filter the same (i.e. including under 2% (`-i 'gnomAD_AF<0.02'`) != excluding over 2% (`-e gnomAD_AF>0.02`)). In this case, missing values (represented in the vcf with a `'.'`) will be filtered **out** with `--include` as they will not meet the filter. If they should be retained, `--exclude` should be used.
+
+If running the filtering with any operator containing `!` (i.e. `CSQ_ClinVar_CLNSIG!~ \"pathogenic\/i\"`) via an interactive shell, `set +H` must first be set to stop shell history substitution, see the GNU set builtin [documentation][set-docs] for details.
 
 **Examples of filters**
 ```
@@ -125,7 +127,7 @@ Please be aware of the difference between using `-i / --include` and `-e / --exc
 
 Useful resources:
 
-- [bcftools expressions](bcftools-expressions)
+- [bcftools expressions][bcftools-expressions]
 
 
 ## Hyperlinks in output Excel file
@@ -153,6 +155,7 @@ https://documentation.dnanexus.com/.
 
 #### This app was made by EMEE GLH
 
-[bcftools]:https://samtools.github.io/bcftools/bcftools.html#filter
-[bcftools-expressions]:https://samtools.github.io/bcftools/bcftools.html#expressions
+[bcftools]: https://samtools.github.io/bcftools/bcftools.html#filter
+[bcftools-expressions]: https://samtools.github.io/bcftools/bcftools.html#expressions
+[set-docs]: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
 

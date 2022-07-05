@@ -175,27 +175,27 @@ class TestInfoColumn():
         )
 
 
-    def test_parsed_correct_gnomADe_AF_values(self):
+    def test_parsed_correct_gnomAD_AF_values(self):
         """
-        Test values read into dataframe for gnomADe_AF match the values
+        Test values read into dataframe for gnomAD_AF match the values
         above from the VCF
         """
-        # read gnomADe_AF values from vcf
+        # read gnomAD_AF values from vcf
         output = subprocess.run(
             (
                 f"grep -v '^#' {self.test_vcf} | grep -oh "
-                f"'gnomADe_AF=[0-9\.e\-]*;' | sort | uniq"
+                f"'gnomAD_AF=[0-9\.e\-]*;' | sort | uniq"
             ), shell=True, capture_output=True
         )
 
         # clean up values
         stdout = output.stdout.decode().splitlines()
         stdout = sorted(list([
-            x.replace(';', '').replace('gnomADe_AF=', '') for x in stdout
+            x.replace(';', '').replace('gnomAD_AF=', '') for x in stdout
         ]))
 
         # get AF values from dataframe
-        df_values = sorted(list(self.vcf_df['CSQ_gnomADe_AF'].unique().tolist()))
+        df_values = sorted(list(self.vcf_df['CSQ_gnomAD_AF'].unique().tolist()))
 
         assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
             "gnomAD AF values in VCF do not match those in dataframe"
@@ -261,7 +261,7 @@ if __name__ == "__main__":
 
     info = TestInfoColumn()
     info.test_parsed_correct_columns_from_info_records()
-    info.test_parsed_correct_gnomADe_AF_values()
+    info.test_parsed_correct_gnomAD_AF_values()
 
     format = TestFormatSample()
     format.test_format_sample_values_are_correct()
