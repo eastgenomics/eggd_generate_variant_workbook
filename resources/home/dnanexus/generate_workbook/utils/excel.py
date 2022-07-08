@@ -10,6 +10,7 @@ from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 import pandas as pd
 
+from .utils import is_numeric
 
 # openpyxl style settings
 THIN = Side(border_style="thin", color="000000")
@@ -531,26 +532,8 @@ class excel():
         """
         for cells in worksheet.rows:
             for cell in cells:
-                if self.is_numeric(cell.value):
+                if is_numeric(cell.value):
                     cell.data_type = 'n'
-
-
-    def is_numeric(self, value) -> bool:
-        """
-        Returns true if given value is in some form numeric
-
-        Parameters
-        ----------
-        value : str
-            string to check if can be cast to numeric type
-
-        Returns
-        -------
-        bool
-            True if value can be numeric
-        """
-        return str(value).lstrip('-').replace('.', '').replace(
-            'e-', '', 1).replace('e', '').isdigit()
 
 
     def set_font(self, worksheet) -> None:
