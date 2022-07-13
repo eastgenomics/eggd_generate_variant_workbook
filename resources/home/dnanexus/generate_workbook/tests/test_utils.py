@@ -21,5 +21,5 @@ def test_is_numeric():
     )
 
     assert all([not is_numeric(x) for x in non_numeric_values]), (
-        'some noin-numeric values wrongly evaluate to being numeric'
+        'some non-numeric values wrongly evaluate to being numeric'
     )
