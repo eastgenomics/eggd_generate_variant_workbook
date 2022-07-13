@@ -3,7 +3,7 @@
   "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "authorizedUsers": [
     "org-emee_1"
   ],
@@ -11,7 +11,7 @@
     "org-emee_1"
   ],
   "properties": {
-    "githubRelease": "v2.1.0"
+    "githubRelease": "v2.1.1"
   },
   "inputSpec": [
     {

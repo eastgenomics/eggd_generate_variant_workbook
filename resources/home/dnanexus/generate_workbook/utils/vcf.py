@@ -10,6 +10,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
+from .utils import is_numeric
 
 
 class vcf():
@@ -483,7 +484,7 @@ class vcf():
             # If URL is too long just display the value
             return value[column]
 
-        if any([value[column].endswith(x) for x in ['_AC', '_AF', '_AN']]):
+        if is_numeric(value[column]):
             # return numeric values not wrapped in quotes
             return f'=HYPERLINK("{url}", {value[column]})'
         else:
