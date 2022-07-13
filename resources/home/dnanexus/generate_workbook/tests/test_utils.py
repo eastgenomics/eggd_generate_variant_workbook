@@ -11,10 +11,14 @@ from utils.utils import is_numeric
 def test_is_numeric():
     """
     Tests that all forms of numerical value are correctly identified as
-    being numeric
+    being numeric, and things we don't want to are treat as non-numeric
     """
-    numeric_values = ['5', '5.5', '-0.1', '1e-5']
-    non_numeric_values = ['5,6', '5, 6', '.', '3/4', ]
+    numeric_values = ['5', '5.5', '-0.1', '1e-5', '.1']
+
+    non_numeric_values = [
+        '5,6', '5, 6', '.', '3/4', '1..1', '1.1.1', '5ee5', '123e', '-e1',
+        '.e1', 'e1', '1.1.1', '01', '0001'
+    ]
 
     assert all([is_numeric(x) for x in numeric_values]), (
         'some numeric values do not properly evaluate to being numeric'
