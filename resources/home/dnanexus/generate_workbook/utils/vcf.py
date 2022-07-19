@@ -1,6 +1,6 @@
 import os
 import gzip
-from pathlib import Path
+from pathlib import Path, PurePath
 import subprocess
 import sys
 from typing import Union
@@ -23,6 +23,9 @@ class vcf():
         arguments passed from command line
     vcfs : list
         list of dataframe(s) of vcf data read in and formatted
+    additional_files : dict
+        dict of dataframes from (optionaly) passed additional files of
+        tabulated data to write to additional sheets in workbook
     refs : list
         list of genome reference files used for given VCFs
     filtered_rows : list
@@ -35,6 +38,7 @@ class vcf():
     def __init__(self, args) -> None:
         self.args = args
         self.vcfs = []
+        self.additional_files = {}
         self.refs = []
         self.filtered_vcfs = []
         self.urls = {
@@ -65,6 +69,10 @@ class vcf():
             - self.rename_columns()
         """
         filters = filter(self.args)
+
+        if self.args.additional_files:
+            # additional non VCF files given, try read these in to dataframe(s)
+            self.read_additional_files()
 
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
@@ -296,6 +304,35 @@ class vcf():
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
         return vcf_df
+
+
+    def read_additional_files(self):
+        """
+        Attempt to read in additional tabulated files to  dataframes for
+        writing as additional sheets to the output workbook
+
+        Updates self.additional_files dictionary with file_prefix : dataframe
+        """
+        for idx, file in enumerate(self.args.additional_files):
+            # get prefix from filename for naming sheet if not specified
+            if not self.args.additional_sheets:
+                prefix = PurePath(file).name.replace(
+                    ''.join(PurePath(file).suffixes), ''
+                )
+            else:
+                prefix = self.args.additional_sheets[idx]
+
+            # Excel has a limit of 31 characters for sheet name -> trim
+            if len(prefix) > 31:
+                print(
+                    f"Prefix of additional filename parsed is >31 character "
+                    "limit for an Excel worksheet. Name will be trimmed to "
+                    "maximum length"
+                )
+                prefix = prefix[:31]
+
+            file_df = pd.read_csv(file, sep=None, engine='python')
+            self.additional_files[prefix] = file_df
 
 
     def parse_header(self, vcf) -> Union[list, list]:

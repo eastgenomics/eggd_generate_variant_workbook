@@ -21,8 +21,8 @@ class arguments():
         # sense checking and setting / formatting of arguments
         self.check_output()
         self.parse_output()
-        self.set_sheet_names()
         self.verify_sheets()
+        self.set_sheet_names()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -71,6 +71,15 @@ class arguments():
         parser.add_argument(
             '-v', '--vcfs', nargs='+',
             help='Annotated vcf file(s)'
+        )
+        parser.add_argument(
+            '--additional_files', nargs='+',
+            help=(
+                'Additional files to read in and append to additional sheets. '
+                'Each file should tabulated (comma or tab separated) and will '
+                'NOT have any of the exclude/rename/filter methods applied. '
+                'If --sheets is passed this will also rename these sheets.'
+            )
         )
         group = parser.add_mutually_exclusive_group()
         group.add_argument(
@@ -148,6 +157,13 @@ class arguments():
                 'If not given, if there is 1 vcf passed the sheet will be '
                 'named "variants", if multiple the name prefix of the vcf '
                 'will be used'
+            )
+        )
+        parser.add_argument(
+            '--additional_sheets', nargs='+', help=(
+                'Names for worksheets of additional files (if given), these '
+                'MUST be the same number as the number of files passed to '
+                '--additional_files. If not given, file prefixes will be used.'
             )
         )
         parser.add_argument(
@@ -271,10 +287,10 @@ class arguments():
             Raised when --merge and --sheets given, but more than one sheet
             name specified
         """
-        if not self.args.merge:
+        if not self.args.merge and self.args.sheets:
             assert len(self.args.vcfs) == len(self.args.sheets), (
-                "Different number of sheets specified to total vcfs passed. "
-                f"Number of vcf passed: {len(self.args.vcfs)}. Number of "
+                "Different number of sheets specified to total vcfs. "
+                f"Number of files passed: {len(self.args.vcfs)}. Number of "
                 f"sheet names passed: {len(self.args.sheets)}"
             )
         else:
@@ -286,6 +302,16 @@ class arguments():
                     "name passed. Either pass one name, or do not pass the "
                     "--sheets arg and the default will be used ('variants')"
                 )
+
+        if self.args.additional_files and self.args.additional_sheets:
+            # additional files passed and sheet names specified, check
+            # the numbers match
+            assert len(self.args.additional_files) == len(self.args.additional_sheets), (
+                "Different number of additional sheet names specified to "
+                "total additional files and additional files passed. Number "
+                f"of files passed: {len(self.args.additional_files)}. Number "
+                f"of sheet names passed: {len(self.args.additional_sheets)}"
+            )
 
 
     def set_sheet_names(self) -> None:
@@ -315,7 +341,12 @@ def main():
     vcf_handler.process()
 
     # generate output Excel file
-    excel_handler = excel(parser.args, vcf_handler.vcfs, vcf_handler.refs)
+    excel_handler = excel(
+        args=parser.args,
+        vcfs=vcf_handler.vcfs,
+        additional_files=vcf_handler.additional_files,
+        refs=vcf_handler.refs
+    )
     excel_handler.generate()
 
 
