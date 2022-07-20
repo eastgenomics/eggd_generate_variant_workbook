@@ -1,5 +1,5 @@
-import os
 import gzip
+import os
 from pathlib import Path, PurePath
 import subprocess
 import sys
@@ -10,7 +10,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import is_numeric
+from .utils import is_numeric, determine_delimeter
 
 
 class vcf():
@@ -331,7 +331,24 @@ class vcf():
                     f"maximum length: {prefix}"
                 )
 
-            file_df = pd.read_csv(file, sep=None, engine='python')
+
+            # read file contents in to list
+            if file.endswith('.gz'):
+                with gzip.open(file) as fh:
+                    file_contents = [
+                        x.decode() for x in fh.read().splitlines()
+                    ]
+            else:
+                with open(file) as fh:
+                    file_contents = fh.read().splitlines()
+
+            # check what delimeter the data uses, check end of file to avoid
+            # potential headers causing issues
+            delimeter = determine_delimeter('\n'.join(file_contents[-5:]))
+
+            file_df = pd.DataFrame(
+                [line.split(delimeter) for line in file_contents]
+            )
             self.additional_files[prefix] = file_df
 
 

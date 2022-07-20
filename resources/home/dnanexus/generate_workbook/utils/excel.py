@@ -480,26 +480,27 @@ class excel():
             # empty dict => no files passed to write
             return
 
-        with self.writer:
-            for file_name, file_df in self.additional_files.items():
-                file_df.to_excel(
-                    self.writer, sheet_name=file_name, index=False, header=None
-                )
+        print("Writing additional file(s) to workbook")
 
-                curr_worksheet = self.writer.sheets[file_name]
-                self.set_font(curr_worksheet)
+        for file_name, file_df in self.additional_files.items():
+            file_df.to_excel(
+                self.writer, sheet_name=file_name, index=False, header=None
+            )
 
-                # set appropriate column widths based on cell contents
-                for idx, column in enumerate(curr_worksheet.columns, start=1):
-                    col_letter = get_column_letter(idx)
-                    length = max(len(str(cell.value)) for cell in column)
+            curr_worksheet = self.writer.sheets[file_name]
+            self.set_font(curr_worksheet)
+            self.set_types(curr_worksheet)
 
-                    # sensible max and min sizes
-                    length = 13 if length < 13 else length
-                    length = 20 if length > 20 else length
+            # set appropriate column widths based on cell contents
+            print("setting column widths")
+            for idx, column in enumerate(curr_worksheet.columns, start=1):
+                # get max length of column contents, sensible max and min sizes
+                length = max(len(str(cell.value)) for cell in column)
+                length = 13 if length < 13 else length
+                length = 30 if length > 20 else length
 
-                    curr_worksheet.column_dimensions[col_letter].width = length
-
+                col_letter = get_column_letter(idx)
+                curr_worksheet.column_dimensions[col_letter].width = length
 
 
     def check_written_sheets(self, vcf, sheet) -> None:
