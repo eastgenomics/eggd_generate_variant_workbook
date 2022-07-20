@@ -125,7 +125,7 @@
       "label": "Additional sheet names",
       "class": "string",
       "optional": true,
-      "help": "Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order. If not given, the first 31 characters of the filename will be used",
+      "help": "Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order (e.g. `-iadditional_files=file1 -iadditional_files=file2 -iadditional_sheet_names='name_1 name_2'`). If not given, the first 31 characters of the filename will be used",
       "group": "generate_workbook.py"
     },
     {
