@@ -32,6 +32,9 @@ class excel():
         arguments passed from command line
     vcfs : list of pd.DataFrame
         list of dataframes formatted to write to file from vcf() methods
+    additional_files : dict
+        (optional) if addition files have been passed, dict will be populated
+        with worksheet name : df of file data
     refs : list
         list of reference names parsed from vcf headers
     writer : pandas.io.excel._openpyxl.OpenpyxlWriter
