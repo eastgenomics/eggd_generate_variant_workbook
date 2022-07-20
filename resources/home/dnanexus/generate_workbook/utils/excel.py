@@ -8,6 +8,7 @@ import numpy as np
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
+from openpyxl.utils import get_column_letter
 import pandas as pd
 
 from .utils import is_numeric
@@ -473,12 +474,11 @@ class excel():
 
     def write_additional_files(self) -> None:
         """
-        _summary_
+        Write each dataframe of additional files passed to separate sheets
         """
         if not self.additional_files:
             # empty dict => no files passed to write
             return
-        from openpyxl.utils import get_column_letter
 
         with self.writer:
             for file_name, file_df in self.additional_files.items():

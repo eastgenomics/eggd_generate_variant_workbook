@@ -21,8 +21,8 @@ class arguments():
         # sense checking and setting / formatting of arguments
         self.check_output()
         self.parse_output()
-        self.verify_sheets()
         self.set_sheet_names()
+        self.verify_sheets()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
