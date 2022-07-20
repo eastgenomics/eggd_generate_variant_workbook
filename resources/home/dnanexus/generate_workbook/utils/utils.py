@@ -31,21 +31,33 @@ def is_numeric(value:str) -> bool:
         return False
 
 
-def determine_delimeter(data) -> None:
+def determine_delimeter(data, suffixes) -> None:
     """
-    Attempt to determine delimeter in a given string using csv.Sniffer,
-    will default to tabs if it can't be determined
+    Attempt to determine delimeter from a given string and list of
+    file suffixes.
+
+    Will check for tsv or csv in suffixes and return accordingly, if not
+    will infer from data using csv.Sniffer, defaults to tabs if it can't
+    be determined.
 
     Parameters
     ----------
     data : str
         data to check for delimeter
+    suffixes : list
+        list of file suffixes
 
     Returns
     -------
     delimeter : str
         delimeter inferred from given data
     """
+    if '.tsv' in suffixes:
+        return '\t'
+
+    if '.csv' in suffixes:
+        return ','
+
     try:
         delimeter = Sniffer().sniff(str(data)).delimiter
     except Exception as error:

@@ -343,7 +343,9 @@ class vcf():
 
             # check what delimeter the data uses
             # check end of file to avoid potential headers causing issues
-            delimeter = determine_delimeter('\n'.join(file_contents[-5:]))
+            delimeter = determine_delimeter(
+                '\n'.join(file_contents[-5:]), PurePath(file).suffixes
+            )
 
             file_df = pd.DataFrame(
                 [line.split(delimeter) for line in file_contents]

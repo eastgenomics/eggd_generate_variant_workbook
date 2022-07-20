@@ -36,13 +36,13 @@ class TestDetermineDelimeter():
     """
     @staticmethod
     def test_comma():
-        delimeter = determine_delimeter('this,is,a,comma,separated,string')
+        delimeter = determine_delimeter('this,is,a,comma,separated,string', [])
 
         assert delimeter == ',', 'failed to correctly identify comma delimeter'
 
     @staticmethod
     def test_semicolon():
-        delimeter = determine_delimeter('this;is;a;semi colon;separated;string')
+        delimeter = determine_delimeter('this;is;a;semi colon;separated;string', [])
 
         assert delimeter == ';', (
             'failed to correctly identify semi colon delimeter'
@@ -50,13 +50,13 @@ class TestDetermineDelimeter():
 
     @staticmethod
     def test_tab():
-        delimeter = determine_delimeter('this\tis\ta\tab\tseparated\tstring')
+        delimeter = determine_delimeter('this\tis\ta\tab\tseparated\tstring', [])
 
         assert delimeter == '\t', 'failed to correctly identify tab delimeter'
 
     @staticmethod
     def test_space():
-        delimeter = determine_delimeter('this is a space separated string')
+        delimeter = determine_delimeter('this is a space separated string', [])
 
         assert delimeter == ' ', 'failed to correctly identify space delimeter'
 
@@ -65,7 +65,19 @@ class TestDetermineDelimeter():
         delimeter = determine_delimeter(
             '#this;is;a string with a.mix, of characters\nthat\tshould\tbe'
             '\tidentified\nas\ttab\tdelimited\tbecause\tit\thas\na\tweird'
-            '\theader\tline'
+            '\theader\tline', []
         )
 
         assert delimeter == '\t', 'failed to correctly identify space delimeter'
+
+    @staticmethod
+    def test_tsv_suffix():
+        delimeter = determine_delimeter('tsvFileStringWithNoDelimeters', ['.tsv'])
+
+        assert delimeter == '\t', 'failed to correctly identify space delimeter'
+
+    @staticmethod
+    def test_csv_suffix():
+        delimeter = determine_delimeter('csvFileStringWithNoDelimeters', ['.csv'])
+
+        assert delimeter == ',', 'failed to correctly identify space delimeter'
