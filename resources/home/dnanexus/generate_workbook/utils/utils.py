@@ -47,7 +47,7 @@ def determine_delimeter(data) -> None:
         delimeter inferred from given data
     """
     try:
-        delimeter = Sniffer().sniff(''.join(data)).delimiter
+        delimeter = Sniffer().sniff(str(data)).delimiter
     except Exception as error:
         print(
             "Error in determing delimeter from given data. Will default "
