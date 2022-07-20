@@ -1,7 +1,6 @@
 import os
 import sys
 
-from sklearn.tree import DecisionTreeRegressor
 
 sys.path.append(os.path.abspath(
     os.path.join(os.path.realpath(__file__), '../../')

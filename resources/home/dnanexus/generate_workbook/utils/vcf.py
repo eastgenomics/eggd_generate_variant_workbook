@@ -331,7 +331,6 @@ class vcf():
                     f"maximum length: {prefix}"
                 )
 
-
             # read file contents in to list
             if file.endswith('.gz'):
                 with gzip.open(file) as fh:
@@ -342,8 +341,8 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimeter the data uses, check end of file to avoid
-            # potential headers causing issues
+            # check what delimeter the data uses
+            # check end of file to avoid potential headers causing issues
             delimeter = determine_delimeter('\n'.join(file_contents[-5:]))
 
             file_df = pd.DataFrame(

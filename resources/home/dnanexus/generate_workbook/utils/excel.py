@@ -492,7 +492,6 @@ class excel():
             self.set_types(curr_worksheet)
 
             # set appropriate column widths based on cell contents
-            print("setting column widths")
             for idx, column in enumerate(curr_worksheet.columns, start=1):
                 # get max length of column contents, sensible max and min sizes
                 length = max(len(str(cell.value)) for cell in column)
