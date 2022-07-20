@@ -3,7 +3,7 @@
   "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "authorizedUsers": [
     "org-emee_1"
   ],
@@ -11,7 +11,7 @@
     "org-emee_1"
   ],
   "properties": {
-    "githubRelease": "v2.1.1"
+    "githubRelease": "v2.2.0"
   },
   "inputSpec": [
     {
@@ -21,6 +21,13 @@
       "optional": false,
       "help": "",
       "group": "app"
+    },
+    {
+      "name": "additional_files",
+      "label": "additional files",
+      "class": "array:file",
+      "optional": true,
+      "help": "additional tsv/csv file(s) to read in and add to separate sheets. Sheet names may be specified with --additional_sheet_names."
     },
     {
       "name": "exclude_columns",
@@ -111,6 +118,14 @@
       "class": "string",
       "optional": true,
       "help": "'Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "additional_sheet_names",
+      "label": "Additional sheet names",
+      "class": "string",
+      "optional": true,
+      "help": "'Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order. If not given, the first 31 characters of the filename will be used",
       "group": "generate_workbook.py"
     },
     {
