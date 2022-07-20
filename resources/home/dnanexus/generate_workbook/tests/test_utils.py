@@ -69,5 +69,3 @@ class TestDetermineDelimeter():
         )
 
         assert delimeter == '\t', 'failed to correctly identify space delimeter'
-
-
