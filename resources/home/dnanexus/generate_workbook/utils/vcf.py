@@ -315,21 +315,21 @@ class vcf():
         """
         for idx, file in enumerate(self.args.additional_files):
             # get prefix from filename for naming sheet if not specified
-            if not self.args.additional_sheets:
+            if self.args.additional_sheets:
+                prefix = self.args.additional_sheets[idx]
+            else:
                 prefix = PurePath(file).name.replace(
                     ''.join(PurePath(file).suffixes), ''
                 )
-            else:
-                prefix = self.args.additional_sheets[idx]
 
             # Excel has a limit of 31 characters for sheet name -> trim
             if len(prefix) > 31:
-                print(
-                    f"Prefix of additional filename parsed is >31 character "
-                    "limit for an Excel worksheet. Name will be trimmed to "
-                    "maximum length"
-                )
                 prefix = prefix[:31]
+                print(
+                    f"Prefix of additional file {file} is >31 character "
+                    "limit for an Excel worksheet. Name will be trimmed to "
+                    f"maximum length: {prefix}"
+                )
 
             file_df = pd.read_csv(file, sep=None, engine='python')
             self.additional_files[prefix] = file_df

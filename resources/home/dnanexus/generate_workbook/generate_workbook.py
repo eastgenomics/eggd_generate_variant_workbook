@@ -289,8 +289,8 @@ class arguments():
         """
         if not self.args.merge and self.args.sheets:
             assert len(self.args.vcfs) == len(self.args.sheets), (
-                "Different number of sheets specified to total vcfs. "
-                f"Number of files passed: {len(self.args.vcfs)}. Number of "
+                "Different number of sheets specified to total vcfs passed. "
+                f"Number of vcfs passed: {len(self.args.vcfs)}. Number of "
                 f"sheet names passed: {len(self.args.sheets)}"
             )
         else:
