@@ -68,6 +68,7 @@ main() {
     # build string of input arguments
     mark-section "Building arguments"
     args=""
+    if [ "$additional_files" ]; then args+="--additional_files $(find ~/in/additional_files -type f -name "*") "; fi
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$exclude_columns" ]; then args+="--exclude ${exclude_columns} "; fi
     if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
@@ -76,6 +77,7 @@ main() {
     if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
     if [ "$add_comment_column" == true ]; then args+="--add_comment_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
+    if [ "$additional_sheet_names" ]; then args+="--additional_sheets ${additional_sheet_names} "; fi
     if [ "$print_columns" == true ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$human_filter" ]; then args+="--human_filter ${human_filter} "; fi

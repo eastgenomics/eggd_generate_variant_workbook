@@ -8,6 +8,7 @@ import numpy as np
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
+from openpyxl.utils import get_column_letter
 import pandas as pd
 
 from .utils import is_numeric
@@ -31,6 +32,9 @@ class excel():
         arguments passed from command line
     vcfs : list of pd.DataFrame
         list of dataframes formatted to write to file from vcf() methods
+    additional_files : dict
+        (optional) if addition files have been passed, dict will be populated
+        with worksheet name : df of file data
     refs : list
         list of reference names parsed from vcf headers
     writer : pandas.io.excel._openpyxl.OpenpyxlWriter
@@ -45,10 +49,11 @@ class excel():
         Excel file with variants written to, name passed from command line or
         inferred from input vcf name if not specified
     """
-    def __init__(self, args, vcfs, refs) -> None:
+    def __init__(self, args, vcfs, additional_files, refs) -> None:
         print(f"Writing to output file: {Path(args.output).absolute()}")
         self.args = args
         self.vcfs = vcfs
+        self.additional_files = additional_files
         self.refs = refs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
@@ -62,6 +67,7 @@ class excel():
         if self.args.acmg:
             self.write_reporting_template()
         self.write_variants()
+        self.write_additional_files()
 
         self.workbook.save(self.args.output)
         print('Done!')
@@ -467,6 +473,36 @@ class excel():
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
                 self.workbook.save(self.args.output)
+
+
+    def write_additional_files(self) -> None:
+        """
+        Write each dataframe of additional files passed to separate sheets
+        """
+        if not self.additional_files:
+            # empty dict => no files passed to write
+            return
+
+        print("Writing additional file(s) to workbook")
+
+        for file_name, file_df in self.additional_files.items():
+            file_df.to_excel(
+                self.writer, sheet_name=file_name, index=False, header=None
+            )
+
+            curr_worksheet = self.writer.sheets[file_name]
+            self.set_font(curr_worksheet)
+            self.set_types(curr_worksheet)
+
+            # set appropriate column widths based on cell contents
+            for idx, column in enumerate(curr_worksheet.columns, start=1):
+                # get max length of column contents, sensible max and min sizes
+                length = max(len(str(cell.value)) for cell in column)
+                length = 13 if length < 13 else length
+                length = 30 if length > 20 else length
+
+                col_letter = get_column_letter(idx)
+                curr_worksheet.column_dimensions[col_letter].width = length
 
 
     def check_written_sheets(self, vcf, sheet) -> None:
