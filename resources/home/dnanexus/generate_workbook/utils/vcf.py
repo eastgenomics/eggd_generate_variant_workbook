@@ -538,19 +538,22 @@ class vcf():
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
         
         elif 'decipher' in column.lower():
+            # DECIPHER is only available for build 38 variants
+            if build == 38:
             # DECIPHER also requires the url to have the chrom, pos, ref and
             # alt added to the url
-            chrom = str(value.CHROM).replace('chr', '')
-            url = url.replace('CHROM', chrom)
-            url = url.replace('POS', str(value.POS))
-            url = url.replace('REF', str(value.REF))
-            url = url.replace('ALT', str(value.ALT))
-            url = f'{url}'
-            value[column] = url
-            # Create shortened form of the url to display in the excel
-            # sheet so there is no need to display full length hyperlink
-            short_url = url.split('/')[-1]
-
+                chrom = str(value.CHROM).replace('chr', '')
+                url = url.replace('CHROM', chrom)
+                url = url.replace('POS', str(value.POS))
+                url = url.replace('REF', str(value.REF))
+                url = url.replace('ALT', str(value.ALT))
+                url = f'{url}'
+                value[column] = url
+                # Create shortened form of the url to display in the excel
+                # sheet so there is no need to display full length hyperlink
+                short_url = url.split('/')[-1]
+            else:
+                short_url = '.'
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
