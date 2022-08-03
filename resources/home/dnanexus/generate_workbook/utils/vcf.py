@@ -47,7 +47,8 @@ class vcf():
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
             "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
-            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
+            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
+            "decipher_base_url": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT"
         }
 
 
@@ -530,6 +531,18 @@ class vcf():
             # build URL and set value to display equal to what is in the URL
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
+        
+        elif 'decipher' in column.lower():
+            # DECIPHER also requires the url to have the chrom, pos, ref and
+            # alt added to the url
+            chrom = str(value.CHROM).replace('chr', '')
+            url = url.replace('CHROM', chrom)
+            url = url.replace('POS', str(value.POS))
+            url = url.replace('REF', str(value.REF))
+            url = url.replace('ALT', str(value.ALT))
+            url = f'{url}'
+            url = 'https://www.deciphergenomics.org/sequence-variant/22-41177728-TAC-T/'
+            value[column] = url
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -542,6 +555,9 @@ class vcf():
         if is_numeric(value[column]):
             # return numeric values not wrapped in quotes
             return f'=HYPERLINK("{url}", {value[column]})'
+
+        elif 'decipher' in column.lower():
+            return f'=HYPERLINK("{url}")'
         else:
             # values for everything else which is hyperlinked
             # needs to be cast to string
