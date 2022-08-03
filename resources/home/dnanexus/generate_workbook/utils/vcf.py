@@ -48,7 +48,7 @@ class vcf():
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
             "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
             "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
-            "decipher_base_url": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT"
+            "decipher": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT"
         }
 
 
@@ -495,12 +495,17 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if (
-            not value[column] or pd.isna(value[column]) or
-            value[column] == 'nan' or value[column] == '.'
-        ):
-            # no value to build hyperlink
-            return value[column]
+        if 'decipher' not in column.lower():
+            # the decipher column is not from VEP and has been created
+            # manually so is empty
+            # this if statment excludes the decipher column from being
+            # skipped if it is empty
+            if (
+                not value[column] or pd.isna(value[column]) or
+                value[column] == 'nan' or value[column] == '.'
+            ):
+                # no value to build hyperlink
+                return value[column]
 
         if (
             column.lower() == 'existing_variation' and
@@ -541,7 +546,6 @@ class vcf():
             url = url.replace('REF', str(value.REF))
             url = url.replace('ALT', str(value.ALT))
             url = f'{url}'
-            # url = 'https://www.deciphergenomics.org/sequence-variant/22-41177728-TAC-T/'
             value[column] = url
         else:
             # other URLs with value appended to end
