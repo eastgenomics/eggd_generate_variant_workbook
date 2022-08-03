@@ -547,6 +547,10 @@ class vcf():
             url = url.replace('ALT', str(value.ALT))
             url = f'{url}'
             value[column] = url
+            # Create shortened form of the url to display in the excel
+            # sheet so there is no need to display full length hyperlink
+            short_url = url.split('/')[-1]
+
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -561,7 +565,7 @@ class vcf():
             return f'=HYPERLINK("{url}", {value[column]})'
 
         elif 'decipher' in column.lower():
-            return f'=HYPERLINK("{url}", "{url}")'
+            return f'=HYPERLINK("{url}", "{short_url}")'
         else:
             # values for everything else which is hyperlinked
             # needs to be cast to string
