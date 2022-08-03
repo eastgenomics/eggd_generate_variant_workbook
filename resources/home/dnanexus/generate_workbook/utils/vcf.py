@@ -541,7 +541,7 @@ class vcf():
             url = url.replace('REF', str(value.REF))
             url = url.replace('ALT', str(value.ALT))
             url = f'{url}'
-            url = 'https://www.deciphergenomics.org/sequence-variant/22-41177728-TAC-T/'
+            # url = 'https://www.deciphergenomics.org/sequence-variant/22-41177728-TAC-T/'
             value[column] = url
         else:
             # other URLs with value appended to end
@@ -557,7 +557,7 @@ class vcf():
             return f'=HYPERLINK("{url}", {value[column]})'
 
         elif 'decipher' in column.lower():
-            return f'=HYPERLINK("{url}")'
+            return f'=HYPERLINK("{url}", "{url}")'
         else:
             # values for everything else which is hyperlinked
             # needs to be cast to string
