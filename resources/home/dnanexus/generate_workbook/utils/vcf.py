@@ -537,9 +537,12 @@ class vcf():
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
         
-        elif 'decipher' in column.lower():
-            # DECIPHER is only available for build 38 variants
+        elif self.args.decipher and 'decipher' in column.lower():
+            # Only run this part if the input --decipher was included
+
+            # Check build = 38, as DECIPHER only available for build 38 variants
             if build == 38:
+
             # DECIPHER also requires the url to have the chrom, pos, ref and
             # alt added to the url
                 chrom = str(value.CHROM).replace('chr', '')
@@ -567,8 +570,9 @@ class vcf():
             # return numeric values not wrapped in quotes
             return f'=HYPERLINK("{url}", {value[column]})'
 
-        elif 'decipher' in column.lower():
+        elif 'decipher' in column.lower() and short_url != '.':
             return f'=HYPERLINK("{url}", "{short_url}")'
+
         else:
             # values for everything else which is hyperlinked
             # needs to be cast to string

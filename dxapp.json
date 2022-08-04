@@ -201,6 +201,14 @@
       "optional": true,
       "help": "",
       "group": "app"
+    },
+    {
+      "name": "decipher",
+      "label": "Whether or not to include column of DECIPHER links",
+      "class": "string",
+      "optional": true,
+      "help": "",
+      "group": "app"
     }
   ],
   "outputSpec": [
