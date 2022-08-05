@@ -30,6 +30,29 @@
       "help": "additional tsv/csv file(s) to read in and add to separate sheets. Sheet names may be specified with --additional_sheet_names."
     },
     {
+      "name": "images",
+      "label": "images",
+      "class": "array:file",
+      "optional": true,
+      "help": "images to write to separate sheets. Sheet names may be specified with --image_sheet_names."
+    },
+    {
+      "name": "image_sheet_names",
+      "label": "Image sheet names",
+      "class": "string",
+      "optional": true,
+      "help": "'Names to use for image sheets, these MUST be the same number as the number of images passed and in the same order. If not given, this will default image1, image2...",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "image_sizes",
+      "label": "Image sizes",
+      "class": "string",
+      "optional": true,
+      "help": "Sizes to set for images passed with --images, formatted as colon separated width:height in px, these MUST be same number as the number of images passed and in same order.",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "exclude_columns",
       "label": "Exclude columns",
       "class": "string",
