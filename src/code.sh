@@ -71,7 +71,7 @@ main() {
     if [ "$additional_files" ]; then args+="--additional_files $(find ~/in/additional_files -type f -name "*") "; fi
     if [ "$images" ]; then args+="--images $(find ~/in/images -type f -name "*") "; fi
     if [ "$image_sheet_names" ]; then args+="--image_sheets ${image_sheet_names} "; fi
-    if [ "$image_sheet_sizes" ]; then args+="--image_sizes ${image_sheet_sizes} "; fi
+    if [ "$image_sizes" ]; then args+="--image_sizes ${image_sizes} "; fi
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$exclude_columns" ]; then args+="--exclude ${exclude_columns} "; fi
     if [ "$include_columns" ]; then args+="--include ${include_columns} "; fi
