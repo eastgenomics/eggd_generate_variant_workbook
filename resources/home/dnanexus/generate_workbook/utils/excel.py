@@ -541,6 +541,14 @@ class excel():
                         f"Will use defaults from current image (width:"
                         f"{img.width}px, height:{img.height}px)"
                     )
+            else:
+                # set max size based off aspect ratio of original image
+                ratio = img.width / img.height
+                height = 972
+                width = 972 * ratio
+
+                img.height = height
+                img.width = width
 
             sheet.add_image(img)
 
