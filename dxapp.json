@@ -41,7 +41,7 @@
       "label": "Image sheet names",
       "class": "string",
       "optional": true,
-      "help": "'Names to use for image sheets, these MUST be the same number as the number of images passed and in the same order. If not given, this will default image1, image2...",
+      "help": "'Names to use for image sheets, these MUST be the same number as the number of images passed and in the same order (i.e. -iimages=graph1.png -iimages=another_image.jpeg -iimage_sheet_names='myNiceGraph someImage'). If not given, this will default image1, image2...",
       "group": "generate_workbook.py"
     },
     {
@@ -49,7 +49,7 @@
       "label": "Image sizes",
       "class": "string",
       "optional": true,
-      "help": "Sizes to set for images passed with --images, formatted as colon separated width:height in px, these MUST be same number as the number of images passed and in same order.",
+      "help": "Sizes to set for images passed with --images, formatted as colon separated width:height in px, these MUST be same number as the number of images passed and in same order (i.e. -iimages=file1 -iimages=file2 -iimage_sizes='1920:1080 1000:500')",
       "group": "generate_workbook.py"
     },
     {
