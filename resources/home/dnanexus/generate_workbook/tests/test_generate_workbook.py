@@ -7,7 +7,7 @@ from generate_workbook import arguments
 
 class TestVerifyImages():
     """
-    Methods to test assertions in generate_workbook.arguments.verifu_images
+    Methods to test assertions in generate_workbook.arguments.verify_images
     """
     # initialise the arguments object, using __new__ method to circumvent
     # the __init__ method in arguments() that sets up argument parsing and
@@ -41,6 +41,9 @@ class TestVerifyImages():
         with pytest.raises(AssertionError):
             self.args_obj.verify_images()
 
+        self.args_obj.args.images = None
+        self.args_obj.args.image_sheets = None
+
 
     def test_differing_images_and_image_sizes(self):
         """
@@ -53,13 +56,18 @@ class TestVerifyImages():
         with pytest.raises(AssertionError):
             self.args_obj.verify_images()
 
+        self.args_obj.args.images = None
+        self.args_obj.args.image_sheets = None
+
 
     def test_invalid_image_sizes(self):
         """
         Test that when invalid image sizes are passed, an AssertionError is
         correctly raised
         """
-        self.args_obj.args.image_sheets = ['1920:1080', '500-250', 'test', '']
+        self.args_obj.args.image_sizes = ['1920:1080', '500-250', 'test', '']
 
         with pytest.raises(AssertionError):
             self.args_obj.verify_images()
+
+        self.args_obj.args.image_sheets = None
