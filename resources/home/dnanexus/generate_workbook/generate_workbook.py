@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import sys
 
+from filetype import is_image
+
 from utils.excel import excel
 from utils.vcf import vcf
 
@@ -338,8 +340,8 @@ class arguments():
 
     def verify_images(self) -> None:
         """
-        Checks where images, and optionally, names and sizes are passed that 
-        they are the same number.
+        Checks where images with names and / or sizes are passed that
+        they are the same number, and that image files are valid by extensions.
 
         Raises
         ------
@@ -362,6 +364,10 @@ class arguments():
                 "Total number of images passed does not equal total sheet "
                 "sizes specified."
             )
+
+        assert all([is_image(x) for x in self.args.images]), (
+            f"Valid images not passed to --images: {self.args.images}"
+        )
 
     def set_sheet_names(self) -> None:
         """
