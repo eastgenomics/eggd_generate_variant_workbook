@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import re
 import sys
 
 from filetype import is_image
@@ -355,6 +356,9 @@ class arguments():
         AssertionError
             Raised when total number of image sizes does not match
             total number of images passed
+
+        AssertionError
+            Raised when image sizes not in the correct colon separated format
         """
         if self.args.images:
             assert all([is_image(x) for x in self.args.images]), (
@@ -371,6 +375,14 @@ class arguments():
             assert len(self.args.images) == len(self.args.image_sizes), (
                 "Total number of images passed does not equal total sheet "
                 "sizes specified."
+            )
+
+        if self.args.image_sizes:
+            assert all(
+                [re.match('\d+:\d+', x) for x in self.args.image_sizes]
+            ), (
+                'Sizes for images specified not in correct format: '
+                f'{self.args.image_sizes}'
             )
 
 
