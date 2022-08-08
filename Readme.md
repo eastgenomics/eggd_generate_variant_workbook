@@ -41,7 +41,7 @@ This app may be executed as a standalone app.
 
 `--images` (`array:files`): Image(s) to be written to separate additional sheets, sizes can be set with `--image_sizes` and sheet names with `--image_sheet_names`
 
-`--image_sizes` (`list`): colon separated `width:height` sizes in pixels for writing images, if specified these MUST be the same number as the number of files passed and in the same order.
+`--image_sizes` (`list`): Colon separated `width:height` sizes in pixels for writing images, if specified these MUST be the same number as the number of files passed and in the same order.
 
 `--image_sheet_names` (`list`): Names to use for image file sheets, if specified these MUST be the same number as the number of files passed and in the same order `-iimages=graph1.png -iimages=another_image.jpeg -iimage_sheet_names='myNiceGraph someImage'`). If not given, sheets will be named `image_1, image_2...`.
 

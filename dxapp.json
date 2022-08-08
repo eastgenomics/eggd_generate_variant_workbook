@@ -34,7 +34,7 @@
       "label": "images",
       "class": "array:file",
       "optional": true,
-      "help": "images to write to separate sheets. Sheet names may be specified with --image_sheet_names."
+      "help": "Images to write to separate sheets. Sheet names may be specified with --image_sheet_names."
     },
     {
       "name": "image_sheet_names",

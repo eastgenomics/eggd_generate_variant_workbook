@@ -346,6 +346,9 @@ class arguments():
         Raises
         ------
         AssertionError
+            Raised when invalid images passed to --images
+
+        AssertionError
             Raised when total number of image sheet names does not match
             total number of images passed
 
@@ -353,6 +356,11 @@ class arguments():
             Raised when total number of image sizes does not match
             total number of images passed
         """
+        if self.args.images:
+            assert all([is_image(x) for x in self.args.images]), (
+                f"Valid images not passed to --images: {self.args.images}"
+            )
+
         if self.args.images and self.args.image_sheets:
             assert len(self.args.images) == len(self.args.image_sheets), (
                 "Total number of images passed does not equal total sheet "
@@ -365,9 +373,6 @@ class arguments():
                 "sizes specified."
             )
 
-        assert all([is_image(x) for x in self.args.images]), (
-            f"Valid images not passed to --images: {self.args.images}"
-        )
 
     def set_sheet_names(self) -> None:
         """
