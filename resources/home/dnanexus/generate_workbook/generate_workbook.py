@@ -1,7 +1,10 @@
 import argparse
 import os
 from pathlib import Path
+import re
 import sys
+
+from filetype import is_image
 
 from utils.excel import excel
 from utils.vcf import vcf
@@ -23,6 +26,7 @@ class arguments():
         self.parse_output()
         self.set_sheet_names()
         self.verify_sheets()
+        self.verify_images()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -150,6 +154,28 @@ class arguments():
             help='Add empty comment column to end of each sheet'
         )
         parser.add_argument(
+            '--images', nargs='+',
+            help=(
+                'Images to write to separate sheets'
+            )
+        )
+        parser.add_argument(
+            '--image_sheets', nargs='+',
+            help=(
+                'Names to use for sheets of images written to workbook, if '
+                'not specified will default to image_1, image_2... '
+                'If specified must be same number as passed to --images.'
+            )
+        )
+        parser.add_argument(
+            '--image_sizes', nargs='+',
+            help=(
+                'width:height for image(s) in px (e.g. 1920:1080). '
+                'If specified must be same number as passed to --images.'
+            )
+
+        )
+        parser.add_argument(
             '-s', '--sheets', nargs='+',
             help=(
                 'Names to use for multiple sheets, these MUST be the same '
@@ -190,7 +216,7 @@ class arguments():
             help='summary sheet to include, must be one of: dias'
         )
         parser.add_argument(
-            '--human_filter',  nargs='+', action=self.joinList,
+            '--human_filter', nargs='+', action=self.joinList,
             help=(
                 'String to add to summary sheet with humanly readable form of '
                 'the given filter string. No checking is done of this matching'
@@ -311,6 +337,52 @@ class arguments():
                 "total additional files and additional files passed. Number "
                 f"of files passed: {len(self.args.additional_files)}. Number "
                 f"of sheet names passed: {len(self.args.additional_sheets)}"
+            )
+
+    def verify_images(self) -> None:
+        """
+        Checks where images with names and / or sizes are passed that
+        they are the same number, and that image files are valid by extensions.
+
+        Raises
+        ------
+        AssertionError
+            Raised when invalid images passed to --images
+
+        AssertionError
+            Raised when total number of image sheet names does not match
+            total number of images passed
+
+        AssertionError
+            Raised when total number of image sizes does not match
+            total number of images passed
+
+        AssertionError
+            Raised when image sizes not in the correct colon separated format
+        """
+        if self.args.images:
+            assert all([is_image(x) for x in self.args.images]), (
+                f"Valid images not passed to --images: {self.args.images}"
+            )
+
+        if self.args.images and self.args.image_sheets:
+            assert len(self.args.images) == len(self.args.image_sheets), (
+                "Total number of images passed does not equal total sheet "
+                "names specified."
+            )
+
+        if self.args.images and self.args.image_sizes:
+            assert len(self.args.images) == len(self.args.image_sizes), (
+                "Total number of images passed does not equal total sheet "
+                "sizes specified."
+            )
+
+        if self.args.image_sizes:
+            assert all(
+                [re.match('\d+:\d+', x) for x in self.args.image_sizes]
+            ), (
+                'Sizes for images specified not in correct format: '
+                f'{self.args.image_sizes}'
             )
 
 

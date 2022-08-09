@@ -5,7 +5,7 @@ from timeit import default_timer as timer
 
 import Levenshtein as levenshtein
 import numpy as np
-from openpyxl import load_workbook
+from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter
@@ -68,6 +68,7 @@ class excel():
             self.write_reporting_template()
         self.write_variants()
         self.write_additional_files()
+        self.write_images()
 
         self.workbook.save(self.args.output)
         print('Done!')
@@ -503,6 +504,53 @@ class excel():
 
                 col_letter = get_column_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
+
+
+    def write_images(self) -> None:
+        """
+        Writes each of the passed images to a separate sheet
+        """
+        if not self.args.images:
+            # no images to write
+            return
+
+        print("Writing image(s) to workbook")
+
+        for idx, image in enumerate(self.args.images):
+            if self.args.image_sheets:
+                # names for image sheets specified
+                sheet = self.workbook.create_sheet(
+                    self.args.image_sheets[idx])
+            else:
+                sheet = self.workbook.create_sheet(f'image_{idx + 1}')
+
+            img = drawing.image.Image(image)
+            img.anchor = 'B2'
+
+            if self.args.image_sizes:
+                # set sizes if specified
+                try:
+                    width, height = self.args.image_sizes[idx].split(':')
+                    img.height = float(height)
+                    img.width = float(width)
+                except Exception as error:
+                    print(
+                        "Failed to parse width/height from image_sizes "
+                        f"argument for image no. {idx}, sizes specified: "
+                        f"{self.args.image_sizes}.\n\nError: {error}\n\n"
+                        f"Will use defaults from current image (width:"
+                        f"{img.width}px, height:{img.height}px)"
+                    )
+            else:
+                # set max size based off aspect ratio of original image
+                ratio = img.width / img.height
+                height = 972
+                width = 972 * ratio
+
+                img.height = height
+                img.width = width
+
+            sheet.add_image(img)
 
 
     def check_written_sheets(self, vcf, sheet) -> None:

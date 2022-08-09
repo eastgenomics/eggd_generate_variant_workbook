@@ -39,6 +39,12 @@ This app may be executed as a standalone app.
 
 `--types` (`string`): `=` separated key value pairs of `{field}={type}` to overwrite in VCF header (i.e `CSQ_gnomADg_AF=Float`). This is required where the field is specified for filtering, but the type is wrongly set in the header. Field types for a given vcf may be inspected with `--print_header`.
 
+`--images` (`array:files`): Image(s) to be written to separate additional sheets, sizes can be set with `--image_sizes` and sheet names with `--image_sheet_names`
+
+`--image_sizes` (`list`): Colon separated `width:height` sizes in pixels for writing images, if specified these MUST be the same number as the number of files passed and in the same order.
+
+`--image_sheet_names` (`list`): Names to use for image file sheets, if specified these MUST be the same number as the number of files passed and in the same order `-iimages=graph1.png -iimages=another_image.jpeg -iimage_sheet_names='myNiceGraph someImage'`). If not given, sheets will be named `image_1, image_2...`.
+
 `--keep_tmp` (`bool`): Determines if to upload the intermediate bcftools split and filtered vcfs. `*.split.vcf.gz` is the output from `bcftools split-vep` and `*.filter.vcf.gz` is the output from `bcftools filter`.
 
 `--keep_filtered` (`bool`): Determines if filtered rows from `--filter` are retained in a seperate 'excluded' tab (default: `True`).
