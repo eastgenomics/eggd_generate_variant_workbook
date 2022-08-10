@@ -3,7 +3,6 @@ from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
 import sys
-from tkinter.filedialog import test
 import pandas as pd
 from types import new_class
 from bleach import clean
