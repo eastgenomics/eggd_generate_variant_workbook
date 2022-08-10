@@ -500,7 +500,7 @@ class excel():
                 # get max length of column contents, sensible max and min sizes
                 length = max(len(str(cell.value)) for cell in column)
                 length = 13 if length < 13 else length
-                length = 30 if length > 20 else length
+                length = 30 if length > 30 else length
 
                 col_letter = get_column_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
