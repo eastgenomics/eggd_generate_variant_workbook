@@ -457,7 +457,6 @@ class vcf():
                 "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
             })
             build = 38
-        print(build)
 
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
@@ -763,10 +762,6 @@ class vcf():
         dataframe to be populated with decipher links
         """
         for idx, vcf in enumerate(self.vcfs):
-            # vcf_columns = list(vcf.columns)
-            # vcf_columns.append("DECIPHER")
-            # print(vcf_columns)
-            # self.vcfs[idx] = vcf[vcf_columns]
             vcf['DECIPHER'] = ''
             self.vcfs[idx] = vcf
 

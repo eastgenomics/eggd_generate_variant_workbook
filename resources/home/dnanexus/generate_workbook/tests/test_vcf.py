@@ -3,6 +3,7 @@ from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
 import sys
+from tkinter.filedialog import test
 import pandas as pd
 from types import new_class
 from bleach import clean
@@ -279,67 +280,88 @@ class TestHyperlinks():
     '''
     Tests to check hyperlinks are generated correctly
     '''
+    def test_decipher_column():
+        """
+        Test to ensure that the DECIPHER column is only created when --decipher
+        input is specified.
+        """
+        # Create test dataframe with no "DECIPHER" columnn
+        df = pd.DataFrame([
+        {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'},
+        {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
+        ])
+        
+        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf.vcfs = [df]
+
+        # Call add_decipher_column which should add an empty column titled
+        # 'DECIPHER' to this dataframe
+        vcf.add_decipher_column(test_vcf)
+
+        # Assert statement to check that DECIPHER column exists
+        assert "DECIPHER" in test_vcf.vcfs[0].columns, (
+            'DECIPHER column not created despite --decipher input given'
+            )
 
     def test_decipher_links_build_37():
-
+        '''
+        Test that no DECIPHER links are created if the build is 37 
+        '''
         # Intialise test dataframe with build 37 genome positions
         # DECIPHER column is empty as that is the input to generate hyperlinks
-
         df = pd.DataFrame([
-            {'CHROM': 1, 'POS': 1273116, 'REF': 'A', 'ALT': 'G', 'DECIPHER': ''},
-            {'CHROM': 12, 'POS': 103241070, 'REF': 'T', 'ALT': 'C', 'DECIPHER': ''},
-            ])
-        
-        print(df)
-        # vcf_handler = vcf(argparse.Namespace(
-        # add_name=True, analysis='',
-        # filter=None, keep=False, merge=False,
-        # reorder=[], exclude=None, include=None,
-        # out_dir='', output='',
-        # panel='', print_columns=False, print_header=False, reads='',
-        # rename=None, sample='', sheets=['variants'], summary=None,
-        # vcfs=[df], workflow=('', '')
-        # ))
-        test_vcf = vcf(argparse.Namespace(decipher=True))
-        test_vcf.vcfs=[df]
-        print(test_vcf.vcfs)
-        test_vcf.refs = ['37']
-        print(test_vcf.refs)
-        vcf.add_hyperlinks(test_vcf)
-        print(test_vcf.vcfs)
-        print(test_vcf.vcfs[0]["DECIPHER"].to_list())
-        if test_vcf.vcfs[0]["DECIPHER"].empty:
-            print('no links generated')
-
-
-            
-    def test_decipher_links_build_38(): 
-        df = pd.DataFrame([
-            {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C', 'DECIPHER': ''},
-            {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T', 'DECIPHER': ''},
+            {'CHROM': 1, 'POS': 1273116, 'REF': 'A', 
+            'ALT': 'G', 'DECIPHER': ''},
+            {'CHROM': 12, 'POS': 103241070, 'REF': 'T', 
+            'ALT': 'C', 'DECIPHER': ''},
             ])
         
         test_vcf = vcf(argparse.Namespace(decipher=True))
         test_vcf.vcfs=[df]
-        print(test_vcf.vcfs)
-        test_vcf.refs = ['38']
-        print(test_vcf.refs)
+        test_vcf.refs = ['37']  # Set reference = build 37
+
+        # Call function to add hyperlinks
         vcf.add_hyperlinks(test_vcf)
-        print(test_vcf.vcfs)
-        print(test_vcf.vcfs[0]["DECIPHER"][0])
-        valid_string = (
-            "=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-64883298-T-C",
-            "1-64883298-T-C")"
+
+        # Assert that the "DECIPHER" column should be empty
+        assert test_vcf.vcfs[0]["DECIPHER"][0] == '', (
+            "DECIPHER column has links for build 37 variants; these should not"
+            " have been generated as DECIPHER only stores variants in build 38"
             )
-        assert test_vcf.vcfs[0]["DECIPHER"][0] == valid_string, ""
+          
+    def test_decipher_links_build_38():
+        '''
+        Test that the DECIPHER links are generated correctly
+        '''
+        # Intialise test dataframe with build 38 genome positions
+        # DECIPHER column is empty as that is the input to generate hyperlinks
+        df = pd.DataFrame([
+            {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 
+            'ALT': 'C', 'DECIPHER': ''},
+            {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 
+            'ALT': 'T', 'DECIPHER': ''},
+            ])
+        
+        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf.vcfs=[df]
+        test_vcf.refs = ['38'] # Set reference = build 38
 
+        # Call function to add hyperlinks
+        vcf.add_hyperlinks(test_vcf)
 
-       
-#TestHyperlinks.test_decipher_links_build_37()
-TestHyperlinks.test_decipher_links_build_38()
+        # Define expected string output
+        valid_string = (
+            '=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-6'
+            '4883298-T-C", "1-64883298-T-C")'
+            )
 
-# if __name__ == "__main__":
-#     header = TestHeader()
-#     header.test_column_names()
+        # Assert that output is as expected
+        assert test_vcf.vcfs[0]["DECIPHER"][0] == valid_string, (
+            "DECIPHER link output incorrect"
+            )
 
-#     df_actions = TestDataFrameActions()
+if __name__ == "__main__":
+    header = TestHeader()
+    header.test_column_names()
+
+    df_actions = TestDataFrameActions()
