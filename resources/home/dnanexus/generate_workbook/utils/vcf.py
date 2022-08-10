@@ -1,7 +1,6 @@
 import gzip
 import os
 from pathlib import Path, PurePath
-from ssl import VERIFY_CRL_CHECK_LEAF
 import subprocess
 import sys
 from typing import Union
