@@ -1,6 +1,7 @@
 import gzip
 import os
 from pathlib import Path, PurePath
+from ssl import VERIFY_CRL_CHECK_LEAF
 import subprocess
 import sys
 from typing import Union
@@ -171,6 +172,9 @@ class vcf():
 
         if self.args.reorder:
             self.order_columns()
+        
+        if self.args.decipher:
+            self.add_decipher_column()
 
         self.format_strings()
         self.add_hyperlinks()
@@ -453,6 +457,7 @@ class vcf():
                 "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
             })
             build = 38
+        print(build)
 
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
@@ -551,12 +556,12 @@ class vcf():
                 url = url.replace('REF', str(value.REF))
                 url = url.replace('ALT', str(value.ALT))
                 url = f'{url}'
-                value[column] = url
                 # Create shortened form of the url to display in the excel
                 # sheet so there is no need to display full length hyperlink
-                short_url = url.split('/')[-1]
+                value[column] = url.split('/')[-1]
+
             else:
-                short_url = '.'
+                return value[column]
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -569,9 +574,6 @@ class vcf():
         if is_numeric(value[column]):
             # return numeric values not wrapped in quotes
             return f'=HYPERLINK("{url}", {value[column]})'
-
-        elif 'decipher' in column.lower() and short_url != '.':
-            return f'=HYPERLINK("{url}", "{short_url}")'
 
         else:
             # values for everything else which is hyperlinked
@@ -755,6 +757,18 @@ class vcf():
 
             self.vcfs[idx] = vcf[column_order]
 
+    def add_decipher_column(self) -> None:
+        """
+        If --decipher input added this function will add an empty column to the
+        dataframe to be populated with decipher links
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            # vcf_columns = list(vcf.columns)
+            # vcf_columns.append("DECIPHER")
+            # print(vcf_columns)
+            # self.vcfs[idx] = vcf[vcf_columns]
+            vcf['DECIPHER'] = ''
+            self.vcfs[idx] = vcf
 
     def rename_columns(self) -> None:
         """

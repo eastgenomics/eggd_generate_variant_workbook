@@ -121,7 +121,6 @@ class splitColumns():
         # add split out columns to main df
         vcf_df = vcf_df.join(format_cols, rsuffix="_FMT")
         vcf_df.drop(['FORMAT', 'SAMPLE'], axis=1, inplace=True)
-        vcf_df["DECIPHER"] = ""
 
         return vcf_df
 
