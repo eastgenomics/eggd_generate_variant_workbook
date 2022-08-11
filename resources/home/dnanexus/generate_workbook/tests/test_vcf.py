@@ -359,6 +359,57 @@ class TestHyperlinks():
             "DECIPHER link output incorrect"
             )
 
+    def test_gnomad_build_37():
+        '''
+        Test that the gnomAD links are generated correctly for build 37
+        '''
+        # Intialise test dataframe with build 37 genome positions
+        df = pd.DataFrame([
+            {'CHROM': 1, 'POS': 1271940, 'REF': 'C', 
+            'ALT': 'TS', 'gnomADg AF': ''},
+            ])
+
+        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf.vcfs=[df]
+        test_vcf.refs = ['37'] # Set reference = build 37
+
+        # Call function to add hyperlinks
+        vcf.add_hyperlinks(test_vcf)
+
+        valid_string = (
+        '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-1271940-C-T?d'
+        'ataset=gnomad_r2_1", 0.0108147)'
+        )
+        assert test_vcf.vcfs[0]["gnomADg AF"][0] == valid_string, (
+            "gnomAD AF link output incorrect for build 37 input"
+            )
+
+    def test_gnomad_build_38():
+        '''
+        Test that the gnomAD links are generated correctly for build 38
+        '''
+        # Intialise test dataframe with build 38 genome positions
+        df = pd.DataFrame([
+            {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 
+            'ALT': 'C', 'gnomADg AF': ''},
+            ])
+
+        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf.vcfs=[df]
+        test_vcf.refs = ['38'] # Set reference = build 38
+
+        # Call function to add hyperlinks
+        vcf.add_hyperlinks(test_vcf)
+
+        valid_string = (
+        '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-64883298-T-C?'
+        'dataset=gnomad_r3", 0.0004271)'
+        )
+        assert test_vcf.vcfs[0]["gnomADg AF"][0] == valid_string, (
+            "gnomAD AF link output incorrect for build 38 input"
+            ) 
+
+
 if __name__ == "__main__":
     header = TestHeader()
     header.test_column_names()
