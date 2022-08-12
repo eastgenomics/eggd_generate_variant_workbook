@@ -2,7 +2,6 @@ import argparse
 from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
-from re import S
 import sys
 import pandas as pd
 from types import new_class
