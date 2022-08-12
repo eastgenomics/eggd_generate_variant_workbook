@@ -299,7 +299,7 @@ class TestHyperlinks():
 
         # Assert statement to check that DECIPHER column exists
         assert "DECIPHER" in to_add_column.vcfs[0].columns, (
-            'DECIPHER column not created despite --decipher input given'
+            'DECIPHER column not created by make_decipher_columns() function'
             )
 
 
