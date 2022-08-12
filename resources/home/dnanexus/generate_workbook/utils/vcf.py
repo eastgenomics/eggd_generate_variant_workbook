@@ -465,6 +465,7 @@ class vcf():
                 if 'gnomad' in col.lower():
                     # gnomAD columns won't be exact match on name to dict
                     url = self.urls.get('gnomad')
+
                 else:
                     url = self.urls.get(col.lower(), None)
 

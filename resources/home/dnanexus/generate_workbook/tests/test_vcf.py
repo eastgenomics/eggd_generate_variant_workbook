@@ -2,6 +2,7 @@ import argparse
 from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
+from re import S
 import sys
 import pandas as pd
 from types import new_class
@@ -279,9 +280,32 @@ class TestHyperlinks():
     '''
     Tests to check hyperlinks are generated correctly
     '''
-    def test_decipher_column():
+    def test_column_creation(self):
+        '''
+        Test that the function to create a "DECIPHER" column works
+        '''
+        # Create test dataframe with no "DECIPHER" columnn
+        df = pd.DataFrame([
+        {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'},
+        {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
+        ])
+        
+        to_add_column = vcf(argparse.Namespace())
+        to_add_column.vcfs = [df]
+
+        # Call add_decipher_column which should add an empty column titled
+        # 'DECIPHER' to this dataframe
+        vcf.add_decipher_column(to_add_column)
+
+        # Assert statement to check that DECIPHER column exists
+        assert "DECIPHER" in to_add_column.vcfs[0].columns, (
+            'DECIPHER column not created despite --decipher input given'
+            )
+
+
+    def test_decipher_column_added(self):
         """
-        Test to ensure that the DECIPHER column is only created when --decipher
+        Test to ensure that the DECIPHER column is created when --decipher
         input is specified.
         """
         # Create test dataframe with no "DECIPHER" columnn
@@ -290,19 +314,52 @@ class TestHyperlinks():
         {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
         ])
         
-        test_vcf = vcf(argparse.Namespace(decipher=True))
-        test_vcf.vcfs = [df]
+        # Include --decipher input, all other inputs are false to avoid giving
+        # this dataframe to other functions except make_decipher_columns
+        should_have_decipher_column = vcf(argparse.Namespace(
+            additional_files=False,filter=False, print_columns=False,
+            rename=False, vcfs=[],merge=False, include=False, exclude=False,
+            reorder=False, decipher=True, # Set DECIPHER = True
+            ))
+        should_have_decipher_column.vcfs = [df]
 
-        # Call add_decipher_column which should add an empty column titled
-        # 'DECIPHER' to this dataframe
-        vcf.add_decipher_column(test_vcf)
+        # Call process() which should call make_decipher_columns()
+        vcf.process(should_have_decipher_column)
 
         # Assert statement to check that DECIPHER column exists
-        assert "DECIPHER" in test_vcf.vcfs[0].columns, (
+        assert "DECIPHER" in should_have_decipher_column.vcfs[0].columns, (
             'DECIPHER column not created despite --decipher input given'
             )
+    
+    def test_decipher_column_not_added(self):
+        """
+        Test to ensure that the DECIPHER column is not made if --decipher is 
+        not specified.
+        """
+        df = pd.DataFrame([
+        {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'},
+        {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
+        ])
+        # Using the same test dataframe but without --decipher input, all other
+        # inputs are false to avoid giving this dataframe to other functions
+        # except make_decipher_columns
+        should_not_have_decipher_column = vcf(argparse.Namespace(
+            additional_files=False,filter=False, print_columns=False,
+            rename=False, vcfs=[],merge=False, include=False, exclude=False,
+            reorder=False, decipher=False, # Set DECIPHER = False
+            ))
+        should_not_have_decipher_column.vcfs = [df]
 
-    def test_decipher_links_build_37():
+        # Call process() which should not call make_decipher_columns()
+        vcf.process(should_not_have_decipher_column)
+
+        # Assert statement to check that DECIPHER column was not added
+        assert "DECIPHER" not in should_not_have_decipher_column.vcfs[0].columns, (
+            'DECIPHER column created despite --decipher input not given'
+            )        
+        
+
+    def test_decipher_links_build_37(self):
         '''
         Test that no DECIPHER links are created if the build is 37 
         '''
@@ -328,7 +385,7 @@ class TestHyperlinks():
             " have been generated as DECIPHER only stores variants in build 38"
             )
           
-    def test_decipher_links_build_38():
+    def test_decipher_links_build_38(self):
         '''
         Test that the DECIPHER links are generated correctly
         '''
@@ -359,17 +416,17 @@ class TestHyperlinks():
             "DECIPHER link output incorrect"
             )
 
-    def test_gnomad_build_37():
+    def test_gnomad_build_37(self):
         '''
         Test that the gnomAD links are generated correctly for build 37
         '''
         # Intialise test dataframe with build 37 genome positions
         df = pd.DataFrame([
             {'CHROM': 1, 'POS': 1271940, 'REF': 'C', 
-            'ALT': 'TS', 'gnomADg AF': ''},
+            'ALT': 'T', 'gnomAD': 0.0108147},
             ])
 
-        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf = vcf(argparse.Namespace())
         test_vcf.vcfs=[df]
         test_vcf.refs = ['37'] # Set reference = build 37
 
@@ -380,21 +437,23 @@ class TestHyperlinks():
         '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-1271940-C-T?d'
         'ataset=gnomad_r2_1", 0.0108147)'
         )
-        assert test_vcf.vcfs[0]["gnomADg AF"][0] == valid_string, (
+
+        # Assert the output is as expected
+        assert test_vcf.vcfs[0]["gnomAD"][0] == valid_string, (
             "gnomAD AF link output incorrect for build 37 input"
             )
 
-    def test_gnomad_build_38():
+    def test_gnomad_build_38(self):
         '''
         Test that the gnomAD links are generated correctly for build 38
         '''
         # Intialise test dataframe with build 38 genome positions
         df = pd.DataFrame([
             {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 
-            'ALT': 'C', 'gnomADg AF': ''},
+            'ALT': 'C', 'gnomADg AF': 0.0004271},
             ])
 
-        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf = vcf(argparse.Namespace())
         test_vcf.vcfs=[df]
         test_vcf.refs = ['38'] # Set reference = build 38
 
@@ -405,13 +464,16 @@ class TestHyperlinks():
         '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-64883298-T-C?'
         'dataset=gnomad_r3", 0.0004271)'
         )
+
+        # Assert the output is as expected
         assert test_vcf.vcfs[0]["gnomADg AF"][0] == valid_string, (
             "gnomAD AF link output incorrect for build 38 input"
             ) 
-
 
 if __name__ == "__main__":
     header = TestHeader()
     header.test_column_names()
 
     df_actions = TestDataFrameActions()
+
+    hyperlinks = TestHyperlinks()
