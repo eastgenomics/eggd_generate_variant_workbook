@@ -69,6 +69,8 @@ This app may be executed as a standalone app.
 
 `--print_header` (`bool`): Print header of first vcf and exit. Useful for inspecting all fields and types for filtering.
 
+`--decipher` (`bool`): Add an extra column containing links to the variants in DECIPHER. Note DECIPHER only stores build 38 variants.
+
 
 **Example**:
 

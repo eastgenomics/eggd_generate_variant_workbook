@@ -279,7 +279,10 @@ class TestHyperlinks():
     '''
     Tests to check hyperlinks are generated correctly
     '''
-    def test_column_creation(self):
+    # @staticmethod is added to every function in this class so that self is
+    # not a required input
+    @staticmethod
+    def test_column_creation():
         '''
         Test that the function to create a "DECIPHER" column works
         '''
@@ -301,8 +304,8 @@ class TestHyperlinks():
             'DECIPHER column not created by make_decipher_columns() function'
             )
 
-
-    def test_decipher_column_added(self):
+    @staticmethod
+    def test_decipher_column_added():
         """
         Test to ensure that the DECIPHER column is created when --decipher
         input is specified.
@@ -330,7 +333,8 @@ class TestHyperlinks():
             'DECIPHER column not created despite --decipher input given'
             )
     
-    def test_decipher_column_not_added(self):
+    @staticmethod
+    def test_decipher_column_not_added():
         """
         Test to ensure that the DECIPHER column is not made if --decipher is 
         not specified.
@@ -357,8 +361,8 @@ class TestHyperlinks():
             'DECIPHER column created despite --decipher input not given'
             )        
         
-
-    def test_decipher_links_build_37(self):
+    @staticmethod
+    def test_decipher_links_build_37():
         '''
         Test that no DECIPHER links are created if the build is 37 
         '''
@@ -383,8 +387,9 @@ class TestHyperlinks():
             "DECIPHER column has links for build 37 variants; these should not"
             " have been generated as DECIPHER only stores variants in build 38"
             )
-          
-    def test_decipher_links_build_38(self):
+
+    @staticmethod      
+    def test_decipher_links_build_38():
         '''
         Test that the DECIPHER links are generated correctly
         '''
@@ -415,7 +420,8 @@ class TestHyperlinks():
             "DECIPHER link output incorrect"
             )
 
-    def test_gnomad_build_37(self):
+    @staticmethod
+    def test_gnomad_build_37():
         '''
         Test that the gnomAD links are generated correctly for build 37
         '''
@@ -442,7 +448,8 @@ class TestHyperlinks():
             "gnomAD AF link output incorrect for build 37 input"
             )
 
-    def test_gnomad_build_38(self):
+    @staticmethod
+    def test_gnomad_build_38():
         '''
         Test that the gnomAD links are generated correctly for build 38
         '''
