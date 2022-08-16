@@ -539,15 +539,15 @@ class vcf():
             # build URL and set value to display equal to what is in the URL
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
-        
+
         elif self.args.decipher and 'decipher' in column.lower():
             # Only run this part if the input --decipher was included
 
-            # Check build = 38, as DECIPHER only available for build 38 variants
+            # Check build=38, as DECIPHER only available for build 38 variants
             if build == 38:
 
-            # DECIPHER also requires the url to have the chrom, pos, ref and
-            # alt added to the url
+                # DECIPHER also requires the url to have the chrom, pos, ref 
+                # and alt added to the url
                 chrom = str(value.CHROM).replace('chr', '')
                 url = url.replace('CHROM', chrom)
                 url = url.replace('POS', str(value.POS))
