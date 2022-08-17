@@ -93,7 +93,7 @@ main() {
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
-    if [ "$decipher" ]; then args+="--decipher ${decipher} "; fi
+    if [ "$decipher" == true ]; then args+="--decipher "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
