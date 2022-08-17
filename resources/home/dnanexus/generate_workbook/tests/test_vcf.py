@@ -292,7 +292,7 @@ class TestHyperlinks():
 
         to_add_column = vcf(argparse.Namespace())
         to_add_column.vcfs = [df]
-        to_add_column.refs = ['38'] # Set reference = build 38
+        to_add_column.refs = ['38']  # Set reference = build 38
 
         # Call add_decipher_column which should add an empty column titled
         # 'DECIPHER' to this dataframe
@@ -323,7 +323,7 @@ class TestHyperlinks():
             reorder=False, decipher=True,  # Set DECIPHER = True
             ))
         should_have_decipher_column.vcfs = [df]
-        should_have_decipher_column.refs = ['38']
+        should_have_decipher_column.refs = ['38']  # Set build = 38
 
         # Call process() which should call make_decipher_columns()
         vcf.process(should_have_decipher_column)
@@ -352,7 +352,7 @@ class TestHyperlinks():
             reorder=False, decipher=False,  # Set DECIPHER = False
             ))
         should_not_have_decipher_column.vcfs = [df]
-        should_not_have_decipher_column.refs = ['38']
+        should_not_have_decipher_column.refs = ['38']  # Set build = 38
 
         # Call process() which should not call make_decipher_columns()
         vcf.process(should_not_have_decipher_column)
@@ -378,13 +378,13 @@ class TestHyperlinks():
         build_37_vcf = vcf(argparse.Namespace(
             additional_files=False,filter=False, print_columns=False,
             rename=False, vcfs=[],merge=False, include=False, exclude=False,
-            reorder=False, decipher=True
+            reorder=False, decipher=True  # Set DECIPHER = True
         ))
 
         build_37_vcf.vcfs=[df]
         build_37_vcf.refs = ['37']  # Set reference = build 37
 
-        # Call process() which should call make_decipher_column() however no
+        # Call process() which should call make_decipher_column(), however no
         # column should be created as make_decipher_column() has if statement
         # to skip build 37
         vcf.process(build_37_vcf)
@@ -482,10 +482,6 @@ class TestHyperlinks():
         assert test_vcf.vcfs[0]["gnomADg AF"][0] == valid_string, (
             "gnomAD AF link output incorrect for build 38 input"
         )
-
-TestHyperlinks.test_column_creation()
-TestHyperlinks.test_decipher_column_added()
-TestHyperlinks.test_decipher_build_37()
 
 if __name__ == "__main__":
     header = TestHeader()
