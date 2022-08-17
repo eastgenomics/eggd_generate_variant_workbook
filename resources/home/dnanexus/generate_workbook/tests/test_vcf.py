@@ -382,7 +382,7 @@ class TestHyperlinks():
             reorder=False, decipher=True  # Set DECIPHER = True
         ))
 
-        build_37_vcf.vcfs=[df]
+        build_37_vcf.vcfs = [df]
         build_37_vcf.refs = ['37']  # Set reference = build 37
 
         # Call process() which should call make_decipher_column(), however no
@@ -412,7 +412,7 @@ class TestHyperlinks():
 
         test_vcf = vcf(argparse.Namespace(decipher=True))
         test_vcf.vcf = [df]
-        test_vcf.refs = ['38'] # Set reference = build 38
+        test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
         vcf.add_hyperlinks(test_vcf)
