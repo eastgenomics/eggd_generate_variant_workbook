@@ -275,6 +275,7 @@ class TestDataFrameActions():
             "column list"
         )
 
+
 class TestHyperlinks():
     '''
     Tests to check hyperlinks are generated correctly
@@ -347,8 +348,8 @@ class TestHyperlinks():
         # inputs are false to avoid giving this dataframe to other functions
         # except make_decipher_columns
         should_not_have_decipher_column = vcf(argparse.Namespace(
-            additional_files=False,filter=False, print_columns=False,
-            rename=False, vcfs=[],merge=False, include=False, exclude=False,
+            additional_files=False, filter=False, print_columns=False,
+            rename=False, vcfs=[], merge=False, include=False, exclude=False,
             reorder=False, decipher=False,  # Set DECIPHER = False
             ))
         should_not_have_decipher_column.vcfs = [df]
@@ -376,8 +377,8 @@ class TestHyperlinks():
         ])
 
         build_37_vcf = vcf(argparse.Namespace(
-            additional_files=False,filter=False, print_columns=False,
-            rename=False, vcfs=[],merge=False, include=False, exclude=False,
+            additional_files=False, filter=False, print_columns=False,
+            rename=False, vcfs=[], merge=False, include=False, exclude=False,
             reorder=False, decipher=True  # Set DECIPHER = True
         ))
 
@@ -410,7 +411,7 @@ class TestHyperlinks():
         ])
 
         test_vcf = vcf(argparse.Namespace(decipher=True))
-        test_vcf.vcfs=[df]
+        test_vcf.vcf = [df]
         test_vcf.refs = ['38'] # Set reference = build 38
 
         # Call function to add hyperlinks
@@ -439,8 +440,8 @@ class TestHyperlinks():
         ])
 
         test_vcf = vcf(argparse.Namespace())
-        test_vcf.vcfs=[df]
-        test_vcf.refs = ['37'] # Set reference = build 37
+        test_vcf.vcfs = [df]
+        test_vcf.refs = ['37']  # Set reference = build 37
 
         # Call function to add hyperlinks
         vcf.add_hyperlinks(test_vcf)
@@ -467,8 +468,8 @@ class TestHyperlinks():
         ])
 
         test_vcf = vcf(argparse.Namespace())
-        test_vcf.vcfs=[df]
-        test_vcf.refs = ['38'] # Set reference = build 38
+        test_vcf.vcfs = [df]
+        test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
         vcf.add_hyperlinks(test_vcf)

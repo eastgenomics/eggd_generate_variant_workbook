@@ -171,7 +171,7 @@ class vcf():
 
         if self.args.reorder:
             self.order_columns()
-        
+
         if self.args.decipher:
             self.add_decipher_column()
 
