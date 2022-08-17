@@ -242,8 +242,7 @@ class arguments():
         parser.add_argument(
             '--decipher', required=False, action='store_true',
             help=(
-                'Do you want a column of DECIPHER links included in the '
-                'workbooks?'
+                'Determines whether or not to include column of DECIPHER links'
                 'n.b. DECIPHER is only available for variants in build 38 '
             )
         )

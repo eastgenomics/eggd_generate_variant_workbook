@@ -540,26 +540,19 @@ class vcf():
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
 
-        elif self.args.decipher and 'decipher' in column.lower():
-            # Only run this part if the input --decipher was included
+        elif 'decipher' in column.lower():
+            # DECIPHER also requires the url to have the chrom, pos, ref 
+            # and alt added to the url
+            chrom = str(value.CHROM).replace('chr', '')
+            url = url.replace('CHROM', chrom)
+            url = url.replace('POS', str(value.POS))
+            url = url.replace('REF', str(value.REF))
+            url = url.replace('ALT', str(value.ALT))
+            url = f'{url}'
+            # Create shortened form of the url to display in the excel
+            # sheet so there is no need to display full length hyperlink
+            value[column] = url.split('/')[-1]
 
-            # Check build=38, as DECIPHER only available for build 38 variants
-            if build == 38:
-
-                # DECIPHER also requires the url to have the chrom, pos, ref 
-                # and alt added to the url
-                chrom = str(value.CHROM).replace('chr', '')
-                url = url.replace('CHROM', chrom)
-                url = url.replace('POS', str(value.POS))
-                url = url.replace('REF', str(value.REF))
-                url = url.replace('ALT', str(value.ALT))
-                url = f'{url}'
-                # Create shortened form of the url to display in the excel
-                # sheet so there is no need to display full length hyperlink
-                value[column] = url.split('/')[-1]
-
-            else:
-                return value[column]
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -760,6 +753,22 @@ class vcf():
         If --decipher input added this function will add an empty column to the
         dataframe to be populated with decipher links
         """
+        if not self.refs:
+            print(
+                'WARNING: --decipher input specified but no reference could be'
+                ' parsed from the VCF header, continuing without adding '
+                'DECIPHER column'
+            )
+            return
+
+        if 'hg19' in self.refs[0] or '37' in self.refs[0]:
+            print(
+                f'WARNING: --decipher specified but VCF appears to be for '
+                f'build 37 ({self.refs[0]}), continuing without adding '
+                'DECIPHER column'
+            )
+            return
+
         for idx, vcf in enumerate(self.vcfs):
             vcf['DECIPHER'] = ''
             self.vcfs[idx] = vcf
