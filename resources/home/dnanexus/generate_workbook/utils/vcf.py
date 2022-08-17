@@ -541,7 +541,7 @@ class vcf():
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
 
         elif 'decipher' in column.lower():
-            # DECIPHER also requires the url to have the chrom, pos, ref 
+            # DECIPHER also requires the url to have the chrom, pos, ref
             # and alt added to the url
             chrom = str(value.CHROM).replace('chr', '')
             url = url.replace('CHROM', chrom)
@@ -753,6 +753,7 @@ class vcf():
         If --decipher input added this function will add an empty column to the
         dataframe to be populated with decipher links
         """
+        # Do not add column if there is no reference build information provided
         if not self.refs:
             print(
                 'WARNING: --decipher input specified but no reference could be'
@@ -761,6 +762,8 @@ class vcf():
             )
             return
 
+        # Do not add column if the build is 37, as DECIPHER only has build 38
+        # data.
         if 'hg19' in self.refs[0] or '37' in self.refs[0]:
             print(
                 f'WARNING: --decipher specified but VCF appears to be for '
@@ -769,6 +772,7 @@ class vcf():
             )
             return
 
+        # Create empty DECIPHER column
         for idx, vcf in enumerate(self.vcfs):
             vcf['DECIPHER'] = ''
             self.vcfs[idx] = vcf
