@@ -169,11 +169,11 @@ class vcf():
         if self.args.exclude or self.args.include:
             self.drop_columns()
 
-        if self.args.reorder:
-            self.order_columns()
-
         if self.args.decipher:
             self.add_decipher_column()
+
+        if self.args.reorder:
+            self.order_columns()
 
         self.format_strings()
         self.add_hyperlinks()
