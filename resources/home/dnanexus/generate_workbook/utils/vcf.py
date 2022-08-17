@@ -47,7 +47,8 @@ class vcf():
             "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
             "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
-            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT"
+            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
+            "decipher": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT"
         }
 
 
@@ -170,6 +171,9 @@ class vcf():
 
         if self.args.reorder:
             self.order_columns()
+
+        if self.args.decipher:
+            self.add_decipher_column()
 
         self.format_strings()
         self.add_hyperlinks()
@@ -494,12 +498,17 @@ class vcf():
         str
             url string formatted as Excel hyperlink
         """
-        if (
-            not value[column] or pd.isna(value[column]) or
-            value[column] == 'nan' or value[column] == '.'
-        ):
-            # no value to build hyperlink
-            return value[column]
+        if 'decipher' not in column.lower():
+            # the decipher column is not from VEP and has been created
+            # manually so is empty
+            # this if statment excludes the decipher column from being
+            # skipped if it is empty
+            if (
+                not value[column] or pd.isna(value[column]) or
+                value[column] == 'nan' or value[column] == '.'
+            ):
+                # no value to build hyperlink
+                return value[column]
 
         if (
             column.lower() == 'existing_variation' and
@@ -530,6 +539,20 @@ class vcf():
             # build URL and set value to display equal to what is in the URL
             url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
+
+        elif 'decipher' in column.lower():
+            # DECIPHER also requires the url to have the chrom, pos, ref
+            # and alt added to the url
+            chrom = str(value.CHROM).replace('chr', '')
+            url = url.replace('CHROM', chrom)
+            url = url.replace('POS', str(value.POS))
+            url = url.replace('REF', str(value.REF))
+            url = url.replace('ALT', str(value.ALT))
+            url = f'{url}'
+            # Create shortened form of the url to display in the excel
+            # sheet so there is no need to display full length hyperlink
+            value[column] = url.split('/')[-1]
+
         else:
             # other URLs with value appended to end
             url = f'{url}{value[column]}'
@@ -542,6 +565,7 @@ class vcf():
         if is_numeric(value[column]):
             # return numeric values not wrapped in quotes
             return f'=HYPERLINK("{url}", {value[column]})'
+
         else:
             # values for everything else which is hyperlinked
             # needs to be cast to string
@@ -724,6 +748,34 @@ class vcf():
 
             self.vcfs[idx] = vcf[column_order]
 
+    def add_decipher_column(self) -> None:
+        """
+        If --decipher input added this function will add an empty column to the
+        dataframe to be populated with decipher links
+        """
+        # Do not add column if there is no reference build information provided
+        if not self.refs:
+            print(
+                'WARNING: --decipher input specified but no reference could be'
+                ' parsed from the VCF header, continuing without adding '
+                'DECIPHER column'
+            )
+            return
+
+        # Do not add column if the build is 37, as DECIPHER only has build 38
+        # data.
+        if 'hg19' in self.refs[0] or '37' in self.refs[0]:
+            print(
+                f'WARNING: --decipher specified but VCF appears to be for '
+                f'build 37 ({self.refs[0]}), continuing without adding '
+                'DECIPHER column'
+            )
+            return
+
+        # Create empty DECIPHER column
+        for idx, vcf in enumerate(self.vcfs):
+            vcf['DECIPHER'] = ''
+            self.vcfs[idx] = vcf
 
     def rename_columns(self) -> None:
         """

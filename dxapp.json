@@ -224,6 +224,14 @@
       "optional": true,
       "help": "",
       "group": "app"
+    },
+    {
+      "name": "decipher",
+      "label": "Determines whether or not to include column of DECIPHER links",
+      "class": "boolean",
+      "optional": true,
+      "help": "If this input is included an extra column will be added to the spreadsheet with links to the variants in DECIPHER. Note DECIPHER only has build 38 variants",
+      "group": "app"
     }
   ],
   "outputSpec": [
