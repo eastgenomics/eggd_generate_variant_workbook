@@ -1,8 +1,10 @@
+import operator
 from pathlib import Path
+import re
 from string import ascii_uppercase as uppercase
-import sys
 from timeit import default_timer as timer
 
+from colour import Color
 import Levenshtein as levenshtein
 import numpy as np
 from openpyxl import drawing, load_workbook
@@ -457,6 +459,7 @@ class excel():
                 self.set_widths(curr_worksheet, vcf.columns)
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
+                self.colour_cells(curr_worksheet)
 
                 # freeze header so scrolling keeps it in view
                 curr_worksheet.freeze_panes = 'A2'
@@ -649,6 +652,107 @@ class excel():
             for cell in cells:
                 if 'HYPERLINK' in str(cell.value):
                     cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
+
+
+    def colour_cells(self, worksheet) -> None:
+        """
+        _summary_
+
+        Parameters
+        ----------
+        worksheet : _type_
+            _description_
+        """
+        if not self.args.colour:
+            # no cell colours defined
+            return
+
+        # mapping table of valid operators to operator methods
+        ops = {
+            "=": operator.eq,
+            "!=": operator.ne,
+            "+": operator.add,
+            "-": operator.sub,
+            ">": operator.gt,
+            ">=": operator.ge,
+            "<": operator.lt,
+            "<=": operator.le
+        }
+
+        for column_to_colour in self.args.colour:
+            column, conditions, colour = column_to_colour.split(':')
+            column = column.replace('CSQ_', '')
+
+            # check if more than one condition is passed and how to interpret
+            _and = False
+            _or = False
+
+            if '&' in conditions:
+                _and = True
+                conditions = conditions.split('&')
+            elif '|' in conditions:
+                _or = True
+                conditions = conditions.split('|')
+            else:
+                conditions = [conditions]
+            
+            # convert colour into aRGB value for openpyxl to be happy
+            colour = Color(colour)
+            colour.saturation = 0.8
+            colour = colour.hex_l.replace('#', '')
+
+            conditions_list = []
+
+            # split out each operator and value to a list of tuples
+            for condition in conditions:
+                operator = re.match(r'(=|!=|\+|-|>|>=|<|<=)', condition)
+
+                if not operator:
+                    # invalid or no operator passed
+                    raise ValueError(
+                        "Invalid operator passed for cell colouring in "
+                        f"argument: {column_to_colour}"
+                    )
+
+                # add to list of tuples of operators and corresponding value
+                operator = operator.group()
+                value = condition.replace(operator, '')
+                if is_numeric(value):
+                    value = float(value)
+
+                conditions_list.append((operator, value))
+
+            # find correct column to colour, then colour cells according
+            # to the given conditions
+            for column_cells in worksheet.iter_cols(1, worksheet.max_column):
+                if column_cells[0].value == column:
+                    for cell in column_cells[1:]:
+                        # first test if cell value is numeric for comparing
+                        if is_numeric(cell.value):
+                            cell_value = float(cell.value)
+                        else:
+                            cell_value = cell.value
+
+                        if _and:
+                            to_colour = all([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        elif _or:
+                            to_colour = any([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        else:
+                            # should just be one condition as no & or |
+                            condition, value = conditions_list[0]
+                            to_colour = ops[condition](cell_value, value)
+
+                        if to_colour:
+                            worksheet[cell.coordinate].fill = PatternFill(
+                                patternType="solid",
+                                start_color=colour
+                            )
 
 
     def set_widths(self, worksheet, sheet_columns) -> None:

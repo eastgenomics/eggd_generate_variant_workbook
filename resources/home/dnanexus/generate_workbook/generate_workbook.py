@@ -264,12 +264,19 @@ class arguments():
                 'before writing to the Excel file.'
             )
         )
-
         parser.add_argument(
             '--decipher', required=False, action='store_true',
             help=(
                 'Determines whether or not to include column of DECIPHER links'
                 'n.b. DECIPHER is only available for variants in build 38 '
+            )
+        )
+        parser.add_argument(
+            '--colour', required=False, nargs='+',
+            help=(
+                'Add conditional colouring of cells for a given column, this '
+                'should be specified as column:value_range:colour, where '
+                'colour is a valid hex value'
             )
         )
 
@@ -346,6 +353,7 @@ class arguments():
                 f"of files passed: {len(self.args.additional_files)}. Number "
                 f"of sheet names passed: {len(self.args.additional_sheets)}"
             )
+
 
     def verify_images(self) -> None:
         """
