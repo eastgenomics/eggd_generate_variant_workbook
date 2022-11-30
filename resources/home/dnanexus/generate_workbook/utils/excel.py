@@ -695,8 +695,9 @@ class excel():
                 conditions = conditions.split('|')
             else:
                 conditions = [conditions]
-            
+
             # convert colour into aRGB value for openpyxl to be happy
+            # valid colours reference here: https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
             colour = Color(colour)
             colour.saturation = 0.8
             colour = colour.hex_l.replace('#', '')
@@ -705,9 +706,9 @@ class excel():
 
             # split out each operator and value to a list of tuples
             for condition in conditions:
-                operator = re.match(r'(=|!=|\+|-|>|>=|<|<=)', condition)
+                current_operator = re.match(r'(=|!=|\+|-|>|>=|<|<=)', condition)
 
-                if not operator:
+                if not current_operator:
                     # invalid or no operator passed
                     raise ValueError(
                         "Invalid operator passed for cell colouring in "
@@ -715,12 +716,12 @@ class excel():
                     )
 
                 # add to list of tuples of operators and corresponding value
-                operator = operator.group()
-                value = condition.replace(operator, '')
+                current_operator = current_operator.group()
+                value = condition.replace(current_operator, '')
                 if is_numeric(value):
                     value = float(value)
 
-                conditions_list.append((operator, value))
+                conditions_list.append((current_operator, value))
 
             # find correct column to colour, then colour cells according
             # to the given conditions
@@ -745,8 +746,8 @@ class excel():
                                 ])
                         else:
                             # should just be one condition as no & or |
-                            condition, value = conditions_list[0]
-                            to_colour = ops[condition](cell_value, value)
+                            current_operator, value = conditions_list[0]
+                            to_colour = ops[current_operator](cell_value, value)
 
                         if to_colour:
                             worksheet[cell.coordinate].fill = PatternFill(
