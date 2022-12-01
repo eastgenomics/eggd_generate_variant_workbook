@@ -656,12 +656,23 @@ class excel():
 
     def colour_cells(self, worksheet) -> None:
         """
-        _summary_
+        Conditionally colours cells in a variant worksheet by user specified
+        coniditons and colours for a given column with --colour.
+
+        Arguments will be in the following formats:
+            - VF:>=0.9:green        => single condition
+            - VF:<0.8&>=0.6:orange  => both of two conditions
+            - VF:>0.9|<0.1:red      => either of two conditions
 
         Parameters
         ----------
-        worksheet : _type_
-            _description_
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        
+        Raises
+        ------
+        ValueError
+            Raised when invalid parameter passed
         """
         if not self.args.colour:
             # no cell colours defined
@@ -683,10 +694,10 @@ class excel():
             column, conditions, colour = column_to_colour.split(':')
             column = column.replace('CSQ_', '')
 
-            # check if more than one condition is passed and how to interpret
             _and = False
             _or = False
 
+            # check if more than one condition is passed and how to interpret
             if '&' in conditions:
                 _and = True
                 conditions = conditions.split('&')
@@ -696,17 +707,23 @@ class excel():
             else:
                 conditions = [conditions]
 
-            # convert colour into aRGB value for openpyxl to be happy
-            # valid colours reference here: https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
-            colour = Color(colour)
-            colour.saturation = 0.8
-            colour = colour.hex_l.replace('#', '')
+            # convert colour into aRGB value for openpyxl to be happy if given
+            # as a human colour name, valid colours reference here:
+            # https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
+            if colour.startswith('#'):
+                colour = colour.lstrip('#')
+            else:
+                # not given as '#FAC090' => assume its given as 'green|red' etc
+                colour = Color(colour)
+                # colour.saturation = 0.8
+                colour = colour.hex_l.lstrip('#')
+
 
             conditions_list = []
 
             # split out each operator and value to a list of tuples
             for condition in conditions:
-                current_operator = re.match(r'(=|!=|\+|-|>|>=|<|<=)', condition)
+                current_operator = re.match(r'(>=|<=|>|<|=|!=|\+|-)', condition)
 
                 if not current_operator:
                     # invalid or no operator passed
