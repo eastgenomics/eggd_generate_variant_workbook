@@ -668,7 +668,7 @@ class excel():
         ----------
         worksheet : openpyxl.Writer
             writer object for current sheet
-        
+
         Raises
         ------
         ValueError
