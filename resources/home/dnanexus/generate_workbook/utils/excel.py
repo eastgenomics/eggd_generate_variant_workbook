@@ -59,6 +59,7 @@ class excel():
         self.refs = refs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
+        self.summary = None
 
 
     def generate(self) -> None:
@@ -81,11 +82,22 @@ class excel():
         Write summary sheet to excel file
         """
         print('Writing summary sheet')
+        if self.args.summary:
+            self.summary = self.workbook.create_sheet('summary')
+
+        if self.args.summary == 'basic':
+            # add summary sheet with basic metrics such as args used
+            # and DNAnexus file / job IDs used
+            self.basic_summary()
         if self.args.summary == 'dias':
             # generate summary sheet in format for RD/dias
-            self.summary = self.workbook.create_sheet('summary')
             self.dias_summary()
 
+
+    def basic_summary(self) -> None:
+        """
+        _summary_
+        """
 
     def dias_summary(self) -> None:
         """
