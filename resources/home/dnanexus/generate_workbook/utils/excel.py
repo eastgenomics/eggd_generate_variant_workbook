@@ -179,6 +179,7 @@ class excel():
 
                 # set width to wider than max value in cell
                 width = max([len(x) for x in conditions.keys()])
+                width = 10 if width < 13 else width
                 self.summary.column_dimensions[column_letter].width = width + 3
 
                 colour_col += 2
