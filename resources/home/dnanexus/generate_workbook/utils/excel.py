@@ -443,9 +443,6 @@ class excel():
                     f"({sheet_no}/{len(self.args.sheets)})"
                 )
 
-                if self.args.add_comment_column:
-                    vcf['Comment'] = ''
-
                 # timing how long it takes to write because its slow
                 start = timer()
                 vcf.to_excel(
