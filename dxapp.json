@@ -160,6 +160,14 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "colour_cells",
+      "label": "colour cells",
+      "class": "string",
+      "optional": true,
+      "help": "Add conditional colouring of cells for a given column, this should be specified as column:value_range:colour, where colour is a valid hex value or colour name. See readme for futher details.",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "merge_vcfs",
       "label": "Merge",
       "class": "boolean",
