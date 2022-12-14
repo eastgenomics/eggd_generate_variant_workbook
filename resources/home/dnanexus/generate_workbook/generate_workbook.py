@@ -276,7 +276,7 @@ class arguments():
             help=(
                 'Add conditional colouring of cells for a given column, this '
                 'should be specified as column:value_range:colour, where '
-                'colour is a valid hex value'
+                'colour is a valid hex value or colour name'
             )
         )
 
