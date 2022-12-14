@@ -718,7 +718,7 @@ class excel():
                 # colour.saturation = 0.8
                 colour = colour.hex_l.lstrip('#')
 
-
+            # list of tuples to build as (operator, value)
             conditions_list = []
 
             # split out each operator and value to a list of tuples
