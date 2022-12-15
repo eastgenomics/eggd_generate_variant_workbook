@@ -142,6 +142,24 @@ class excel():
 
         row_count += 6
 
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
+
+            row_count += 2
+
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
+
+        row_count += 2
+
         if self.args.colour:
             # build a dict of each column and all its colour conditions
             cols_to_colours = defaultdict(dict)
