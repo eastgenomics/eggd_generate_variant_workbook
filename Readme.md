@@ -57,7 +57,7 @@ This app may be executed as a standalone app.
 
 `--additional_sheet_names` (`list`): Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order (`-iadditional_files=file1 -iadditional_files=file2 -iadditional_sheet_names='name_1 name_2'`). If not given, the first 31 characters of the filename will be used.
 
-`--colour_cells` (`string`): Add conditional colouring of cells for a given column, this should be specified as column:value_range:colour, where colour is a valid hex value or colour name. Multiple conditions may be given in a single `value_range` for the same column and colour values by chaining multiple with either `&` for all or `|` for any condition. Example formats:
+`--colour_cells` (`string`): Add conditional colouring of cells for a given column, this should be specified as column:value_range:colour, where colour is a valid hex value or colour name. Multiple conditions may be given in a single `value_range` for the same column and colour values by chaining multiple with either `&` for all or `|` for any condition. Column names should be given as they appear in the VCF, except for cases where renaming has been specified with `--rename`, in which case the given column name should be used. Example formats:
 ```
   # single condition
   -icolour_cells "VF:>=0.9:green"
