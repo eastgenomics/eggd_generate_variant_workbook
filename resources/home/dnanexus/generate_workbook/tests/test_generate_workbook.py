@@ -71,3 +71,38 @@ class TestVerifyImages():
             self.args_obj.verify_images()
 
         self.args_obj.args.image_sheets = None
+
+
+class TestVerifyColours():
+    """
+    Tests for generate_workbook.verify_colours to check for valid
+    colouring expressions being given
+    """
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+
+    def test_valid_colour_expressions(self):
+        """
+        Test a range of valid expressions pass the check
+        """
+        self.args_obj.args.colours = [
+            'VF:>=0.9:green',
+            'VF:<0.9&>=0.4:orange',
+            'VF:>0.4:red',
+            'Consequence:=synonymous_variant|=upstream_variant:green'
+        ]
+
+        self.args_obj.verify_colours()
+
+
+    def test_invalid_colour_expression(self):
+        """
+        Test that the assertion in verify_colours() is correctly
+        raised if both & and | are used in the same expression
+        """
+        self.args_obj.args.colours = ['VF:<0.9&>=0.4|<1:orange']
+
+        with pytest.raises(AssertionError):
+            self.args_obj.verify_colours()

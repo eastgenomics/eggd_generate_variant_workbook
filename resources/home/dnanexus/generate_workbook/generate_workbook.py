@@ -27,6 +27,7 @@ class arguments():
         self.set_sheet_names()
         self.verify_sheets()
         self.verify_images()
+        self.verify_colours()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -400,6 +401,24 @@ class arguments():
                 'Sizes for images specified not in correct format: '
                 f'{self.args.image_sizes}'
             )
+
+
+    def verify_colours(self) -> None:
+        """
+        Checks when colouring for cells specified with --colour that
+        the arguments passed are do not contain both & and |
+
+        Raises
+        ------
+        AssertionError
+            raised when a mix of '&' and '|' are used in the same condition
+        """
+        assert max([
+            len(set(re.findall(r'[&|]', x))) for x in self.args.colours
+        ]) <= 1, (
+            'invalid colouring expression - can not contain both & and | in '
+            'a single expression'
+        )
 
 
     def set_sheet_names(self) -> None:
