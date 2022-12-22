@@ -413,8 +413,11 @@ class arguments():
         AssertionError
             raised when a mix of '&' and '|' are used in the same condition
         """
+        if not self.args.colour:
+            return
+
         assert max([
-            len(set(re.findall(r'[&|]', x))) for x in self.args.colours
+            len(set(re.findall(r'[&|]', x))) for x in self.args.colour
         ]) <= 1, (
             'invalid colouring expression - can not contain both & and | in '
             'a single expression'

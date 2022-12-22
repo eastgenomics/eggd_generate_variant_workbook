@@ -89,8 +89,8 @@ class TestVerifyColours():
         """
         self.args_obj.args.colours = [
             'VF:>=0.9:green',
-            'VF:<0.9&>=0.4:orange',
             'VF:>0.4:red',
+            'VF:<0.9&>=0.4:orange',
             'Consequence:=synonymous_variant|=upstream_variant:green'
         ]
 
