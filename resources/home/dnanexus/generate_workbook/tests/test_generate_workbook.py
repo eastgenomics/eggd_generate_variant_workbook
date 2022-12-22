@@ -87,7 +87,7 @@ class TestVerifyColours():
         """
         Test a range of valid expressions pass the check
         """
-        self.args_obj.args.colours = [
+        self.args_obj.args.colour = [
             'VF:>=0.9:green',
             'VF:>0.4:red',
             'VF:<0.9&>=0.4:orange',
@@ -102,7 +102,7 @@ class TestVerifyColours():
         Test that the assertion in verify_colours() is correctly
         raised if both & and | are used in the same expression
         """
-        self.args_obj.args.colours = ['VF:<0.9&>=0.4|<1:orange']
+        self.args_obj.args.colour = ['VF:<0.9&>=0.4|<1:orange']
 
         with pytest.raises(AssertionError):
             self.args_obj.verify_colours()
