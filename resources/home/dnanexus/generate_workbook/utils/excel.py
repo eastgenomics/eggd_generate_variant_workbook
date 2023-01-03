@@ -60,6 +60,7 @@ class excel():
         self.refs = refs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
+        self.summary = None
 
 
     def generate(self) -> None:
@@ -82,10 +83,127 @@ class excel():
         Write summary sheet to excel file
         """
         print('Writing summary sheet')
+        if self.args.summary:
+            self.summary = self.workbook.create_sheet('summary')
+
+        if self.args.summary == 'basic':
+            # add summary sheet with basic metrics such as args used
+            # and DNAnexus file / job IDs used
+            self.basic_summary()
         if self.args.summary == 'dias':
             # generate summary sheet in format for RD/dias
-            self.summary = self.workbook.create_sheet('summary')
             self.dias_summary()
+
+
+    def basic_summary(self) -> None:
+        """
+        Writes basic summary sheet with metrics such as variant records
+        per sheet, dx file IDs and parameters specified
+        """
+        # track what cells to make bold
+        to_bold = []
+
+        # write titles for summary values
+        self.summary.cell(1, 1).value = "Sample ID:"
+        self.summary.cell(3, 1).value = "Variant totals"
+
+        to_bold.extend(["A1", "A3"])
+
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+        self.summary.cell(1, 2).value = sample
+
+        self.summary.column_dimensions['A'].width = 23
+        self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=2, end_column=4)
+
+        row_count = 4
+        for sheet, vcf in zip(self.args.sheets, self.vcfs):
+            self.summary.cell(row_count, 2).value = sheet
+            self.summary.cell(row_count, 3).value = len(vcf.index)
+            to_bold.append(f"B{row_count}")
+            row_count += 1
+
+        row_count += 2
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
+
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
+
+        row_count += 6
+
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
+
+            row_count += 2
+
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
+
+        row_count += 2
+
+        if self.args.colour:
+            # build a dict of each column and all its colour conditions
+            cols_to_colours = defaultdict(dict)
+            for i in self.args.colour:
+                column, condition, colour = i.split(':')
+                cols_to_colours[column][condition] = colour
+
+            self.summary.cell(row_count, 1).value = "Cell colouring applied:"
+            to_bold.append(f"A{row_count}")
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+
+            colour_col = 2
+            for column, conditions in cols_to_colours.items():
+                colour_row = row_count + 1
+
+                column_letter = get_column_letter(colour_col)
+
+                self.summary.cell(row_count, colour_col).value = column
+                to_bold.append(f"{column_letter}{row_count}")
+
+                for condition, colour in conditions.items():
+                    condition = condition.replace('&', ' & ').replace('|', ' | ')
+                    self.summary.cell(colour_row, colour_col).value = condition
+                    self.summary.cell(colour_row, colour_col).data_type = 's'
+
+                    colour = self.convert_colour(colour)
+
+                    self.summary[f"{column_letter}{colour_row}"].fill = PatternFill(
+                        patternType="solid",
+                        start_color=colour
+                    )
+                    colour_row+=1
+
+                # set width to wider than max value in cell
+                width = max([len(x) for x in conditions.keys()])
+                width = 10 if width < 13 else width
+                self.summary.column_dimensions[column_letter].width = width + 3
+
+                colour_col += 2
+
+        for cell in to_bold:
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
 
     def dias_summary(self) -> None:
@@ -637,6 +755,35 @@ class excel():
                 cell.font = Font(name=DEFAULT_FONT.name)
 
 
+    def convert_colour(self, colour) -> str:
+        """
+        Converts string of colour to aRGB value that openpyxl will accept.
+
+        Valid colour strings reference here:
+        https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
+
+        Parameters
+        ----------
+        colour : str
+            colour string, either hex value beginning with '#' (#82920c)
+            or human readable (ForestGreen)
+
+        Returns
+        -------
+        str
+            hex value without '#' prefix
+        """
+        if colour.startswith('#'):
+            colour = colour.lstrip('#')
+        else:
+            # not given as '#FAC090' => assume its given as 'green|red' etc
+            colour = Color(colour)
+            # colour.saturation = 0.8
+            colour = colour.hex_l.lstrip('#')
+
+        return colour
+
+
     def colour_hyperlinks(self, worksheet) -> None:
         """
         Set text colour to blue if text contains hyperlink
@@ -709,16 +856,7 @@ class excel():
             else:
                 conditions = [conditions]
 
-            # convert colour into aRGB value for openpyxl to be happy if given
-            # as a human colour name, valid colours reference here:
-            # https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
-            if colour.startswith('#'):
-                colour = colour.lstrip('#')
-            else:
-                # not given as '#FAC090' => assume its given as 'green|red' etc
-                colour = Color(colour)
-                # colour.saturation = 0.8
-                colour = colour.hex_l.lstrip('#')
+            colour = self.convert_colour(colour)
 
             # list of tuples to build as (operator, value)
             conditions_list = []
