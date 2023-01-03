@@ -1,8 +1,11 @@
+from collections import defaultdict
+import operator
 from pathlib import Path
+import re
 from string import ascii_uppercase as uppercase
-import sys
 from timeit import default_timer as timer
 
+from colour import Color
 import Levenshtein as levenshtein
 import numpy as np
 from openpyxl import drawing, load_workbook
@@ -454,6 +457,7 @@ class excel():
                 self.set_widths(curr_worksheet, vcf.columns)
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
+                self.colour_cells(curr_worksheet)
 
                 # freeze header so scrolling keeps it in view
                 curr_worksheet.freeze_panes = 'A2'
@@ -646,6 +650,156 @@ class excel():
             for cell in cells:
                 if 'HYPERLINK' in str(cell.value):
                     cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
+
+
+    def colour_cells(self, worksheet) -> None:
+        """
+        Conditionally colours cells in a variant worksheet by user specified
+        coniditons and colours for a given column with --colour.
+
+        Arguments will be in the following formats:
+            - VF:>=0.9:green        => single condition
+            - VF:<0.8&>=0.6:orange  => both of two conditions
+            - VF:>0.9|<0.1:red      => either of two conditions
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+
+        Raises
+        ------
+        ValueError
+            Raised when invalid parameter passed
+        """
+        if not self.args.colour:
+            # no cell colours defined
+            return
+
+        # mapping table of valid operators to operator methods
+        ops = {
+            "=": operator.eq,
+            "!=": operator.ne,
+            "+": operator.add,
+            "-": operator.sub,
+            ">": operator.gt,
+            ">=": operator.ge,
+            "<": operator.lt,
+            "<=": operator.le
+        }
+
+        # dict to add any previously coloured cells that are likley from
+        # overlapping expressions -> raise error if anything is present
+        errors = defaultdict(dict)
+
+        for column_to_colour in self.args.colour:
+            column, conditions, colour = column_to_colour.split(':')
+            column = column.replace('CSQ_', '')
+
+            _and = False
+            _or = False
+
+            # check if more than one condition is passed and how to interpret
+            if '&' in conditions:
+                _and = True
+                conditions = conditions.split('&')
+            elif '|' in conditions:
+                _or = True
+                conditions = conditions.split('|')
+            else:
+                conditions = [conditions]
+
+            # convert colour into aRGB value for openpyxl to be happy if given
+            # as a human colour name, valid colours reference here:
+            # https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
+            if colour.startswith('#'):
+                colour = colour.lstrip('#')
+            else:
+                # not given as '#FAC090' => assume its given as 'green|red' etc
+                colour = Color(colour)
+                # colour.saturation = 0.8
+                colour = colour.hex_l.lstrip('#')
+
+            # list of tuples to build as (operator, value)
+            conditions_list = []
+
+            # split out each operator and value to a list of tuples
+            for condition in conditions:
+                current_operator = re.match(r'(>=|<=|>|<|=|!=|\+|-)', condition)
+
+                if not current_operator:
+                    # invalid or no operator passed
+                    raise ValueError(
+                        "Invalid operator passed for cell colouring in "
+                        f"argument: {column_to_colour}"
+                    )
+
+                # add to list of tuples of operators and corresponding value
+                current_operator = current_operator.group()
+                value = condition.replace(current_operator, '')
+                if is_numeric(value):
+                    value = float(value)
+
+                conditions_list.append((current_operator, value))
+
+            # find correct column to colour, then colour cells according
+            # to the given conditions
+            for column_cells in worksheet.iter_cols(1, worksheet.max_column):
+                if column_cells[0].value == column:
+                    for cell in column_cells[1:]:
+                        # first test if cell value is numeric for comparing
+                        if is_numeric(cell.value):
+                            cell_value = float(cell.value)
+                        else:
+                            cell_value = cell.value
+
+                        if _and:
+                            to_colour = all([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        elif _or:
+                            to_colour = any([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        else:
+                            # should just be one condition as no & or |
+                            current_operator, value = conditions_list[0]
+                            to_colour = ops[current_operator](cell_value, value)
+
+                        if to_colour:
+                            cell_colour = cell.fill.start_color.index
+                            if not cell_colour == '00000000':
+                                # cell already coloured => add to errors
+                                warn = errors.get((cell_colour, colour), [])
+                                warn.append(cell.coordinate)
+                                errors[(cell_colour, colour)] = warn
+                            else:
+                                worksheet[cell.coordinate].fill = PatternFill(
+                                    patternType="solid",
+                                    start_color=colour
+                                )
+        if errors:
+            error_message = (
+                f"\n{'#' * 35} ERROR {'#' * 35}\n\n" 
+                "Overlapping colouring of cells, the following "
+                "cells colour were not changed due \nto being previously coloured:"
+            )
+            for colours, cells in errors.items():
+                if len(cells) > 5:
+                    cell_count = len(cells) - 5
+                    cells = f"{', '.join(cells[:5])} + {cell_count} more cells"
+
+                error_message += (
+                    f"\n\tCurrent cell colour: {colours[0]}"
+                    f"\n\tNew cell colour: {colours[1]}"
+                    f"\n\tCells not coloured: {cells}\n"
+                )
+
+            error_message += f"\n{'#' * 79}"
+
+            raise RuntimeError(error_message)
 
 
     def set_widths(self, worksheet, sheet_columns) -> None:

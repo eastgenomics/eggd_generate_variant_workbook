@@ -3,7 +3,7 @@
   "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "authorizedUsers": [
     "org-emee_1"
   ],
@@ -11,7 +11,7 @@
     "org-emee_1"
   ],
   "properties": {
-    "githubRelease": "v2.2.0"
+    "githubRelease": "v2.3.0"
   },
   "inputSpec": [
     {
@@ -157,6 +157,14 @@
       "class": "string",
       "optional": true,
       "help": "Prefix for naming output xlsx file",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "colour_cells",
+      "label": "colour cells",
+      "class": "string",
+      "optional": true,
+      "help": "Add conditional colouring of cells for a given column, this should be specified as column:value_range:colour, where colour is a valid hex value or colour name. See readme for futher details.",
       "group": "generate_workbook.py"
     },
     {
