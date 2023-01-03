@@ -307,6 +307,10 @@ class vcf():
             # add sample name from filename as 1st column
             vcf_df.insert(loc=0, column='sampleName', value=sample)
 
+        if self.args.add_comment_column:
+            # add empty 'Comment' column to end of df
+            vcf_df['Comment'] = ''
+
         return vcf_df
 
 
@@ -748,6 +752,7 @@ class vcf():
 
             self.vcfs[idx] = vcf[column_order]
 
+
     def add_decipher_column(self) -> None:
         """
         If --decipher input added this function will add an empty column to the
@@ -776,6 +781,7 @@ class vcf():
         for idx, vcf in enumerate(self.vcfs):
             vcf['DECIPHER'] = ''
             self.vcfs[idx] = vcf
+
 
     def rename_columns(self) -> None:
         """

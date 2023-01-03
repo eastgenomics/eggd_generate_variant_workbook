@@ -564,9 +564,6 @@ class excel():
                     f"({sheet_no}/{len(self.args.sheets)})"
                 )
 
-                if self.args.add_comment_column:
-                    vcf['Comment'] = ''
-
                 # timing how long it takes to write because its slow
                 start = timer()
                 vcf.to_excel(
@@ -838,6 +835,10 @@ class excel():
             "<=": operator.le
         }
 
+        # dict to add any previously coloured cells that are likley from
+        # overlapping expressions -> raise error if anything is present
+        errors = defaultdict(dict)
+
         for column_to_colour in self.args.colour:
             column, conditions, colour = column_to_colour.split(':')
             column = column.replace('CSQ_', '')
@@ -857,6 +858,7 @@ class excel():
 
             colour = self.convert_colour(colour)
 
+            # list of tuples to build as (operator, value)
             conditions_list = []
 
             # split out each operator and value to a list of tuples
@@ -905,10 +907,37 @@ class excel():
                             to_colour = ops[current_operator](cell_value, value)
 
                         if to_colour:
-                            worksheet[cell.coordinate].fill = PatternFill(
-                                patternType="solid",
-                                start_color=colour
-                            )
+                            cell_colour = cell.fill.start_color.index
+                            if not cell_colour == '00000000':
+                                # cell already coloured => add to errors
+                                warn = errors.get((cell_colour, colour), [])
+                                warn.append(cell.coordinate)
+                                errors[(cell_colour, colour)] = warn
+                            else:
+                                worksheet[cell.coordinate].fill = PatternFill(
+                                    patternType="solid",
+                                    start_color=colour
+                                )
+        if errors:
+            error_message = (
+                f"\n{'#' * 35} ERROR {'#' * 35}\n\n" 
+                "Overlapping colouring of cells, the following "
+                "cells colour were not changed due \nto being previously coloured:"
+            )
+            for colours, cells in errors.items():
+                if len(cells) > 5:
+                    cell_count = len(cells) - 5
+                    cells = f"{', '.join(cells[:5])} + {cell_count} more cells"
+
+                error_message += (
+                    f"\n\tCurrent cell colour: {colours[0]}"
+                    f"\n\tNew cell colour: {colours[1]}"
+                    f"\n\tCells not coloured: {cells}\n"
+                )
+
+            error_message += f"\n{'#' * 79}"
+
+            raise RuntimeError(error_message)
 
 
     def set_widths(self, worksheet, sheet_columns) -> None:
