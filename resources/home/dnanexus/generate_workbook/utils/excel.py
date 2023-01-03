@@ -691,9 +691,9 @@ class excel():
             "<=": operator.le
         }
 
-        # dict to add any previously coloured cells to as warning that
-        # they won't be recoloured - likley from overlapping expressions
-        warnings = defaultdict(dict)
+        # dict to add any previously coloured cells that are likley from
+        # overlapping expressions -> raise error if anything is present
+        errors = defaultdict(dict)
 
         for column_to_colour in self.args.colour:
             column, conditions, colour = column_to_colour.split(':')
@@ -774,33 +774,35 @@ class excel():
                         if to_colour:
                             cell_colour = cell.fill.start_color.index
                             if not cell_colour == '00000000':
-                                # cell already coloured => add to warnings
-                                warn = warnings.get((cell_colour, colour), [])
+                                # cell already coloured => add to errors
+                                warn = errors.get((cell_colour, colour), [])
                                 warn.append(cell.coordinate)
-                                warnings[(cell_colour, colour)] = warn
+                                errors[(cell_colour, colour)] = warn
                             else:
                                 worksheet[cell.coordinate].fill = PatternFill(
                                     patternType="solid",
                                     start_color=colour
                                 )
-        if warnings:
-            print(
-                f"\n{'#' * 35} WARNING {'#' * 35}\n\n" 
+        if errors:
+            error_message = (
+                f"\n{'#' * 35} ERROR {'#' * 35}\n\n" 
                 "Overlapping colouring of cells, the following "
                 "cells colour were not changed due \nto being previously coloured:"
             )
-            for colours, cells in warnings.items():
+            for colours, cells in errors.items():
                 if len(cells) > 5:
                     cell_count = len(cells) - 5
                     cells = f"{', '.join(cells[:5])} + {cell_count} more cells"
 
-                print(
+                error_message += (
                     f"\n\tCurrent cell colour: {colours[0]}"
                     f"\n\tNew cell colour: {colours[1]}"
                     f"\n\tCells not coloured: {cells}\n"
                 )
 
-            print(f"\n{'#' * 79}")
+            error_message += f"\n{'#' * 79}"
+
+            raise RuntimeError(error_message)
 
 
     def set_widths(self, worksheet, sheet_columns) -> None:
