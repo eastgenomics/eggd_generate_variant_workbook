@@ -169,6 +169,7 @@ Some columns will be formatted with URLs as hyperlinks in the output variant she
 | cosmic (exact) | https://cancer.sanger.ac.uk/cosmic/search?q= |
 | hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
 | mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
+| decipher (NA) | https://www.deciphergenomics.org/sequence-variant/ |
 
 
 
