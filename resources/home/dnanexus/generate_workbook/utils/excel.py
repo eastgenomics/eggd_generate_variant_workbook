@@ -1,8 +1,12 @@
+from collections import defaultdict
+import operator
 from pathlib import Path
+import re
 from string import ascii_uppercase as uppercase
-import sys
 from timeit import default_timer as timer
+from typing import Union
 
+from colour import Color
 import Levenshtein as levenshtein
 import numpy as np
 from openpyxl import drawing, load_workbook
@@ -57,6 +61,7 @@ class excel():
         self.refs = refs
         self.writer = pd.ExcelWriter(args.output, engine='openpyxl')
         self.workbook = self.writer.book
+        self.summary = None
 
 
     def generate(self) -> None:
@@ -79,10 +84,157 @@ class excel():
         Write summary sheet to excel file
         """
         print('Writing summary sheet')
+        if self.args.summary:
+            self.summary = self.workbook.create_sheet('summary')
+
+        if self.args.summary == 'basic':
+            # add summary sheet with basic metrics such as args used
+            # and DNAnexus file / job IDs used
+            self.basic_summary()
         if self.args.summary == 'dias':
             # generate summary sheet in format for RD/dias
-            self.summary = self.workbook.create_sheet('summary')
             self.dias_summary()
+
+
+    def summary_sheet_cell_colour_key(self, row_count, to_bold) -> Union[int, list]:
+        """
+        Write conditions and colours of colouring applied to cells to
+        the summary sheet if --colour specified
+
+        Parameters
+        ----------
+        row_count : int
+            counter of current row to write to in sheet
+        to_bold : list
+            list of cells to set to bold
+
+        Returns
+        -------
+        int
+            counter of current row to write to in sheet
+        list
+            list of cells to set to bold
+        """
+        # build a dict of each column and all its colour conditions
+        cols_to_colours = defaultdict(dict)
+        for i in self.args.colour:
+            column, condition, colour = i.split(':')
+            cols_to_colours[column][condition] = colour
+
+        self.summary.cell(row_count, 1).value = "Cell colouring applied:"
+        to_bold.append(f"A{row_count}")
+        self.summary[f"A{row_count}"].font = Font(
+            bold=True, name=DEFAULT_FONT.name
+        )
+
+        colour_col = 2
+        max_colour_rows_written = 0
+
+        # write colouring applied to each field as seperate column in summary
+        for column, conditions in cols_to_colours.items():
+            colour_row = row_count + 1
+            column_letter = get_column_letter(colour_col)
+
+            self.summary.cell(row_count, colour_col).value = column
+            to_bold.append(f"{column_letter}{row_count}")
+
+            for condition, colour in conditions.items():
+                condition = condition.replace('&', ' & ').replace('|', ' | ')
+                self.summary.cell(colour_row, colour_col).value = condition
+                self.summary.cell(colour_row, colour_col).data_type = 's'
+
+                colour = self.convert_colour(colour)
+
+                self.summary[f"{column_letter}{colour_row}"].fill = PatternFill(
+                    patternType="solid",
+                    start_color=colour
+                )
+                colour_row += 1
+
+            # set width to wider than max value in cell
+            width = max([len(x) for x in conditions.keys()])
+            width = 10 if width < 13 else width
+            self.summary.column_dimensions[column_letter].width = width + 3
+
+            colour_col += 2
+
+            if colour_row > max_colour_rows_written:
+                max_colour_rows_written = colour_row
+
+        return max_colour_rows_written, to_bold
+
+
+    def basic_summary(self) -> None:
+        """
+        Writes basic summary sheet with metrics such as variant records
+        per sheet, dx file IDs and parameters specified
+        """
+        # track what cells to make bold
+        to_bold = []
+
+        # write titles for summary values
+        self.summary.cell(1, 1).value = "Sample ID:"
+        self.summary.cell(3, 1).value = "Variant totals"
+
+        to_bold.extend(["A1", "A3"])
+
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+        self.summary.cell(1, 2).value = sample
+
+        self.summary.column_dimensions['A'].width = 23
+        self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=2, end_column=4)
+
+        row_count = 4
+        for sheet, vcf in zip(self.args.sheets, self.vcfs):
+            self.summary.cell(row_count, 2).value = sheet
+            self.summary.cell(row_count, 3).value = len(vcf.index)
+            to_bold.append(f"B{row_count}")
+            row_count += 1
+
+        row_count += 4
+
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
+
+            row_count += 2
+
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
+
+        row_count += 2
+
+        if self.args.colour:
+            row_count, to_bold = self.summary_sheet_cell_colour_key(
+                row_count, to_bold)
+
+        row_count += 4
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
+
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
+
+        for cell in to_bold:
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
 
     def dias_summary(self) -> None:
@@ -114,12 +266,13 @@ class excel():
         # write total rows in each sheet
         count = 34
 
+        # cells to make bold
+        to_bold = []
+
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(count, 2).value = sheet
             self.summary.cell(count, 3).value = len(vcf.index)
-            self.summary[f"A{count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name
-            )
+            to_bold.append(f"A{count}")
             count += 1
 
         count += 5
@@ -138,15 +291,14 @@ class excel():
 
         if self.args.human_filter:
             self.summary.cell(count, 1).value = "Filters applied:"
-            self.summary[f"A{count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name)
             self.summary.cell(count, 2).value = self.args.human_filter
+            to_bold.append(f"A{count}")
 
             count += 2
 
         # write args passed to script to generate report
         self.summary.cell(count, 1).value = "Filter command:"
-        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        to_bold.append(f"A{count}")
         if self.args.filter:
             self.summary.cell(count, 2).value = self.args.filter
         else:
@@ -154,12 +306,18 @@ class excel():
 
         count += 2
 
+        if self.args.colour:
+            count, to_bold = self.summary_sheet_cell_colour_key(
+                count, to_bold)
+
+        count += 2
+
         self.summary.cell(count, 1).value = "Workflow:"
         self.summary.cell(count + 1, 1).value = "Workflow ID:"
         self.summary.cell(count + 2, 1).value = "Report Job ID:"
-        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-        self.summary[f"A{count + 1}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-        self.summary[f"A{count + 2}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        to_bold.append(f"A{count}")
+        to_bold.append(f"A{count + 1}")
+        to_bold.append(f"A{count + 2}")
 
         self.summary.cell(count, 2).value = self.args.workflow[0]
         self.summary.cell(count + 1, 2).value = self.args.workflow[1]
@@ -207,18 +365,19 @@ class excel():
         self.summary.merge_cells(
             start_row=28, end_row=28, start_column=4, end_column=6)
 
-        # set titles to bold
-        title_cells = [
+        # titles to set to bold
+        to_bold += [
             "A1", "A34", "A35", "A36","A38", "B1",
             "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
             "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
-        for cell in title_cells:
+
+        for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
         # set column widths for readability
-        self.summary.column_dimensions['A'].width = 18
+        self.summary.column_dimensions['A'].width = 22 if self.args.colour else 18
         self.summary.column_dimensions['B'].width = 13
         self.summary.column_dimensions['C'].width = 13
         self.summary.column_dimensions['D'].width = 13
@@ -443,9 +602,6 @@ class excel():
                     f"({sheet_no}/{len(self.args.sheets)})"
                 )
 
-                if self.args.add_comment_column:
-                    vcf['Comment'] = ''
-
                 # timing how long it takes to write because its slow
                 start = timer()
                 vcf.to_excel(
@@ -457,6 +613,7 @@ class excel():
                 self.set_widths(curr_worksheet, vcf.columns)
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
+                self.colour_cells(curr_worksheet)
 
                 # freeze header so scrolling keeps it in view
                 curr_worksheet.freeze_panes = 'A2'
@@ -636,6 +793,35 @@ class excel():
                 cell.font = Font(name=DEFAULT_FONT.name)
 
 
+    def convert_colour(self, colour) -> str:
+        """
+        Converts string of colour to aRGB value that openpyxl will accept.
+
+        Valid colour strings reference here:
+        https://github.com/vaab/colour/blob/11f138eb7841d2045160b378a2eec0c2321144c0/colour.py#L52
+
+        Parameters
+        ----------
+        colour : str
+            colour string, either hex value beginning with '#' (#82920c)
+            or human readable (ForestGreen)
+
+        Returns
+        -------
+        str
+            hex value without '#' prefix
+        """
+        if colour.startswith('#'):
+            colour = colour.lstrip('#')
+        else:
+            # not given as '#FAC090' => assume its given as 'green|red' etc
+            colour = Color(colour)
+            # colour.saturation = 0.8
+            colour = colour.hex_l.lstrip('#')
+
+        return colour
+
+
     def colour_hyperlinks(self, worksheet) -> None:
         """
         Set text colour to blue if text contains hyperlink
@@ -649,6 +835,147 @@ class excel():
             for cell in cells:
                 if 'HYPERLINK' in str(cell.value):
                     cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
+
+
+    def colour_cells(self, worksheet) -> None:
+        """
+        Conditionally colours cells in a variant worksheet by user specified
+        coniditons and colours for a given column with --colour.
+
+        Arguments will be in the following formats:
+            - VF:>=0.9:green        => single condition
+            - VF:<0.8&>=0.6:orange  => both of two conditions
+            - VF:>0.9|<0.1:red      => either of two conditions
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+
+        Raises
+        ------
+        ValueError
+            Raised when invalid parameter passed
+        """
+        if not self.args.colour:
+            # no cell colours defined
+            return
+
+        # mapping table of valid operators to operator methods
+        ops = {
+            "=": operator.eq,
+            "!=": operator.ne,
+            "+": operator.add,
+            "-": operator.sub,
+            ">": operator.gt,
+            ">=": operator.ge,
+            "<": operator.lt,
+            "<=": operator.le
+        }
+
+        # dict to add any previously coloured cells that are likley from
+        # overlapping expressions -> raise error if anything is present
+        errors = defaultdict(dict)
+
+        for column_to_colour in self.args.colour:
+            column, conditions, colour = column_to_colour.split(':')
+            column = column.replace('CSQ_', '')
+
+            _and = False
+            _or = False
+
+            # check if more than one condition is passed and how to interpret
+            if '&' in conditions:
+                _and = True
+                conditions = conditions.split('&')
+            elif '|' in conditions:
+                _or = True
+                conditions = conditions.split('|')
+            else:
+                conditions = [conditions]
+
+            colour = self.convert_colour(colour)
+
+            # list of tuples to build as (operator, value)
+            conditions_list = []
+
+            # split out each operator and value to a list of tuples
+            for condition in conditions:
+                current_operator = re.match(r'(>=|<=|>|<|=|!=|\+|-)', condition)
+
+                if not current_operator:
+                    # invalid or no operator passed
+                    raise ValueError(
+                        "Invalid operator passed for cell colouring in "
+                        f"argument: {column_to_colour}"
+                    )
+
+                # add to list of tuples of operators and corresponding value
+                current_operator = current_operator.group()
+                value = condition.replace(current_operator, '')
+                if is_numeric(value):
+                    value = float(value)
+
+                conditions_list.append((current_operator, value))
+
+            # find correct column to colour, then colour cells according
+            # to the given conditions
+            for column_cells in worksheet.iter_cols(1, worksheet.max_column):
+                if column_cells[0].value == column:
+                    for cell in column_cells[1:]:
+                        # first test if cell value is numeric for comparing
+                        if is_numeric(cell.value):
+                            cell_value = float(cell.value)
+                        else:
+                            cell_value = cell.value
+
+                        if _and:
+                            to_colour = all([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        elif _or:
+                            to_colour = any([
+                                True if ops[condition[0]](cell_value, condition[1])
+                                else False for condition in conditions_list
+                                ])
+                        else:
+                            # should just be one condition as no & or |
+                            current_operator, value = conditions_list[0]
+                            to_colour = ops[current_operator](cell_value, value)
+
+                        if to_colour:
+                            cell_colour = cell.fill.start_color.index
+                            if not cell_colour == '00000000':
+                                # cell already coloured => add to errors
+                                warn = errors.get((cell_colour, colour), [])
+                                warn.append(cell.coordinate)
+                                errors[(cell_colour, colour)] = warn
+                            else:
+                                worksheet[cell.coordinate].fill = PatternFill(
+                                    patternType="solid",
+                                    start_color=colour
+                                )
+        if errors:
+            error_message = (
+                f"\n{'#' * 35} ERROR {'#' * 35}\n\n" 
+                "Overlapping colouring of cells, the following "
+                "cells colour were not changed due \nto being previously coloured:"
+            )
+            for colours, cells in errors.items():
+                if len(cells) > 5:
+                    cell_count = len(cells) - 5
+                    cells = f"{', '.join(cells[:5])} + {cell_count} more cells"
+
+                error_message += (
+                    f"\n\tCurrent cell colour: {colours[0]}"
+                    f"\n\tNew cell colour: {colours[1]}"
+                    f"\n\tCells not coloured: {cells}\n"
+                )
+
+            error_message += f"\n{'#' * 79}"
+
+            raise RuntimeError(error_message)
 
 
     def set_widths(self, worksheet, sheet_columns) -> None:

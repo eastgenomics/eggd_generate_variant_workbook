@@ -27,6 +27,7 @@ class arguments():
         self.set_sheet_names()
         self.verify_sheets()
         self.verify_images()
+        self.verify_colours()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -264,12 +265,19 @@ class arguments():
                 'before writing to the Excel file.'
             )
         )
-
         parser.add_argument(
             '--decipher', required=False, action='store_true',
             help=(
                 'Determines whether or not to include column of DECIPHER links'
                 'n.b. DECIPHER is only available for variants in build 38 '
+            )
+        )
+        parser.add_argument(
+            '--colour', required=False, nargs='+',
+            help=(
+                'Add conditional colouring of cells for a given column, this '
+                'should be specified as column:value_range:colour, where '
+                'colour is a valid hex value or colour name'
             )
         )
 
@@ -347,6 +355,7 @@ class arguments():
                 f"of sheet names passed: {len(self.args.additional_sheets)}"
             )
 
+
     def verify_images(self) -> None:
         """
         Checks where images with names and / or sizes are passed that
@@ -392,6 +401,27 @@ class arguments():
                 'Sizes for images specified not in correct format: '
                 f'{self.args.image_sizes}'
             )
+
+
+    def verify_colours(self) -> None:
+        """
+        Checks when colouring for cells specified with --colour that
+        the arguments passed are do not contain both & and |
+
+        Raises
+        ------
+        AssertionError
+            raised when a mix of '&' and '|' are used in the same condition
+        """
+        if not self.args.colour:
+            return
+
+        assert max([
+            len(set(re.findall(r'[&|]', x))) for x in self.args.colour
+        ]) <= 1, (
+            'invalid colouring expression - can not contain both & and | in '
+            'a single expression'
+        )
 
 
     def set_sheet_names(self) -> None:
