@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 from string import ascii_uppercase as uppercase
 from timeit import default_timer as timer
+from typing import Union
 
 from colour import Color
 import Levenshtein as levenshtein
@@ -95,6 +96,74 @@ class excel():
             self.dias_summary()
 
 
+    def summary_sheet_cell_colour_key(self, row_count, to_bold) -> Union[int, list]:
+        """
+        Write conditions and colours of colouring applied to cells to
+        the summary sheet if --colour specified
+
+        Parameters
+        ----------
+        row_count : int
+            counter of current row to write to in sheet
+        to_bold : list
+            list of cells to set to bold
+
+        Returns
+        -------
+        int
+            counter of current row to write to in sheet
+        list
+            list of cells to set to bold
+        """
+        # build a dict of each column and all its colour conditions
+        cols_to_colours = defaultdict(dict)
+        for i in self.args.colour:
+            column, condition, colour = i.split(':')
+            cols_to_colours[column][condition] = colour
+
+        self.summary.cell(row_count, 1).value = "Cell colouring applied:"
+        to_bold.append(f"A{row_count}")
+        self.summary[f"A{row_count}"].font = Font(
+            bold=True, name=DEFAULT_FONT.name
+        )
+
+        colour_col = 2
+        max_colour_rows_written = 0
+
+        # write colouring applied to each field as seperate column in summary
+        for column, conditions in cols_to_colours.items():
+            colour_row = row_count + 1
+            column_letter = get_column_letter(colour_col)
+
+            self.summary.cell(row_count, colour_col).value = column
+            to_bold.append(f"{column_letter}{row_count}")
+
+            for condition, colour in conditions.items():
+                condition = condition.replace('&', ' & ').replace('|', ' | ')
+                self.summary.cell(colour_row, colour_col).value = condition
+                self.summary.cell(colour_row, colour_col).data_type = 's'
+
+                colour = self.convert_colour(colour)
+
+                self.summary[f"{column_letter}{colour_row}"].fill = PatternFill(
+                    patternType="solid",
+                    start_color=colour
+                )
+                colour_row += 1
+
+            # set width to wider than max value in cell
+            width = max([len(x) for x in conditions.keys()])
+            width = 10 if width < 13 else width
+            self.summary.column_dimensions[column_letter].width = width + 3
+
+            colour_col += 2
+
+            if colour_row > max_colour_rows_written:
+                max_colour_rows_written = colour_row
+
+        return max_colour_rows_written, to_bold
+
+
     def basic_summary(self) -> None:
         """
         Writes basic summary sheet with metrics such as variant records
@@ -130,17 +199,7 @@ class excel():
             to_bold.append(f"B{row_count}")
             row_count += 1
 
-        row_count += 2
-        self.summary.cell(row_count, 1).value = "Workflow:"
-        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
-        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
-        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
-
-        self.summary.cell(row_count, 2).value = self.args.workflow[0]
-        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
-        self.summary.cell(row_count + 2, 2).value = self.args.job_id
-
-        row_count += 6
+        row_count += 4
 
         if self.args.human_filter:
             self.summary.cell(row_count, 1).value = "Filters applied:"
@@ -161,46 +220,18 @@ class excel():
         row_count += 2
 
         if self.args.colour:
-            # build a dict of each column and all its colour conditions
-            cols_to_colours = defaultdict(dict)
-            for i in self.args.colour:
-                column, condition, colour = i.split(':')
-                cols_to_colours[column][condition] = colour
+            row_count, to_bold = self.summary_sheet_cell_colour_key(
+                row_count, to_bold)
 
-            self.summary.cell(row_count, 1).value = "Cell colouring applied:"
-            to_bold.append(f"A{row_count}")
-            self.summary[f"A{row_count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name
-            )
+        row_count += 4
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
 
-            colour_col = 2
-            for column, conditions in cols_to_colours.items():
-                colour_row = row_count + 1
-
-                column_letter = get_column_letter(colour_col)
-
-                self.summary.cell(row_count, colour_col).value = column
-                to_bold.append(f"{column_letter}{row_count}")
-
-                for condition, colour in conditions.items():
-                    condition = condition.replace('&', ' & ').replace('|', ' | ')
-                    self.summary.cell(colour_row, colour_col).value = condition
-                    self.summary.cell(colour_row, colour_col).data_type = 's'
-
-                    colour = self.convert_colour(colour)
-
-                    self.summary[f"{column_letter}{colour_row}"].fill = PatternFill(
-                        patternType="solid",
-                        start_color=colour
-                    )
-                    colour_row+=1
-
-                # set width to wider than max value in cell
-                width = max([len(x) for x in conditions.keys()])
-                width = 10 if width < 13 else width
-                self.summary.column_dimensions[column_letter].width = width + 3
-
-                colour_col += 2
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -235,12 +266,13 @@ class excel():
         # write total rows in each sheet
         count = 34
 
+        # cells to make bold
+        to_bold = []
+
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(count, 2).value = sheet
             self.summary.cell(count, 3).value = len(vcf.index)
-            self.summary[f"A{count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name
-            )
+            to_bold.append(f"A{count}")
             count += 1
 
         count += 5
@@ -259,15 +291,14 @@ class excel():
 
         if self.args.human_filter:
             self.summary.cell(count, 1).value = "Filters applied:"
-            self.summary[f"A{count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name)
             self.summary.cell(count, 2).value = self.args.human_filter
+            to_bold.append(f"A{count}")
 
             count += 2
 
         # write args passed to script to generate report
         self.summary.cell(count, 1).value = "Filter command:"
-        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        to_bold.append(f"A{count}")
         if self.args.filter:
             self.summary.cell(count, 2).value = self.args.filter
         else:
@@ -275,12 +306,18 @@ class excel():
 
         count += 2
 
+        if self.args.colour:
+            count, to_bold = self.summary_sheet_cell_colour_key(
+                count, to_bold)
+
+        count += 2
+
         self.summary.cell(count, 1).value = "Workflow:"
         self.summary.cell(count + 1, 1).value = "Workflow ID:"
         self.summary.cell(count + 2, 1).value = "Report Job ID:"
-        self.summary[f"A{count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-        self.summary[f"A{count + 1}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-        self.summary[f"A{count + 2}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        to_bold.append(f"A{count}")
+        to_bold.append(f"A{count + 1}")
+        to_bold.append(f"A{count + 2}")
 
         self.summary.cell(count, 2).value = self.args.workflow[0]
         self.summary.cell(count + 1, 2).value = self.args.workflow[1]
@@ -328,18 +365,19 @@ class excel():
         self.summary.merge_cells(
             start_row=28, end_row=28, start_column=4, end_column=6)
 
-        # set titles to bold
-        title_cells = [
+        # titles to set to bold
+        to_bold += [
             "A1", "A34", "A35", "A36","A38", "B1",
             "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
             "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
             "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
-        for cell in title_cells:
+
+        for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
         # set column widths for readability
-        self.summary.column_dimensions['A'].width = 18
+        self.summary.column_dimensions['A'].width = 22 if self.args.colour else 18
         self.summary.column_dimensions['B'].width = 13
         self.summary.column_dimensions['C'].width = 13
         self.summary.column_dimensions['D'].width = 13
