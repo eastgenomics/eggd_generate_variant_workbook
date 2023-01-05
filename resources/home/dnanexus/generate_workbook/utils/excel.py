@@ -189,6 +189,8 @@ class excel():
         self.summary.cell(1, 2).value = sample
 
         self.summary.column_dimensions['A'].width = 23
+        self.summary.column_dimensions['B'].width = 13
+
         self.summary.merge_cells(
             start_row=1, end_row=1, start_column=2, end_column=4)
 

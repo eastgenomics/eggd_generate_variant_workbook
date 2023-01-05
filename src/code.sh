@@ -5,25 +5,9 @@ set -exo pipefail
 _dias_report_setup () {
     # function to handle parsing values and reading
     # manifest / g2t etc. for Dias sampels
-    mark-section "Getting values for Dias"
-
-    # get job id creating the annotated vcf
-    vcf=$(awk -F'"' '{print $4}' <<< "${vcfs[0]}")
-    analysis_id=$(dx describe --json ${vcf} | jq -r '.createdBy.job')
-
-    if [ "$analysis_id" != "null" ]; then
-        workflow_id=$(dx describe --json "${analysis_id}" | jq -r '.parentAnalysis')
-
-        if [ "$workflow_id" != "null" ]; then
-            workflow_name=$(dx describe --json "${workflow_id}" | jq -r '.executableName')
-        else
-            # unset from null string if not from workflow
-            unset workflow_id
-        fi
-    fi
+    mark-section "Getting output name for Dias"
 
     project_id=$DX_PROJECT_CONTEXT_ID
-    job_id=$DX_JOB_ID
 
     # Tiny chance of race conditions leading to two files with the same name here
     version=0
@@ -41,6 +25,26 @@ _dias_report_setup () {
     fi
 }
 
+_get_dx_job_ids () {
+    # gets the dx job IDs of the workflow that generated the annotated VCF
+    job_id=$DX_JOB_ID
+
+    # get job that generated the vcf
+    vcf=$(awk -F'"' '{print $4}' <<< "${vcfs[0]}")
+    analysis_id=$(dx describe --json ${vcf} | jq -r '.createdBy.job')
+
+    if [ "$analysis_id" != "null" ]; then
+        workflow_id=$(dx describe --json "${analysis_id}" | jq -r '.parentAnalysis')
+
+        if [ "$workflow_id" != "null" ]; then
+            workflow_name=$(dx describe --json "${workflow_id}" | jq -r '.executableName')
+        else
+            # unset from null string if not from workflow
+            unset workflow_id
+        fi
+    fi
+}
+
 
 main() {
     echo "Value of vcf(s): ${vcfs[*]}"
@@ -51,6 +55,8 @@ main() {
     mkdir vcfs
     dx-download-all-inputs --parallel
     find ~/in/vcfs -type f -name "*" -print0 | xargs -0 -I {} mv {} ~/vcfs
+
+    _get_dx_job_ids
 
     if [ "$summary" == "dias" ]; then
         # do dias specific things
