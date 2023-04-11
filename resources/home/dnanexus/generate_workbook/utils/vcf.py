@@ -1,6 +1,7 @@
 import gzip
 import os
 from pathlib import Path, PurePath
+import re
 import subprocess
 import sys
 from typing import Union
@@ -421,9 +422,17 @@ class vcf():
         header : list
             lines of vcf header
         """
-        ref = next(
-            iter([x for x in header if x.startswith('##reference')]), None
-        )
+        # first check if we can get reference build from VEP command string
+        vep = [x for x in header if x.startswith('##VEP')]
+        if vep:
+            assembly = re.search(r'assembly="[\w\d\.]+"', vep[0])
+            if assembly:
+                ref = assembly.group(0).replace('assembly=', '').strip('"\'')
+
+        if not ref:
+            ref = next(
+                iter([x for x in header if x.startswith('##reference')]), None
+            )
 
         if ref:
             if ref not in self.refs:
