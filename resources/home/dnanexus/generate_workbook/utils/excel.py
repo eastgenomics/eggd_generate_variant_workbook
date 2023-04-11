@@ -225,6 +225,17 @@ class excel():
             row_count, to_bold = self.summary_sheet_cell_colour_key(
                 row_count, to_bold)
 
+        # write genome reference(s) parsed from vcf header
+        if self.refs:
+            row_count += 2
+            self.summary.cell(row_count, 1).value = "Reference:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in list(set(self.refs)):
+                self.summary.cell(row_count, 2).value = ref
+                row_count += 1
+
         row_count += 4
         self.summary.cell(row_count, 1).value = "Workflow:"
         self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
