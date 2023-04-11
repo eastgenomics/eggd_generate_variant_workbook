@@ -422,6 +422,8 @@ class vcf():
         header : list
             lines of vcf header
         """
+        ref=''
+
         # first check if we can get reference build from VEP command string
         vep = [x for x in header if x.startswith('##VEP')]
         if vep:
