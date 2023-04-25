@@ -471,7 +471,6 @@ class vcf():
                     url = self.urls.get('gnomad')
                 elif 'cosmic' in col.lower():
                     url = self.urls.get('csq_cosmic')
-                    print(f"csomic stub:{url}")
                 else:
                     url = self.urls.get(col.lower(), None)
 
@@ -564,9 +563,7 @@ class vcf():
             # COSMIC requires the url to have the COSM ID added to the url
             # stub differs based on genome build
             url = url.replace('BUILD', str(build))
-            # COSMIC IDs are separated by & and rejoined for each unique ID
-            # re-assigned to value[column] to display only unique IDs in excel
-            value[column] = '&'.join(set(value[column].split('&')))
+            # Build COSMIC URL and set value to display equal to what is in
             url = f'{url}{value[column]}'
 
         else:
