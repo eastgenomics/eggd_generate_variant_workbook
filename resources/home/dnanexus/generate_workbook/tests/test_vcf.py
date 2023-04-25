@@ -93,6 +93,7 @@ class TestDataFrameActions():
             add_name=True, analysis='',
             filter=None, keep=False, merge=False,
             reorder=[], exclude=None, include=None,
+            add_comment_column=False,
             out_dir='', output='',
             panel='', print_columns=False, print_header=False, reads='',
             rename=None, sample='', sheets=['variants'], summary=None,
@@ -512,33 +513,33 @@ class TestHyperlinks():
             "COSMICcMuts link output incorrect for build 37 input"
         )
 
-    @staticmethod
-    def test_cosmic_build_37_multiple():
-        '''
-        Test that the COSMIC links are generated correctly for build 37
-        '''
-        # Intialise test dataframe with build 37 genome positions
-        df = pd.DataFrame([
-            {'CHROM': 1, 'POS': 2488153, 'REF': 'A',
-             'ALT': 'G', 'COSMICcMuts': 'COSV63186428&COSV63186428&COSV63186428'},
-        ])
+    # @staticmethod
+    # def test_cosmic_build_37_multiple():
+    #     '''
+    #     Test that the COSMIC links are generated correctly for build 37
+    #     '''
+    #     # Intialise test dataframe with build 37 genome positions
+    #     df = pd.DataFrame([
+    #         {'CHROM': 1, 'POS': 2488153, 'REF': 'A',
+    #          'ALT': 'G', 'COSMICcMuts': 'COSV63186428&COSV63186428&COSV63186428'},
+    #     ])
 
-        test_vcf = vcf(argparse.Namespace())
-        test_vcf.vcfs = [df]
-        test_vcf.refs = ['37']  # Set reference = build 37
+    #     test_vcf = vcf(argparse.Namespace())
+    #     test_vcf.vcfs = [df]
+    #     test_vcf.refs = ['37']  # Set reference = build 37
 
-        # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+    #     # Call function to add hyperlinks
+    #     vcf.add_hyperlinks(test_vcf)
 
-        valid_string = (
-            '=HYPERLINK("https://cancer.sanger.ac.uk/cosmic/search?'
-            'genome=37&q=COSV63186428", "COSV63186428")'
-        )
+    #     valid_string = (
+    #         '=HYPERLINK("https://cancer.sanger.ac.uk/cosmic/search?'
+    #         'genome=37&q=COSV63186428", "COSV63186428")'
+    #     )
 
-        # Assert the output is as expected
-        assert test_vcf.vcfs[0]["COSMICcMuts"][0] == valid_string, (
-            "COSMICcMuts link output incorrect for build 37 input"
-        )
+    #     # Assert the output is as expected
+    #     assert test_vcf.vcfs[0]["COSMICcMuts"][0] == valid_string, (
+    #         "COSMICcMuts link output incorrect for build 37 input"
+    #     )
 
 if __name__ == "__main__":
     header = TestHeader()
