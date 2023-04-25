@@ -1,7 +1,6 @@
 import sys
 from typing import Union
 import pandas as pd
-import time
 
 
 class splitColumns():
