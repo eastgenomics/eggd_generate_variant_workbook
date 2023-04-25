@@ -1,6 +1,7 @@
 import sys
 from typing import Union
 import pandas as pd
+import time
 
 
 class splitColumns():
@@ -28,14 +29,15 @@ class splitColumns():
         """
         vcf_df = self.info(vcf_df)
         vcf_df = self.format_fields(vcf_df)
-        vcf_df = self.unique_cosmic(vcf_df)
+        vcf_df = self.unique_vep(vcf_df)
 
         return vcf_df
 
 
-    def unique_cosmic(self, vcf_df) -> pd.DataFrame:
+    def unique_vep(self, vcf_df):
         """
         Handle known bug in VEP annotation where it duplicates COSMIC IDs
+        This creates a
 
         Parameters
         ----------
@@ -47,10 +49,16 @@ class splitColumns():
         vcf_df : pd.DataFrame
             dataframe of variants
         """
-        if 'COSMIC' in vcf_df.columns:
-            vcf_df['COSMIC'] = vcf_df['COSMIC'].apply(
-                lambda x: ' & '.join(set(x.split('&')))
+
+        # Find all columns that start with 'csq'
+        csq_columns = [col for col in vcf_df.columns if col.lower().startswith('csq')]
+
+        # Join the 'csq' columns using '&' and remove duplicates
+        for col in csq_columns:
+            vcf_df[col] = vcf_df[col].apply(
+                lambda x: ' & '.join(sorted(set(x.split('&')))) if isinstance(x, str) else x
             )
+
         return vcf_df
 
 
@@ -174,12 +182,10 @@ class splitColumns():
         info_keys = [x for x in info_keys if x]  # can end up with empty string
 
         info_values = []
-
         # info_pairs -> list of list of pairs, one list per variant
         for variant_pairs in info_pairs:
             # for every variants values, split them out to dict to add to df
             pair_values = {}
-
             for pair in variant_pairs:
                 if '=' in pair:
                     # key value pair
@@ -187,7 +193,6 @@ class splitColumns():
                 else:
                     # Flag value present (e.g STR)
                     key, value = pair, True
-
                 pair_values[key] = value
 
             info_values.append(pair_values)
@@ -198,5 +203,6 @@ class splitColumns():
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO'], axis=1, inplace=True)
+
 
         return vcf_df
