@@ -412,12 +412,11 @@ class TestHyperlinks():
         ])
 
         test_vcf = vcf(argparse.Namespace(decipher=True))
-        test_vcf.vcf = [df]
+        test_vcf.vcfs = [df]
         test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
         vcf.add_hyperlinks(test_vcf)
-
         # Define expected string output
         valid_string = (
             '=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-6'
