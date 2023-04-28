@@ -30,7 +30,6 @@ class TestHeader():
     # read in header from our test vcf, call functions to parse reference and
     # from read in header
     header, columns = vcf_handler.parse_header(header_test_vcf)
-    vcf_handler.parse_reference(header)
 
 
     def test_column_names(self):
@@ -48,14 +47,34 @@ class TestHeader():
         )
 
 
-    def test_parse_reference(self):
+    def test_parse_reference_vep(self):
         """
         Tests the reference is correctly parsed from header lines and stored in
-        refs attribute.
+        refs attribute when ##VEP is present in header, reference is stored
+        as 'assembly' string in VEP header line
+        """
+        vcf_handler.refs = []
+
+        vcf_handler.parse_reference(self.header)
+        assert vcf_handler.refs == ['GRCh37.p13'], (
+            'Reference build not correctly parsed from VEP string in header'
+        )
+
+
+    def test_parse_reference_no_vep(self):
+        """
+        Tests the reference is correctly parsed from header lines and stored in
+        refs attribute when ##VEP is not present in header
 
         Found as line in file header as: ##reference=file://genome/hs37d5.fa
         """
-        assert vcf_handler.refs == ['hs37d5.fa']
+        vcf_handler.refs = []
+        vep_header = [x for x in self.header if not x.startswith('##VEP')]
+
+        vcf_handler.parse_reference(vep_header)
+        assert vcf_handler.refs == ['hs37d5.fa'], (
+            'Reference build not correctly parsed from header'
+        )
 
 
     def test_only_header_parsed(self):
