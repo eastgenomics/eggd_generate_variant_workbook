@@ -45,7 +45,7 @@ class vcf():
         self.urls = {
             "csq_existing_variation": "https://www.ncbi.nlm.nih.gov/snp/",
             "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-            "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?q=",
+            "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?genome=BUILD&q=",  # genome=37&q={ID}
             "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
             "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
             "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
@@ -480,6 +480,8 @@ class vcf():
                 if 'gnomad' in col.lower():
                     # gnomAD columns won't be exact match on name to dict
                     url = self.urls.get('gnomad')
+                elif 'cosmic' in col.lower():
+                    url = self.urls.get('csq_cosmic')
                 else:
                     url = self.urls.get(col.lower(), None)
 
@@ -567,6 +569,13 @@ class vcf():
             # Create shortened form of the url to display in the excel
             # sheet so there is no need to display full length hyperlink
             value[column] = url.split('/')[-1]
+
+        elif 'cosmic' in column.lower():
+            # COSMIC requires the url to have the COSM ID added to the url
+            # stub differs based on genome build
+            url = url.replace('BUILD', str(build))
+            # Build COSMIC URL and set value to display equal to what is in
+            url = f'{url}{value[column]}'
 
         else:
             # other URLs with value appended to end
