@@ -33,7 +33,7 @@ class splitColumns():
         return vcf_df
 
 
-    def unique_vep(self, vcf_df):
+    def unique_vep(self, vcf_df) -> pd.DataFrame:
         """
         Handle known bug in VEP annotation where it duplicates COSMIC IDs
         This creates a
@@ -55,7 +55,7 @@ class splitColumns():
         # Join the 'csq' columns using '&' and remove duplicates
         for col in csq_columns:
             vcf_df[col] = vcf_df[col].apply(
-                lambda x: ' & '.join(sorted(set(x.split('&')))) if isinstance(x, str) else x
+                lambda x: '&'.join(sorted(set(x.split('&')))) if isinstance(x, str) else x
             )
 
         return vcf_df
