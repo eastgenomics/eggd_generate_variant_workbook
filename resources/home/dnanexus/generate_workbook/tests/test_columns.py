@@ -58,6 +58,7 @@ def read_column_from_vcf(vcf, column) -> list:
 
     return output.stdout.decode().splitlines()
 
+
 class TestMainColumns():
     """
     Tests for ensuring the CHROM, POS, REF, ALT, ID, QUAL and FILTER
