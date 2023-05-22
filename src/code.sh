@@ -96,6 +96,7 @@ main() {
     if [ "$print_header" == true ]; then args+="--print_header "; fi
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$colour_cells" ]; then args+="--colour ${colour_cells} "; fi
+    if [ "$freeze_column" ]; then args+="--freeze_column ${freeze_column} "; fi
     if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
     if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
     if [ "$workflow_id" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi

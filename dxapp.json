@@ -161,6 +161,14 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "freeze_column",
+      "label": "freeze column",
+      "class": "string",
+      "optional": true,
+      "help": "Optional column / row on which to freeze Excel scrolling for variant sheets (default: A2)",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "colour_cells",
       "label": "colour cells",
       "class": "string",
