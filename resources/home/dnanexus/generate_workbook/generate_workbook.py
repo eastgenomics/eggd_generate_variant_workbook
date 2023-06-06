@@ -280,6 +280,14 @@ class arguments():
                 'colour is a valid hex value or colour name'
             )
         )
+        parser.add_argument(
+            '--freeze_column', default='A2',
+            help=(
+                "Column letter and row number of which to 'freeze' (i.e. "
+                "always keep in view) for sheets of variants, default is to "
+                "just keep first header row always in view (A2)"
+            )
+        )
 
         return parser.parse_args()
 

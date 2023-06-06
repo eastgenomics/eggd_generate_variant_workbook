@@ -629,7 +629,7 @@ class excel():
                 self.colour_cells(curr_worksheet)
 
                 # freeze header so scrolling keeps it in view
-                curr_worksheet.freeze_panes = 'A2'
+                curr_worksheet.freeze_panes = self.args.freeze_column
 
                 self.workbook.save(self.args.output)
                 end = timer()
