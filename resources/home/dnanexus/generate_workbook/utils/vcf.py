@@ -11,7 +11,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import is_numeric, determine_delimeter
+from .utils import is_numeric, determine_delimeter, parse_cvo
 
 
 class vcf():
@@ -359,6 +359,13 @@ class vcf():
             file_df = pd.DataFrame(
                 [line.split(delimeter) for line in file_contents]
             )
+
+            if file.endswith('_CombinedVariantOutput.tsv'):
+                # file passed is a CombinedVariantOutput file from Illumina
+                # TSO500 app, just parse out TMB, MSI and Amplifications
+                file_df = parse_cvo(cvo_df=file_df)
+
+
             self.additional_files[prefix] = file_df
 
 
