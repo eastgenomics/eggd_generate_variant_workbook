@@ -110,7 +110,7 @@ def parse_cvo(cvo_df) -> pd.DataFrame:
     tmb_idx = cvo_df[0].eq('[TMB]').idxmax()
     splice_idx = cvo_df[0].eq('[Splice Variants]').idxmax()
 
-    if tmb_idx == 0 or splice_idx == 0:
+    if tmb_idx==0 or splice_idx==0:
         # didn't correctly parse out fields, return original dataframe to write
         print(
             'Could not parse TMB and Splice Variants fields from '
