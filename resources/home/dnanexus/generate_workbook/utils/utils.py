@@ -1,5 +1,6 @@
 from csv import Sniffer
 
+import pandas as pd
 
 def is_numeric(value:str) -> bool:
     """
