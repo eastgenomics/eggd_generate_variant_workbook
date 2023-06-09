@@ -664,6 +664,8 @@ class excel():
             curr_worksheet = self.writer.sheets[file_name]
             self.set_font(curr_worksheet)
             self.set_types(curr_worksheet)
+            self.colour_hyperlinks(curr_worksheet)
+            self.set_types(curr_worksheet)
 
             # set appropriate column widths based on cell contents
             for idx, column in enumerate(curr_worksheet.columns, start=1):

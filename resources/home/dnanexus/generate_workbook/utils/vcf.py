@@ -176,8 +176,8 @@ class vcf():
         if self.args.reorder:
             self.order_columns()
 
-        self.format_strings()
-        self.add_hyperlinks()
+        self.vcfs = self.format_strings(self.vcfs)
+        self.vcfs = self.add_hyperlinks(self.vcfs)
         self.rename_columns()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
@@ -349,16 +349,35 @@ class vcf():
             else:
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
+            
+            if file.endswith('vcf') or file.endswith('vcf.gz'):
+                # vcf passed => process and format nicer for displaying
+                split_additional_vcf=file.replace('.vcf', '_split.vcf')
+                self.bcftools_pre_process(
+                    vcf=file,
+                    output_vcf=split_additional_vcf
+                )
+                file_df = self.read(split_additional_vcf)
+                file_df = splitColumns().split(file_df)
+                file_df = self.format_strings([file_df])[0]
+                file_df = self.add_hyperlinks([file_df])[0]
+                file_df.columns = self.strip_csq_prefix(file_df)
 
-            # check what delimeter the data uses
-            # check end of file to avoid potential headers causing issues
-            delimeter = determine_delimeter(
-                '\n'.join(file_contents[-5:]), PurePath(file).suffixes
-            )
+                # force header to also be first line of df so it is written
+                # to the Excel sheet
+                file_df = pd.DataFrame(
+                    [file_df.columns], columns=file_df.columns).append(file_df)
+            else:
+                # some other delimited file => check what delimeter the data uses
+                # check end of file to avoid potential headers causing issues
+                delimeter = determine_delimeter(
+                    '\n'.join(file_contents[-5:]), PurePath(file).suffixes
+                )
 
-            file_df = pd.DataFrame(
-                [line.split(delimeter) for line in file_contents]
-            )
+                file_df = pd.DataFrame(
+                    [line.split(delimeter) for line in file_contents]
+                )
+
             self.additional_files[prefix] = file_df
 
 
@@ -448,9 +467,19 @@ class vcf():
                 )
 
 
-    def add_hyperlinks(self) -> None:
+    def add_hyperlinks(self, vcfs) -> list:
         """
         Format column value as an Excel hyperlink if URL for column specified
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to add hyperlinks to
+
+        Returns
+        -------
+        list
+            list of dataframes with added hyperlinks
         """
         # some URLs are build specific, infer which to use from build in header
         if self.refs:
@@ -472,7 +501,7 @@ class vcf():
             })
             build = 38
 
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             if vcf.empty:
                 # empty dataframe => nothing to add links to
                 continue
@@ -487,11 +516,13 @@ class vcf():
 
                 if url:
                     # column has a linked url => add appropriate hyperlink
-                    self.vcfs[idx][col] = self.vcfs[idx].apply(
+                    vcfs[idx][col] = vcfs[idx].apply(
                         lambda x: self.make_hyperlink(
                             column=col, url=url, value=x, build=build
                         ), axis=1
                     )
+
+        return vcfs
 
 
     def make_hyperlink(self, column, url, value, build):
@@ -648,11 +679,21 @@ class vcf():
         return nc_id
 
 
-    def format_strings(self) -> None:
+    def format_strings(self, vcfs) -> list:
         """
         Fix formatting of string values with different encoding and nans
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to fix strings for
+
+        Returns
+        -------
+        list
+            list of dataframes with fixed strings
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
                 lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
@@ -665,7 +706,9 @@ class vcf():
                 if x == 'nan' and type(x) == str else x
             )
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+        
+        return vcfs
 
 
     def print_columns(self) -> None:
