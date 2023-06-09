@@ -363,6 +363,10 @@ class vcf():
             if file.endswith('_CombinedVariantOutput.tsv'):
                 # file passed is a CombinedVariantOutput file from Illumina
                 # TSO500 app, just parse out TMB, MSI and Amplifications
+                print(
+                    'CombinedVariantOutput file passed to --additional_files, '
+                    'parsing out TMB, MSI and Amplifications'
+                )
                 file_df = parse_cvo(cvo_df=file_df)
 
 
