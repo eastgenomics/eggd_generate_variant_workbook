@@ -266,10 +266,11 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--decipher', required=False, action='store_true',
+            '--additional_columns', required=False, nargs='+',
             help=(
-                'Determines whether or not to include column of DECIPHER links'
-                'n.b. DECIPHER is only available for variants in build 38 '
+                'List of additional columns to add with hyperlinks to external '
+                'resources. Currently supports the following: decipher, '
+                'oncokb, cbioportal and pecan. See readme for details.'
             )
         )
         parser.add_argument(
