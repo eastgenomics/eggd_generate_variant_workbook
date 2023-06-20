@@ -122,6 +122,7 @@ The above will do the following:
 - `-include_columns` and `-exclude_columns` are mutually exclusive and can not be passed together
 - any arguments that are strings and passing multiple should be one space seperated string (i.e. `-iexclude="MLEAF MQRankSum MLEAC"`)
 - Fields in `INFO` and `FORMAT` columns will be split to individual columns, with the field key as the column name. If any duplicates are in the **FORMAT** column, these will have the suffix `(FMT)` (i.e. if depth is present in both `INFO` and `FORMAT`, the depth from `INFO` will be in column `DP` and the depth from `FORMAT` will be in `DP (FMT)`).
+- If the CombinedVariantOutput.tsv file from Illumina's TSO500 local app is passed to `-iadditional_files`, only the TMB, MSI and Gene Amplifications sections will be written to the sheet. 
 
 
 **Filtering**
