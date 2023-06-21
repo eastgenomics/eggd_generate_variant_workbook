@@ -35,8 +35,6 @@ class arguments():
             for x in self.args.__dict__
         ]))
 
-        sys.exit()
-
 
     class parsePairs(argparse.Action):
         """

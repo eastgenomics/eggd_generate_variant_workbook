@@ -118,6 +118,7 @@ def map_chr_to_nc(chrom, build) -> str:
     }
 
     nc_id = mapping.get(chrom, None)
+
     if nc_id:
         nc_id = nc_id.get(build, None)
 
@@ -185,7 +186,7 @@ class buildHyperlink():
             url = self.existing_variation(value[column])
         elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
             url = self.mastermind(value, build, column)
-            value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
+            value[column] = url.split('=')[1]
         elif 'clinvar' in column.lower():
             url = self.clinvar(value[column])
         elif 'hgmd' in column.lower():
