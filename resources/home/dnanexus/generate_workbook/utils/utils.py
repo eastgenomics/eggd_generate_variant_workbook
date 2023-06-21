@@ -424,9 +424,11 @@ def parse_cvo(cvo_df) -> pd.DataFrame:
 
 def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     """
-    Parse out sample metrics from MetricsOutput.tsv TSO500 local app file
-    if provided to --additional_files. Uses first VCF file prefix to assume
-    as sample name for parsing out of metrics file.
+    Parse out sample metrics from run level MetricsOutput.tsv TSO500 local
+    app output file if provided to --additional_files.
+    
+    Uses first VCF file prefix to assume as sample name for parsing out
+    of metrics file.
 
     Parameters
     ----------
@@ -440,9 +442,9 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     pd.DataFrame
         parsed MetricsOutput dataframe for given sample
     """
-    # get index of where per sample metrics start in file
+    # get index of where per sample metrics start in file, -2 to drop footer
     metrics_idx = metrics_df[0].eq('[DNA Library QC Metrics]').idxmax()
-    metrics_df = metrics_df.iloc[metrics_idx + 1:].reset_index(drop=True)
+    metrics_df = metrics_df.iloc[metrics_idx+1:-2].reset_index(drop=True)
 
     # get column of given samples metrics
     vcf_prefix = sample_vcf.split('_')[0]
