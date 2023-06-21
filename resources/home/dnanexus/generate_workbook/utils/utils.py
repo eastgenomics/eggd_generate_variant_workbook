@@ -176,6 +176,7 @@ class buildHyperlink():
 
         url = None
 
+        # partially match against column names and add appropriate hyperlink
         if 'gnomad' in column.lower():
             url = self.gnomad(value, build)
         elif 'cosmic' in column.lower():
@@ -189,7 +190,9 @@ class buildHyperlink():
             url = self.clinvar(value[column])
         elif 'hgmd' in column.lower():
             url = self.hgmd(value[column])
-        elif column.lower() == 'decipher':
+
+        # below will be exact matches as columns are from --additional_columns
+        if column.lower() == 'decipher':
             url = self.decipher(value, build, column)
             value[column] = url.split('/')[-1]
         elif column.lower() == 'oncokb':
