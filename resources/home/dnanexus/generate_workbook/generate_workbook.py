@@ -28,11 +28,14 @@ class arguments():
         self.verify_sheets()
         self.verify_images()
         self.verify_colours()
+        self.verify_additional_columns()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
             for x in self.args.__dict__
         ]))
+
+        sys.exit()
 
 
     class parsePairs(argparse.Action):
@@ -422,6 +425,26 @@ class arguments():
         ]) <= 1, (
             'invalid colouring expression - can not contain both & and | in '
             'a single expression'
+        )
+
+
+    def verify_additional_columns(self) -> None:
+        """
+        Checks when names passed to --additional_columns that they are
+        valid against what is currently handled.
+        """
+        valid_columns = [
+            "decipher", "cbioportal", "oncokb", "pecan"
+        ]
+
+        invalid_names = [
+            x for x in self.args.additional_columns
+            if x.lower() not in valid_columns
+        ]
+
+        assert not invalid_names, (
+            f"Invalid names passed to --additional_columns: {invalid_names}.\n"
+            f"Currently valid names for additional columns: {valid_columns}."
         )
 
 
