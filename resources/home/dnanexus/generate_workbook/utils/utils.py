@@ -126,7 +126,8 @@ def map_chr_to_nc(chrom, build) -> str:
 
 class buildHyperlink():
     """
-    _summary_
+    Functions for generating annotation resource specific hyperlinks to
+    display in the workbook.
     """
     def __init__(self) -> None:
         self.urls = {
@@ -144,21 +145,26 @@ class buildHyperlink():
 
     def build(self, column, value, build) -> str:
         """
-        _summary_
+        Build annotation resource specific hyperlinks from the above given
+        URLs, each resource has its own function as formatting of each is
+        different and may be build specific.
 
         Parameters
         ----------
-        column : _type_
-            _description_
-        value : _type_
-            _description_
-        build : _type_
-            _description_
+        column : str
+            current column for which to add URL
+        value : pd.Series
+            series of current row data, used to get column value from as well
+            as any other required fields (i.e. chrom, pos, ref, alt etc.)
+        build : int
+            either 37 or 38, inferred perviously from reference parsed from
+            vcf header, controls URL to use for those that are build specific 
 
         Returns
         -------
         str
-            _description_
+            Excel formatted hyperlink if a URL is present for that resource,
+            else just the original value is returned 
         """
         if (
             not value[column] or
@@ -177,7 +183,7 @@ class buildHyperlink():
         elif 'existing_variation' in column.lower():
             url = self.existing_variation(value[column])
         elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
-            url = self.mastermind()
+            url = self.mastermind(value, build, column)
             value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
         elif 'clinvar' in column.lower():
             url = self.clinvar(value[column])
@@ -196,9 +202,17 @@ class buildHyperlink():
             url = self.pecan(value)
             value[column] = value.CSQ_SYMBOL
 
-        if not url or len(url) > 255:
-            # Excel has a string limit of 255 characters inside a formula, if
-            # URL is too long just display the value
+        if not url:
+            # URL not generated, likely just a regular vcf column
+            return value[column]
+
+        if len(url) > 255:
+            # Excel has a string limit of 255 characters inside a formula,
+            # if URL is too long just display the value
+            print(
+                f'WARNING: generated hyperlink >255 characters: {url}.\n'
+                'Value will just be displayed in the workbook due to Excel limit.'
+            )
             return value[column]
 
         if is_numeric(value[column]):
@@ -210,14 +224,7 @@ class buildHyperlink():
             return f'=HYPERLINK("{url}", "{value[column]}")'
    
     def gnomad(self, value, build) -> str:
-        """
-        _summary_
-
-        Returns
-        -------
-        str
-            _description_
-        """
+        # gnomad URL has build specific suffix
         if build == 37:
             url = f"{self.urls['gnomad_base_url']}?dataset=gnomad_r2_1"
         elif build == 38:
@@ -233,43 +240,19 @@ class buildHyperlink():
         return url
 
     def cosmic(self, value, build, column) -> str:
-        """
-        _summary_
-        """
         url = self.urls.get('cosmic').replace('BUILD', str(build))
         url = f'{url}{value[column]}'
 
         return url
 
     def existing_variation(self, rsid) -> str:
-        """
-        _summary_
-
-        Parameters
-        ----------
-        value : _type_
-            _description_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         if not rsid.startswith('rs'):
             # non-rsID in Existing_variation column => return without URL
             return None
-        
+
         return f"{self.urls.get('existing_variation')}{rsid}"
 
     def mastermind(self, value, build, column) -> str:
-        """
-        _summary_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         if not build:
             # no reference build, can't generate URL
             return value[column]
@@ -284,37 +267,12 @@ class buildHyperlink():
         return url
 
     def clinvar(self, clinvar_id) -> str:
-        """
-        _summary_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         return f"{self.urls.get('clinvar')}{clinvar_id}"
 
     def hgmd(self, hgmd_id) -> str:
-        """
-        _summary_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         return f"{self.urls.get('hgmd')}{hgmd_id}"
 
     def decipher(self, value, build, column) -> str:
-        """
-        _summary_
-
-        Returns
-        -------
-        str
-            _description_
-        """
-        print('decipher')
         url = self.urls.get('decipher')
         url = url.replace('CHROM', str(value.CHROM).replace('chr', ''))
         url = url.replace('POS', str(value.POS))
@@ -324,51 +282,14 @@ class buildHyperlink():
         return url
 
     def oncokb(self, value) -> str:
-        """
-        _summary_
-
-        Parameters
-        ----------
-        value : _type_
-            _description_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         return f"{self.urls.get('oncokb')}{value.CSQ_SYMBOL}"
     
     def cbioportal(self, value) -> str:
-        """
-        _summary_
-
-
-        Returns
-        -------
-        str
-            _description_
-        """
         url = self.urls.get('cbioportal')
-
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"
 
     def pecan(self, value) -> str:
-        """
-        _summary_
-
-        Parameters
-        ----------
-        value : _type_
-            _description_
-
-        Returns
-        -------
-        str
-            _description_
-        """
         url = self.urls.get('pecan')
-
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"
 
 def parse_cvo(cvo_df) -> pd.DataFrame:
