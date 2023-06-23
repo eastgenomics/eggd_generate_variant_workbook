@@ -267,7 +267,7 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--additional_columns', required=False, nargs='+',
+            '--additional_columns', required=False, nargs='+', default=[],
             help=(
                 'List of additional columns to add with hyperlinks to external '
                 'resources. Currently supports the following: decipher, '
