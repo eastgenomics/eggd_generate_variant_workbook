@@ -1036,7 +1036,8 @@ class excel():
             "clinvar clndn": 18,
             "clinvar clinsig": 18,
             "cosmic": 15,
-            "feature": 17
+            "feature": 17,
+            "decipher": 24
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ

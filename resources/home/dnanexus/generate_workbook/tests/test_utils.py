@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(
     os.path.join(os.path.realpath(__file__), '../../')
 ))
 
-from utils.utils import determine_delimeter, is_numeric
+from utils.utils import determine_delimiter, is_numeric
 
 
 def test_is_numeric():
@@ -30,54 +30,54 @@ def test_is_numeric():
     )
 
 
-class TestDetermineDelimeter():
+class TestDeterminedelimiter():
     """
-    Tests for utils.determine_delimeter for detecting correct delimeter
+    Tests for utils.determine_delimiter for detecting correct delimiter
     """
     @staticmethod
     def test_comma():
-        delimeter = determine_delimeter('this,is,a,comma,separated,string', [])
+        delimiter = determine_delimiter('this,is,a,comma,separated,string', [])
 
-        assert delimeter == ',', 'failed to correctly identify comma delimeter'
+        assert delimiter == ',', 'failed to correctly identify comma delimiter'
 
     @staticmethod
     def test_semicolon():
-        delimeter = determine_delimeter('this;is;a;semi colon;separated;string', [])
+        delimiter = determine_delimiter('this;is;a;semi colon;separated;string', [])
 
-        assert delimeter == ';', (
-            'failed to correctly identify semi colon delimeter'
+        assert delimiter == ';', (
+            'failed to correctly identify semi colon delimiter'
         )
 
     @staticmethod
     def test_tab():
-        delimeter = determine_delimeter('this\tis\ta\tab\tseparated\tstring', [])
+        delimiter = determine_delimiter('this\tis\ta\tab\tseparated\tstring', [])
 
-        assert delimeter == '\t', 'failed to correctly identify tab delimeter'
+        assert delimiter == '\t', 'failed to correctly identify tab delimiter'
 
     @staticmethod
     def test_space():
-        delimeter = determine_delimeter('this is a space separated string', [])
+        delimiter = determine_delimiter('this is a space separated string', [])
 
-        assert delimeter == ' ', 'failed to correctly identify space delimeter'
+        assert delimiter == ' ', 'failed to correctly identify space delimiter'
 
     @staticmethod
     def test_mixed():
-        delimeter = determine_delimeter(
+        delimiter = determine_delimiter(
             '#this;is;a string with a.mix, of characters\nthat\tshould\tbe'
             '\tidentified\nas\ttab\tdelimited\tbecause\tit\thas\na\tweird'
             '\theader\tline', []
         )
 
-        assert delimeter == '\t', 'failed to correctly identify space delimeter'
+        assert delimiter == '\t', 'failed to correctly identify space delimiter'
 
     @staticmethod
     def test_tsv_suffix():
-        delimeter = determine_delimeter('tsvFileStringWithNoDelimeters', ['.tsv'])
+        delimiter = determine_delimiter('tsvFileStringWithNodelimiters', ['.tsv'])
 
-        assert delimeter == '\t', 'failed to correctly identify space delimeter'
+        assert delimiter == '\t', 'failed to correctly identify space delimiter'
 
     @staticmethod
     def test_csv_suffix():
-        delimeter = determine_delimeter('csvFileStringWithNoDelimeters', ['.csv'])
+        delimiter = determine_delimiter('csvFileStringWithNodelimiters', ['.csv'])
 
-        assert delimeter == ',', 'failed to correctly identify space delimeter'
+        assert delimiter == ',', 'failed to correctly identify space delimiter'

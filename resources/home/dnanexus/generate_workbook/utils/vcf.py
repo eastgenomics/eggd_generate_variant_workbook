@@ -11,7 +11,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import is_numeric, determine_delimeter, parse_cvo
+from .utils import buildHyperlink, is_numeric, determine_delimiter, parse_cvo
 
 
 class vcf():
@@ -42,15 +42,6 @@ class vcf():
         self.additional_files = {}
         self.refs = []
         self.filtered_vcfs = []
-        self.urls = {
-            "csq_existing_variation": "https://www.ncbi.nlm.nih.gov/snp/",
-            "csq_clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-            "csq_cosmic": "https://cancer.sanger.ac.uk/cosmic/search?genome=BUILD&q=",  # genome=37&q={ID}
-            "csq_hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
-            "csq_mastermind_mmid3": "https://mastermind.genomenon.com/detail?mutation=",
-            "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
-            "decipher": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT"
-        }
 
 
     def process(self) -> None:
@@ -170,8 +161,8 @@ class vcf():
         if self.args.exclude or self.args.include:
             self.drop_columns()
 
-        if self.args.decipher:
-            self.add_decipher_column()
+        if self.args.additional_columns:
+            self.add_additional_columns()
 
         if self.args.reorder:
             self.order_columns()
@@ -350,14 +341,14 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimeter the data uses
+            # check what delimiter the data uses
             # check end of file to avoid potential headers causing issues
-            delimeter = determine_delimeter(
+            delimiter = determine_delimiter(
                 '\n'.join(file_contents[-5:]), PurePath(file).suffixes
             )
 
             file_df = pd.DataFrame(
-                [line.split(delimeter) for line in file_contents]
+                [line.split(delimiter) for line in file_contents]
             )
 
             if file.endswith('_CombinedVariantOutput.tsv'):
@@ -464,199 +455,28 @@ class vcf():
         Format column value as an Excel hyperlink if URL for column specified
         """
         # some URLs are build specific, infer which to use from build in header
+        build = None
+        reference = ''
+
         if self.refs:
             reference = self.refs[0].lower()
-        else:
-            # no reference parsed from VCF header(s) => can't infer build
-            reference = ''
-
-        build = None
-
-        if '37' in reference or 'hg19' in reference:
-            self.urls.update({
-                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r2_1"
-            })
-            build = 37
-        elif '38' in reference:
-            self.urls.update({
-                "gnomad": f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
-            })
-            build = 38
+            if '37' in reference or 'hg19' in reference:
+                build = 37
+            elif '38' in reference:
+                build = 38
 
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
                 # empty dataframe => nothing to add links to
                 continue
-            for col in vcf.columns:
-                if 'gnomad' in col.lower():
-                    # gnomAD columns won't be exact match on name to dict
-                    url = self.urls.get('gnomad')
-                elif 'cosmic' in col.lower():
-                    url = self.urls.get('csq_cosmic')
-                else:
-                    url = self.urls.get(col.lower(), None)
-
-                if url:
-                    # column has a linked url => add appropriate hyperlink
-                    self.vcfs[idx][col] = self.vcfs[idx].apply(
-                        lambda x: self.make_hyperlink(
-                            column=col, url=url, value=x, build=build
-                        ), axis=1
-                    )
-
-
-    def make_hyperlink(self, column, url, value, build):
-        """
-        Return Excel formatted hyperlink from given url and value
-
-        Parameters
-        ----------
-        column : string
-            current column for adding URL to
-        url : string
-            URL string to add value(s) to
-        value : pd.Series
-            current row values to use for formatting of URL
-        build : int
-            reference build inferred from reference stored in vcf header,
-            will be either 37, 38 or None if can't be parsed
-
-        Returns
-        -------
-        str
-            url string formatted as Excel hyperlink
-        """
-        if 'decipher' not in column.lower():
-            # the decipher column is not from VEP and has been created
-            # manually so is empty
-            # this if statment excludes the decipher column from being
-            # skipped if it is empty
-            if (
-                not value[column] or pd.isna(value[column]) or
-                value[column] == 'nan' or value[column] == '.'
-            ):
-                # no value to build hyperlink
-                return value[column]
-
-        if (
-            column.lower() == 'existing_variation' and
-            not value[column].startswith('rs')
-        ):
-            # non-rsID in Existing_variation column => return without URL
-            return value[column]
-
-        if 'gnomad' in column.lower():
-            # handle gnomad differently as it requires chrom, pos, ref and
-            # alt in URL instead of just the value adding to the end
-            chrom = str(value.CHROM).replace('chr', '')
-            url = url.replace('CHROM', chrom)
-            url = url.replace('POS', str(value.POS))
-            url = url.replace('REF', str(value.REF))
-            url = url.replace('ALT', str(value.ALT))
-
-        elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
-            # build URL for MasterMind on genomic position
-            # get chromosome NC value for given chrom and build
-            if not build:
-                # no reference build, can't generate URL
-                return value[column]
-
-            # get NC value for chromosome
-            nc_id = self.map_chr_to_nc(str(value.CHROM).replace('chr', ''), build)
-
-            # build URL and set value to display equal to what is in the URL
-            url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
-            value[column] = f'{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
-
-        elif 'decipher' in column.lower():
-            # DECIPHER also requires the url to have the chrom, pos, ref
-            # and alt added to the url
-            chrom = str(value.CHROM).replace('chr', '')
-            url = url.replace('CHROM', chrom)
-            url = url.replace('POS', str(value.POS))
-            url = url.replace('REF', str(value.REF))
-            url = url.replace('ALT', str(value.ALT))
-            url = f'{url}'
-            # Create shortened form of the url to display in the excel
-            # sheet so there is no need to display full length hyperlink
-            value[column] = url.split('/')[-1]
-
-        elif 'cosmic' in column.lower():
-            # COSMIC requires the url to have the COSM ID added to the url
-            # stub differs based on genome build
-            url = url.replace('BUILD', str(build))
-            # Build COSMIC URL and set value to display equal to what is in
-            url = f'{url}{value[column]}'
-
-        else:
-            # other URLs with value appended to end
-            url = f'{url}{value[column]}'
-
-        if len(url) > 255:
-            # Excel has a string limit of 255 characters inside a formula
-            # If URL is too long just display the value
-            return value[column]
-
-        if is_numeric(value[column]):
-            # return numeric values not wrapped in quotes
-            return f'=HYPERLINK("{url}", {value[column]})'
-
-        else:
-            # values for everything else which is hyperlinked
-            # needs to be cast to string
-            return f'=HYPERLINK("{url}", "{value[column]}")'
-
-
-    def map_chr_to_nc(self, chrom, build) -> str:
-        """
-        Maps given chromosome to NC value for generating MasterMind URL, taken
-        from here: https://www.genomenon.com/mastermind-faq/#How%20can%20I%20search%20for%20variants%20in%20Mastermind
-
-        Parameters
-        ----------
-        chrom : str
-            chromsome to return NC value of
-        build : int
-            reference build inferred from reference stored in vcf header,
-            will be either 37 or 38
-
-        Returns
-        -------
-        nc_id : str
-            mapped NC value from chromosome
-        """
-        mapping = {
-            "1": {37: "NC_000001.10", 38: "NC_000001.11"},
-            "2": {37: "NC_000002.11", 38: "NC_000002.12"},
-            "3": {37: "NC_000003.11", 38: "NC_000003.12"},
-            "4": {37: "NC_000004.11", 38: "NC_000004.12"},
-            "5": {37: "NC_000005.9", 38: "NC_000005.10"},
-            "6": {37: "NC_000006.11", 38: "NC_000006.12"},
-            "7": {37: "NC_000007.13", 38: "NC_000007.14"},
-            "8": {37: "NC_000008.10", 38: "NC_000008."},
-            "9": {37: "NC_000009.11", 38: "NC_000009.12"},
-            "10": {37: "NC_000010.10", 38: "NC_000010.11"},
-            "11": {37: "NC_000011.9", 38: "NC_000011.10"},
-            "12": {37: "NC_000012.11", 38: "NC_000012.12"},
-            "13": {37: "NC_000013.10", 38: "NC_000013.11"},
-            "14": {37: "NC_000014.8", 38: "NC_000014.9"},
-            "15": {37: "NC_000015.9", 38: "NC_000015.10"},
-            "16": {37: "NC_000016.9", 38: "NC_000016.10"},
-            "17": {37: "NC_000017.10", 38: "NC_000017.11"},
-            "18": {37: "NC_000018.9", 38: "NC_000018.10"},
-            "19": {37: "NC_000019.9", 38: "NC_000019.10"},
-            "20": {37: "NC_000020.10", 38: "NC_000020.11"},
-            "21": {37: "NC_000021.8", 38: "NC_000021.9"},
-            "22": {37: "NC_000022.10", 38: "NC_000022.11"},
-            "X": {37: "NC_000023.10", 38: "NC_000023.11"},
-            "Y": {37: "NC_000024.9", 38: "NC_000024.10"}
-        }
-
-        nc_id = mapping.get(chrom, None)
-        if nc_id:
-            nc_id = nc_id.get(build, None)
-
-        return nc_id
+            for column in vcf.columns:
+                self.vcfs[idx][column] = self.vcfs[idx].apply(
+                    lambda x: buildHyperlink().build(
+                        column=column,
+                        value=x,
+                        build=build
+                    ), axis=1
+                )
 
 
     def format_strings(self) -> None:
@@ -769,7 +589,10 @@ class vcf():
             vcf_columns = list(vcf.columns)
 
             # check columns given are present in vcf
-            invalid = list(set(self.args.reorder) - set(vcf_columns))
+            invalid = list(
+                set(self.args.reorder) - set(vcf_columns) -
+                set(self.args.additional_columns)
+            )
             if invalid:
                 print(
                     f"WARNING: columns passed to --reorder not present in vcf:"
@@ -784,34 +607,33 @@ class vcf():
             self.vcfs[idx] = vcf[column_order]
 
 
-    def add_decipher_column(self) -> None:
+    def add_additional_columns(self) -> None:
         """
-        If --decipher input added this function will add an empty column to the
-        dataframe to be populated with decipher links
+        Append empty columns specified from --aditional_columns for adding
+        additional hyperlinks to external resources (e.g. decipher, oncoKB etc.)
         """
-        # Do not add column if there is no reference build information provided
-        if not self.refs:
-            print(
-                'WARNING: --decipher input specified but no reference could be'
-                ' parsed from the VCF header, continuing without adding '
-                'DECIPHER column'
-            )
-            return
+        for column in self.args.additional_columns:
+            if column in ['decipher']:
+                # column is only for b38, check if vcf also is
+                if not self.refs:
+                    print(
+                        f'WARNING: {column} specified to --additional_columns '
+                        'but no reference could be parsed from vcf header. '
+                        f'Continuing without adding {column} column.'
+                    )
+                    continue
 
-        # Do not add column if the build is 37, as DECIPHER only has build 38
-        # data.
-        if 'hg19' in self.refs[0] or '37' in self.refs[0]:
-            print(
-                f'WARNING: --decipher specified but VCF appears to be for '
-                f'build 37 ({self.refs[0]}), continuing without adding '
-                'DECIPHER column'
-            )
-            return
-
-        # Create empty DECIPHER column
-        for idx, vcf in enumerate(self.vcfs):
-            vcf['DECIPHER'] = ''
-            self.vcfs[idx] = vcf
+                if 'hg19' in self.refs[0] or '37' in self.refs[0]:
+                    print(
+                        f'WARNING: {column} specified to `--additional_columns '
+                        'but VCF appears to be for b37. Continuing without '
+                        f'adding {column} column.'
+                    )
+                    continue
+            
+            for idx, vcf in enumerate(self.vcfs):
+                vcf[column] = column
+                self.vcfs[idx] = vcf
 
 
     def rename_columns(self) -> None:

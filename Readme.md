@@ -90,7 +90,7 @@ This app may be executed as a standalone app.
 
 `--print_header` (`bool`): Print header of first vcf and exit. Useful for inspecting all fields and types for filtering.
 
-`--decipher` (`bool`): Add an extra column containing links to the variants in DECIPHER. Note DECIPHER only stores build 38 variants.
+`--additional_columns` (`string`): List of additional columns to add with hyperlinks to external resources. Currently supports the following: decipher, oncokb, cbioportal and pecan. These should be passed as a space separated strings (i.e. -iadditional_columns="oncoKB PeCan cBioPortal"). Details on exact URLs used are given in the table below.
 
 
 **Example**:
@@ -170,8 +170,17 @@ Some columns will be formatted with URLs as hyperlinks in the output variant she
 | cosmic (exact) | https://cancer.sanger.ac.uk/cosmic/search?q= |
 | hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
 | mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
-| decipher (NA) | https://www.deciphergenomics.org/sequence-variant/ |
 
+URLs used for generating of columns specified from `-iadditoinal_columns`:
+
+| Name | URL |
+| ---  | --- |
+| decipher | https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT |
+| oncoKB | https://www.oncokb.org/gene/ |
+| PeCan | https://pecan.stjude.cloud/variants/protein-paint/?gene=SYMBOL |
+| cBioPortal | https://www.cbioportal.org/results/mutations?case_set_id=all&gene_list=SYMBOL&cancer_study_list=5c8a7d55e4b046111fee2296 |
+
+n.b. the above link to cBioPortal defaults to the 'TCGA PanCancer Atlas Studies' dataset.
 
 
 ## What does this app output?
