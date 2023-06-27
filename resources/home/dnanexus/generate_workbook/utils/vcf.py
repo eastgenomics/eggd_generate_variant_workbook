@@ -11,7 +11,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import buildHyperlink, is_numeric, determine_delimeter, \
+from .utils import buildHyperlink, is_numeric, determine_delimiter, \
     parse_cvo, parse_metrics_output
 
 
