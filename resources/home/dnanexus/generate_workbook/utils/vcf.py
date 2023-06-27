@@ -7,6 +7,7 @@ import sys
 from typing import Union
 import urllib.parse
 
+import numpy as np
 import pandas as pd
 
 from .columns import splitColumns
@@ -158,6 +159,12 @@ class vcf():
 
         if self.args.merge:
             self.vcfs = self.merge(self.vcfs)
+        
+        if self.args.panels:
+            assert len(self.vcfs) == 1, (
+                ''
+            )
+            self.create_panels()
 
         if self.args.filter and self.args.keep:
             # merge all filtered dataframes to one and add to list of vcfs for
@@ -739,6 +746,16 @@ class vcf():
                     # include has already selected valid columns
                     for col in invalid:
                         to_drop.remove(col)
+            
+            if self.args.panels:
+                # we have created some panel dfs, as these columns can be
+                # separately dropped through --drop_panel_columns, we will
+                # only drop them from the non-panel dfs if specified
+                panel_sheets = range(1, len(self.args.panels) + 1)
+                if idx in panel_sheets:
+                    # this is a panel df => remove the panel columns from drop list
+                    panel_columns = [x.split(':')[1] for x in self.args.panels]
+                    to_drop = [x for x in to_drop if x not in panel_columns]
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
@@ -759,16 +776,17 @@ class vcf():
 
             # check columns given are present in vcf
             invalid = list(set(self.args.reorder) - set(vcf_columns))
+            col_order = self.args.reorder.copy()
             if invalid:
                 print(
                     f"WARNING: columns passed to --reorder not present in vcf:"
                     f" {invalid}. Skipping these columns and continuing..."
                 )
                 for col in invalid:
-                    self.args.reorder.remove(col)
+                    col_order.remove(col)
 
-            [vcf_columns.remove(x) for x in self.args.reorder]
-            column_order = self.args.reorder + vcf_columns
+            [vcf_columns.remove(x) for x in col_order]
+            column_order = col_order + vcf_columns
 
             self.vcfs[idx] = vcf[column_order]
 
@@ -892,3 +910,48 @@ class vcf():
         vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
+
+
+    def create_panels(self) -> None:
+        """
+        Create panel tabs of variants from those specified to --panels.
+
+        Format will be a list of 'panel_name:INFO field', where 'panel_name'
+        is the name to be used for the sheet in the workbook and 'INFO field'
+        is the vcf INFO field for which to check presence of and include in
+        the sheet.
+        """
+        # df of variants to create panels from, if filtering has occurred this
+        # will be the 'included' tab, else it will be all of the variants  
+        vcf = self.vcfs[0]
+        for panel in self.args.panels:
+            name, info = panel.split(':')
+
+            # check given INFO field is present, if not create an empty tab
+            # as it may just be that no variants have the annotation
+            if not info in vcf.columns:
+                print(
+                    f'WARNING: INFO field "{info}" specified to --panels '
+                    'not present in vcf INFO fields, adding empty panel tab'
+                )
+                panel_df = pd.DataFrame(columns=vcf.columns)
+            else:
+                # create panel df where the given INFO field has been annotated
+                panel_df = vcf.loc[
+                    np.where((vcf[info] != '.') & (vcf[info]))
+                ]
+            
+            # specified list of columns to remove, drop those from this sheet
+            # but keep the colum used for filtering in of this panel
+            if self.args.drop_panel_columns:
+                to_drop = self.args.drop_panel_columns.copy()
+                if info in to_drop:
+                    to_drop.remove(info)
+                
+                print(f'dropping {to_drop}')
+
+                panel_df.drop(to_drop, axis=1, inplace=True, errors='ignore')
+
+            panel_df.reset_index(inplace=True, drop=True)
+            self.vcfs.append(panel_df)
+            self.args.sheets.append(name)

@@ -280,6 +280,25 @@ class arguments():
                 'colour is a valid hex value or colour name'
             )
         )
+        parser.add_argument(
+            '--panels', required=False, nargs='+',
+            help=(
+                'List of panel tabs to add to workbook based off presence of '
+                'INFO field for variants. This should be specified as pairs '
+                'of "panel_name:INFO field", where panel_name will be used to '
+                'name the tab, and INFO field will control inclusion of '
+                'variants in the tab'
+            )
+        )
+        parser.add_argument(
+            '--drop_panel_columns', required=False, nargs='+',
+            help=(
+                'Names of workbook columns to drop if being used for generating '
+                'multiple panels. If specified here, then the column for the '
+                'current panel will be retained in the sheet columns, but all '
+                'others will be dropped.'
+            )
+        )
 
         return parser.parse_args()
 
