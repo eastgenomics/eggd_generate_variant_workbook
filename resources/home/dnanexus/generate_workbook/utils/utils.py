@@ -443,7 +443,6 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     pd.DataFrame
         parsed MetricsOutput dataframe for given sample
     """
-    print('TSO500 MetricsOutput passed, attempting to parse sample metrics')
     # get index of where per sample metrics start in file, -2 to drop footer
     metrics_idx = metrics_df[0].eq('[DNA Library QC Metrics]').idxmax()
 
