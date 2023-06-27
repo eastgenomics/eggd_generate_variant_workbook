@@ -947,8 +947,6 @@ class vcf():
                 to_drop = self.args.drop_panel_columns.copy()
                 if info in to_drop:
                     to_drop.remove(info)
-                
-                print(f'dropping {to_drop}')
 
                 panel_df.drop(to_drop, axis=1, inplace=True, errors='ignore')
 
