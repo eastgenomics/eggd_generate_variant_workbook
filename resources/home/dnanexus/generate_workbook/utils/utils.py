@@ -371,6 +371,7 @@ class buildHyperlink():
 
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"
 
+
 def parse_cvo(cvo_df) -> pd.DataFrame:
     """
     Parse MSI, TMB and Gene Amplifications section from Illumina TSO500
@@ -442,8 +443,15 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     pd.DataFrame
         parsed MetricsOutput dataframe for given sample
     """
+    print('TSO500 MetricsOutput passed, attempting to parse sample metrics')
     # get index of where per sample metrics start in file, -2 to drop footer
     metrics_idx = metrics_df[0].eq('[DNA Library QC Metrics]').idxmax()
+
+    if not metrics_idx:
+        # file doesn't have expected field for MetricsOutput
+        return metrics_df
+
+    # select metrics from file without top section of run header and footer
     metrics_df = metrics_df.iloc[metrics_idx+1:-2].reset_index(drop=True)
 
     # get column of given samples metrics
@@ -464,7 +472,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
         return metrics_df
     
     if len(idx) > 1:
-        # found more than one match for given prefix
+        # found more than one match for given prefix, return whole file
         print(
             'WARNING: Found more than one sample match in MetricsOutput.tsv '
             f'for prefix: {vcf_prefix}. Writing whole file to sheet.'
