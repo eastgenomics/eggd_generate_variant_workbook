@@ -589,7 +589,10 @@ class vcf():
             vcf_columns = list(vcf.columns)
 
             # check columns given are present in vcf
-            invalid = list(set(self.args.reorder) - set(vcf_columns))
+            invalid = list(
+                set(self.args.reorder) - set(vcf_columns) -
+                set(self.args.additional_columns)
+            )
             if invalid:
                 print(
                     f"WARNING: columns passed to --reorder not present in vcf:"
@@ -606,7 +609,8 @@ class vcf():
 
     def add_additional_columns(self) -> None:
         """
-
+        Append empty columns specified from --aditional_columns for adding
+        additional hyperlinks to external resources (e.g. decipher, oncoKB etc.)
         """
         for column in self.args.additional_columns:
             if column in ['decipher']:
@@ -628,7 +632,7 @@ class vcf():
                     continue
             
             for idx, vcf in enumerate(self.vcfs):
-                vcf[column.upper()] = column
+                vcf[column] = column
                 self.vcfs[idx] = vcf
 
 

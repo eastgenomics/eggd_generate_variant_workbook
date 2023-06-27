@@ -128,13 +128,15 @@ def map_chr_to_nc(chrom, build) -> str:
 class buildHyperlink():
     """
     Functions for generating annotation resource specific hyperlinks to
-    display in the workbook.
+    display in the workbook. Each link is formatted slightly different, so
+    they get their own hand crafted artisanal functions to generate them in
+    the correct format from the below base URLs.
     """
     def __init__(self) -> None:
         self.urls = {
             "existing_variation": "https://www.ncbi.nlm.nih.gov/snp/",
             "clinvar": "https://www.ncbi.nlm.nih.gov/clinvar/variation/",
-            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?genome=BUILD&q=",  # genome=37&q={ID}
+            "cosmic": "https://cancer.sanger.ac.uk/cosmic/search?genome=BUILD&q=",
             "hgmd": "https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc=",
             "mastermind": "https://mastermind.genomenon.com/detail?mutation=",
             "gnomad_base_url": "https://gnomad.broadinstitute.org/variant/CHROM-POS-REF-ALT",
@@ -146,9 +148,7 @@ class buildHyperlink():
 
     def build(self, column, value, build) -> str:
         """
-        Build annotation resource specific hyperlinks from the above given
-        URLs, each resource has its own function as formatting of each is
-        different and may be build specific.
+        Build annotation resource specific hyperlinks from the above given URLs
 
         Parameters
         ----------
