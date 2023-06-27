@@ -11,7 +11,7 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import buildHyperlink, is_numeric, determine_delimeter, parse_cvo
+from .utils import buildHyperlink, is_numeric, determine_delimiter, parse_cvo
 
 
 class vcf():
@@ -341,14 +341,14 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimeter the data uses
+            # check what delimiter the data uses
             # check end of file to avoid potential headers causing issues
-            delimeter = determine_delimeter(
+            delimiter = determine_delimiter(
                 '\n'.join(file_contents[-5:]), PurePath(file).suffixes
             )
 
             file_df = pd.DataFrame(
-                [line.split(delimeter) for line in file_contents]
+                [line.split(delimiter) for line in file_contents]
             )
 
             if file.endswith('_CombinedVariantOutput.tsv'):

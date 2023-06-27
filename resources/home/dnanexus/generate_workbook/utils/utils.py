@@ -33,9 +33,9 @@ def is_numeric(value:str) -> bool:
         return False
 
 
-def determine_delimeter(data, suffixes) -> None:
+def determine_delimiter(data, suffixes) -> None:
     """
-    Attempt to determine delimeter from a given string and list of
+    Attempt to determine delimiter from a given string and list of
     file suffixes.
 
     Will check for tsv or csv in suffixes and return accordingly, if not
@@ -45,14 +45,14 @@ def determine_delimeter(data, suffixes) -> None:
     Parameters
     ----------
     data : str
-        data to check for delimeter
+        data to check for delimiter
     suffixes : list
         list of file suffixes
 
     Returns
     -------
-    delimeter : str
-        delimeter inferred from given data
+    delimiter : str
+        delimiter inferred from given data
     """
     if '.tsv' in suffixes:
         return '\t'
@@ -61,15 +61,15 @@ def determine_delimeter(data, suffixes) -> None:
         return ','
 
     try:
-        delimeter = Sniffer().sniff(str(data)).delimiter
+        delimiter = Sniffer().sniff(str(data)).delimiter
     except Exception as error:
         print(
-            "Error in determing delimeter from given data. Will default "
+            "Error in determing delimiter from given data. Will default "
             f"to using tabs.\n\nError: {error}\n\n"
         )
-        delimeter = '\t'
+        delimiter = '\t'
 
-    return delimeter
+    return delimiter
 
 
 def map_chr_to_nc(chrom, build) -> str:
