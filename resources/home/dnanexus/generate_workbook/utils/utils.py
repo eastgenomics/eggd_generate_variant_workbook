@@ -193,6 +193,8 @@ class buildHyperlink():
             url = self.hgmd(value[column])
 
         # below will be exact matches as columns are from --additional_columns
+        # for each we are setting the value to just be the gene symbol since
+        # they aren't 'real' annotation from the vcf and therefore are empty
         if column.lower() == 'decipher':
             url = self.decipher(value, build, column)
             value[column] = url.split('/')[-1]
@@ -213,10 +215,6 @@ class buildHyperlink():
         if len(url) > 255:
             # Excel has a string limit of 255 characters inside a formula,
             # if URL is too long just display the value
-            print(
-                f'WARNING: generated hyperlink >255 characters: {url}.\n'
-                'Value will just be displayed in the workbook due to Excel limit.'
-            )
             return value[column]
 
         if is_numeric(value[column]):
@@ -295,6 +293,7 @@ class buildHyperlink():
     def pecan(self, value) -> str:
         url = self.urls.get('pecan')
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"
+
 
 def parse_cvo(cvo_df) -> pd.DataFrame:
     """
