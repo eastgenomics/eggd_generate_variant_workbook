@@ -342,14 +342,14 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimeter the data uses
+            # check what delimiter the data uses
             # check end of file to avoid potential headers causing issues
-            delimeter = determine_delimeter(
+            delimiter = determine_delimiter(
                 '\n'.join(file_contents[-5:]), PurePath(file).suffixes
             )
 
             file_df = pd.DataFrame(
-                [line.split(delimeter) for line in file_contents]
+                [line.split(delimiter) for line in file_contents]
             )
 
             if file.endswith('_CombinedVariantOutput.tsv'):
@@ -601,7 +601,10 @@ class vcf():
             vcf_columns = list(vcf.columns)
 
             # check columns given are present in vcf
-            invalid = list(set(self.args.reorder) - set(vcf_columns))
+            invalid = list(
+                set(self.args.reorder) - set(vcf_columns) -
+                set(self.args.additional_columns)
+            )
             if invalid:
                 print(
                     f"WARNING: columns passed to --reorder not present in vcf:"
@@ -618,7 +621,8 @@ class vcf():
 
     def add_additional_columns(self) -> None:
         """
-
+        Append empty columns specified from --aditional_columns for adding
+        additional hyperlinks to external resources (e.g. decipher, oncoKB etc.)
         """
         for column in self.args.additional_columns:
             if column in ['decipher']:
@@ -640,7 +644,7 @@ class vcf():
                     continue
             
             for idx, vcf in enumerate(self.vcfs):
-                vcf[column.upper()] = column
+                vcf[column] = column
                 self.vcfs[idx] = vcf
 
 
