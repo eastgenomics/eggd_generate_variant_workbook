@@ -371,6 +371,10 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
 
     if not metrics_idx:
         # file doesn't have expected field for MetricsOutput
+        print(
+            f'WARNING: Could not parse "[DNA Library QC Metrics]" from '
+            'MetricsOutput.tsv. Writing whole file to sheet.'
+        )
         return metrics_df
 
     # select metrics from file without top section of run header and footer
