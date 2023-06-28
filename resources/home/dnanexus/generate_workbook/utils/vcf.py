@@ -11,7 +11,8 @@ import pandas as pd
 
 from .columns import splitColumns
 from .filters import filter
-from .utils import buildHyperlink, is_numeric, determine_delimiter, parse_cvo
+from .utils import buildHyperlink, is_numeric, determine_delimiter, \
+    parse_cvo, parse_metrics_output
 
 
 class vcf():
@@ -359,7 +360,18 @@ class vcf():
                     'parsing out TMB, MSI and Amplifications'
                 )
                 file_df = parse_cvo(cvo_df=file_df)
-
+            
+            if file.endswith('MetricsOutput.tsv'):
+                # file passed is run level MetricsOutput.tsv from Illumina
+                # TSO500 app, attempt to parse out just sample metrics to display
+                print(
+                    'TSO500 MetricsOutput passed to --additional_files, '
+                    'attempting to parse sample metrics from file'
+                )
+                file_df = parse_metrics_output(
+                    metrics_df=file_df,
+                    sample_vcf=Path(self.args.vcfs[0]).name
+                )
 
             self.additional_files[prefix] = file_df
 

@@ -344,3 +344,68 @@ def parse_cvo(cvo_df) -> pd.DataFrame:
         return cvo_df
 
     return cvo_df.iloc[tmb_idx:splice_idx]
+
+
+def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
+    """
+    Parse out sample metrics from run level MetricsOutput.tsv TSO500 local
+    app output file if provided to --additional_files.
+    
+    Uses first VCF file prefix to assume as sample name for parsing out
+    of metrics file.
+
+    Parameters
+    ----------
+    metrics_df : pd.DataFrame
+        DataFrame of all metrics from MetricsOutput.tsv
+    sample_vcf : str
+        name of sample vcf file
+
+    Returns
+    -------
+    pd.DataFrame
+        parsed MetricsOutput dataframe for given sample
+    """
+    # get index of where per sample metrics start in file, -2 to drop footer
+    metrics_idx = metrics_df[0].eq('[DNA Library QC Metrics]').idxmax()
+
+    if not metrics_idx:
+        # file doesn't have expected field for MetricsOutput
+        print(
+            f'WARNING: Could not parse "[DNA Library QC Metrics]" from '
+            'MetricsOutput.tsv. Writing whole file to sheet.'
+        )
+        return metrics_df
+
+    # select metrics from file without top section of run header and footer
+    metrics_df = metrics_df.iloc[metrics_idx+1:-2].reset_index(drop=True)
+
+    # get column of given samples metrics
+    vcf_prefix = sample_vcf.split('_')[0]
+
+    # get column index of our sample
+    idx = [
+        idx for idx, column in enumerate(metrics_df.iloc[0])
+        if column.startswith(vcf_prefix)
+    ]
+
+    if not idx:
+        # can't find sample, return whole file
+        print(
+            f'WARNING: Could not parse sample from MetricsOutput.tsv with '
+            f'prefix: {vcf_prefix}. Writing whole file to sheet.'
+        )
+        return metrics_df
+    
+    if len(idx) > 1:
+        # found more than one match for given prefix, return whole file
+        print(
+            'WARNING: Found more than one sample match in MetricsOutput.tsv '
+            f'for prefix: {vcf_prefix}. Writing whole file to sheet.'
+        )
+        return metrics_df
+    
+    # select first 3 cols with labels and our sample column
+    metrics_df = metrics_df.iloc[:, [0, 1, 2, idx[0]]]
+
+    return metrics_df

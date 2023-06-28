@@ -674,6 +674,13 @@ class excel():
 
                 col_letter = get_column_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
+            
+            # set widths of any columns we have specified below in set_width()
+            # to override the above defaults
+            # get column names from first row of sheet
+            sheet_columns = [
+                '' if x is None else x for x in file_df.iloc[0].tolist()]
+            self.set_widths(curr_worksheet, sheet_columns)
 
 
     def write_images(self) -> None:
@@ -1037,7 +1044,9 @@ class excel():
             "clinvar clinsig": 18,
             "cosmic": 15,
             "feature": 17,
-            "decipher": 24
+            "decipher": 24,
+            "Metric (UOM)": 52,  # TSO500 MetricsOutput.tsv
+            "[TMB]": 32  # TSO500 CombinedVariantOutput.tsv
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
