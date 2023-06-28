@@ -28,6 +28,7 @@ class arguments():
         self.verify_sheets()
         self.verify_images()
         self.verify_colours()
+        self.verify_panels()
 
         print(f"Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -440,6 +441,23 @@ class arguments():
         ]) <= 1, (
             'invalid colouring expression - can not contain both & and | in '
             'a single expression'
+        )
+    
+
+    def verify_panels(self) -> None:
+        """
+        Checks when panels have been specified with --panels that the format
+        is valid.
+
+        Raises
+        ------
+        AssertionError
+            Raised if one or more of the panels is not a : separated pair
+        """
+        invalid = [x for x in self.args.panels if x.count(':') != 1]
+
+        assert not invalid, (
+            f"Error: one or more options specified to --panels is invalid: {invalid}"
         )
 
 
