@@ -1186,7 +1186,7 @@ class excel():
             if idx in green:
                 worksheet[f"D{idx+1}"].fill = PatternFill(
                     patternType="solid",
-                    start_color='00b300'
+                    start_color='008100'
                 )
             if idx in red:
                 worksheet[f"D{idx+1}"].fill = PatternFill(
