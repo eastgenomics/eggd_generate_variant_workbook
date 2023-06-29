@@ -688,7 +688,15 @@ class excel():
                 if len(file_df.columns.tolist()) == 4:
                     # only 4 columns => given sample metrics correctly
                     # parsed from full run metrics
-                    self.colour_metrics_output(file_df, curr_worksheet)
+                    try:
+                        self.colour_metrics_output(file_df, curr_worksheet)
+                    except Exception as err:
+                        # catch any error raised to not break the app and
+                        # just print a warning since its non-essential
+                        print(
+                            "Warning: error in colouring MetricsOutput sheet:"
+                            f"\n\t{err}\nContinuing without colouring."
+                        )
 
 
     def write_images(self) -> None:
