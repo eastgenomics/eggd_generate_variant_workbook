@@ -682,6 +682,14 @@ class excel():
                 '' if x is None else x for x in file_df.iloc[0].tolist()]
             self.set_widths(curr_worksheet, sheet_columns)
 
+            if file_df.loc[0][0] == 'Metric (UOM)':
+                # additional file is MetricsOutput.tsv from TSO500 => attempt
+                # to colour metrics in output sheet
+                if len(file_df.columns.tolist()) == 4:
+                    # only 4 columns => given sample metrics correctly
+                    # parsed from full run metrics
+                    self.colour_metrics_output(file_df, curr_worksheet)
+
 
     def write_images(self) -> None:
         """
@@ -1104,3 +1112,76 @@ class excel():
                 width = 13
 
         return width
+
+
+    def colour_metrics_output(self, file_df, worksheet) -> None:
+        """
+        Add colouring to MetricsOutput sheet, this will colour a defined no.
+        of rows dependent on the sample value and upper and lower limits
+
+        File is formatted as:
+
+        Metric (UOM)	            LSL Guideline	USL Guideline	Sample
+        CONTAMINATION_SCORE (NA)	0	            3106	        1016
+        CONTAMINATION_P_VALUE (NA)	0	            0.049	        0.92
+
+        Where in the above, the CONTAMINATION_SCORE for Sample would be
+        coloured green as it lies in the LSL and USL bounds, but the Sample
+        value for CONTAMINATION_P_VALUE would be coloured red as it is > USL
+
+
+        Parameters
+        ----------
+        file_df : pd.DataFrame
+            DataFrame of MetricsOutput written to the workbook sheet
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        """
+        to_colour = [
+            1, 2, 6, 7, 8, 12, 16, 17, 21, 22, 23, 24, 25, 26, 27,
+            28, 29, 30, 31, 32, 33, 34, 38, 39, 40, 44, 45, 46, 47
+        ]
+        green = []
+        red = []
+
+        for idx, row in file_df.iterrows():
+            if not all([row.iloc[1], row.iloc[2], row.iloc[3]]):
+                # blank row
+                continue
+            if idx in to_colour:
+                if row.iloc[1] == 'NA' and row.iloc[2] == 'NA':
+                    # both have no guideline values => skip
+                    continue
+                if row.iloc[3] == 'NA':
+                    # no sample value
+                    continue
+                if row.iloc[1] != 'NA' and row.iloc[2] == 'NA':
+                    # lower limit but no upper limit
+                    if float(row.iloc[3]) >= float(row.iloc[1]):
+                        green.append(idx)
+                    else:
+                        red.append(idx)
+                if row.iloc[1] == 'NA' and row.iloc[2] != 'NA':
+                    # no lower limit but has upper limit
+                    if float(row.iloc[3]) <= float(row.iloc[2]):
+                        green.append(idx)
+                    else:
+                        red.append(idx)
+                if row.iloc[1] != 'NA' and row.iloc[2] != 'NA':
+                    # lower and upper limits set:
+                    if float(row.iloc[1]) <= float(row.iloc[3]) <= float(row.iloc[2]):
+                        green.append(idx)
+                    else:
+                        red.append(idx)
+
+        for idx in to_colour:
+            if idx in green:
+                worksheet[f"D{idx+1}"].fill = PatternFill(
+                    patternType="solid",
+                    start_color='00b300'
+                )
+            if idx in red:
+                worksheet[f"D{idx+1}"].fill = PatternFill(
+                    patternType="solid",
+                    start_color='b30000'
+                )
