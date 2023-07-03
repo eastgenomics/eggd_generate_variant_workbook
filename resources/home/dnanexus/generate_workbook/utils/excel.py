@@ -9,6 +9,8 @@ from typing import Union
 from colour import Color
 import Levenshtein as levenshtein
 import numpy as np
+from openpyxl.cell.rich_text import TextBlock, CellRichText
+from openpyxl.cell.text import InlineFont
 from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
@@ -1146,10 +1148,11 @@ class excel():
             writer object for current sheet
         """
         to_colour = [
-            1, 2, 6, 7, 8, 12, 16, 17, 21, 22, 23, 24, 25, 26, 27,
-            28, 29, 30, 31, 32, 33, 34, 38, 39, 40, 44, 45, 46, 47
+            2, 6, 7, 12, 16, 17, 21, 22, 23, 24, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 38, 39, 40, 44, 45, 46, 47
         ]
         green = []
+        amber = []
         red = []
 
         for idx, row in file_df.iterrows():
@@ -1181,6 +1184,25 @@ class excel():
                         green.append(idx)
                     else:
                         red.append(idx)
+        
+        # PCT EXON 50x and 100x using more stringent thresholds than in file
+        if float(file_df.iloc[:, 3][8]) >= 95:
+            # 50x
+            green.append(8)
+        else:
+            red.append(8)
+        
+        if float(file_df.iloc[:, 3][25]) >= 95:
+            # 100x
+            green.append(25)
+        else:
+            red.append(25)
+        
+        # contamination score wants to be amber if over upper bound
+        if float(file_df.iloc[:, 3][1]) > float(file_df.iloc[:, 2][1]):
+            amber.append(1)
+        else:
+            green.append(1)
 
         for idx in to_colour:
             if idx in green:
@@ -1188,8 +1210,33 @@ class excel():
                     patternType="solid",
                     start_color='008100'
                 )
+            if idx in amber:
+                worksheet[f"D{idx+1}"].fill = PatternFill(
+                    patternType="solid",
+                    start_color='ff9f00'
+                )
             if idx in red:
                 worksheet[f"D{idx+1}"].fill = PatternFill(
                     patternType="solid",
                     start_color='b30000'
                 )
+
+        # add explanation on colouring
+        worksheet["F3"].value = (
+            "Colouring in this sheet is based off the sample value being "
+            "between the LSL and USL \nguidelines, with the following exceptions:"
+        )
+        worksheet["F5"].value = CellRichText("- PCT_EXON_50X LSL set to ",
+            TextBlock(InlineFont(b=True, rFont='Calibri'), '95'))
+        worksheet["F6"].value = CellRichText("- PCT_EXON_100X LSL set to ",
+            TextBlock(InlineFont(b=True, rFont='Calibri'), '90'))
+        worksheet["F7"].value = "- CONTAMINATION_SCORE > USL will be amber"
+
+        worksheet.merge_cells(
+            start_row=3, end_row=4, start_column=6, end_column=14)
+        worksheet.merge_cells(
+            start_row=5, end_row=5, start_column=6, end_column=10)
+        worksheet.merge_cells(
+            start_row=6, end_row=6, start_column=6, end_column=10)
+        worksheet.merge_cells(
+            start_row=7, end_row=7, start_column=6, end_column=10)
