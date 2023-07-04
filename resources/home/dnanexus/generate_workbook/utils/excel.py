@@ -1197,12 +1197,14 @@ class excel():
             green.append(25)
         else:
             red.append(25)
-        
+
         # contamination score wants to be amber if over upper bound
         if float(file_df.iloc[:, 3][1]) > float(file_df.iloc[:, 2][1]):
             amber.append(1)
         else:
             green.append(1)
+        
+        to_colour.extend([1, 8, 25])
 
         for idx in to_colour:
             if idx in green:
