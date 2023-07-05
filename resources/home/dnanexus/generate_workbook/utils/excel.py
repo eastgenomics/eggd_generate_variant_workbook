@@ -1130,14 +1130,15 @@ class excel():
         of rows dependent on the sample value and upper and lower limits
 
         File is formatted as:
+			
+        Metric (UOM)                LSL Guideline	USL Guideline	Sample
+        COVERAGE_MAD (Count)        0	            0.21	        0.12
+        MEDIAN_BIN_COUNT_CNV_TARGET	1	            NA	            6.1
 
-        Metric (UOM)	            LSL Guideline	USL Guideline	Sample
-        CONTAMINATION_SCORE (NA)	0	            3106	        1016
-        CONTAMINATION_P_VALUE (NA)	0	            0.049	        0.92
 
-        Where in the above, the CONTAMINATION_SCORE for Sample would be
-        coloured green as it lies in the LSL and USL bounds, but the Sample
-        value for CONTAMINATION_P_VALUE would be coloured red as it is > USL
+        Where in the above, both samples values would be coloured green as
+        COVERAGE_MAD lies between LSL and USL, and MEDIAN_BIN_COUNT_CNV_TARGET
+        is above the LSL.
 
 
         Parameters
