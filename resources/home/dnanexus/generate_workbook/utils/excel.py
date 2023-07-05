@@ -684,7 +684,7 @@ class excel():
                 '' if x is None else x for x in file_df.iloc[0].tolist()]
             self.set_widths(curr_worksheet, sheet_columns)
 
-            if file_df.loc[0][0] == 'Metric (UOM)':
+            if file_df.iloc[0].iloc[0] == 'Metric (UOM)':
                 # additional file is MetricsOutput.tsv from TSO500 => attempt
                 # to colour metrics in output sheet
                 if len(file_df.columns.tolist()) == 4:
