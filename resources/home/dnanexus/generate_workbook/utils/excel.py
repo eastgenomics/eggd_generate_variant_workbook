@@ -1193,7 +1193,7 @@ class excel():
         else:
             red.append(8)
         
-        if float(file_df.iloc[:, 3][25]) >= 95:
+        if float(file_df.iloc[:, 3][25]) >= 90:
             # 100x
             green.append(25)
         else:
