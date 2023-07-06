@@ -134,15 +134,6 @@
       "group": "generate_workbook.py"
     },
     {
-      "name": "add_classification_column",
-      "label": "Add classification column",
-      "class": "boolean",
-      "optional": true,
-      "default": false,
-      "help": "Add empty classification column to end of each sheet of variants",
-      "group": "generate_workbook.py"
-    },
-    {
       "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",
