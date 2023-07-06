@@ -145,6 +145,9 @@ class vcf():
             if not self.args.keep_tmp:
                 os.remove(split_vcf_gz)
 
+        if self.args.split_hgvs:
+            self.split_hgvs()
+
         if self.args.print_columns:
             self.print_columns()
 
@@ -158,9 +161,6 @@ class vcf():
                 self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
-
-        if self.args.split_hgvs:
-            self.split_hgvs()
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
