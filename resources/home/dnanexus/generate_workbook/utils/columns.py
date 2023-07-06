@@ -205,3 +205,4 @@ class splitColumns():
 
 
         return vcf_df
+
