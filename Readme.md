@@ -53,7 +53,7 @@ This app may be executed as a standalone app.
 
 `--add_comment_column` (`bool`): Determines if to append empty 'Comment' column to end of each sheet of variants.
 
-`--add_comment_column` (`bool`): Determines if to append empty 'Classification' column to end of each sheet of variants.
+`--add_classification_column` (`bool`): Determines if to append empty 'Classification' column to end of each sheet of variants.
 
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 
