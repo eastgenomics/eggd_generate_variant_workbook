@@ -156,6 +156,10 @@ class arguments():
             help='Add empty comment column to end of each sheet'
         )
         parser.add_argument(
+            '--add_classification_column', action='store_true',
+            help='Add empty classification column to end of sheet'
+        )
+        parser.add_argument(
             '--images', nargs='+',
             help=(
                 'Images to write to separate sheets'
