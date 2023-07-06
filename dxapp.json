@@ -252,7 +252,7 @@
       "label": "split hgvs",
       "class": "boolean",
       "optional" : true,
-      "help": "Controls splitting of HGVSc and HGVSp to separate columns of c. and p. change without the transcript named DNA and Protein."
+      "help": "If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns, without the transcript'"
     }
   ],
   "outputSpec": [
