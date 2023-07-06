@@ -145,6 +145,9 @@ class vcf():
             if not self.args.keep_tmp:
                 os.remove(split_vcf_gz)
 
+        if self.args.split_hgvs:
+            self.split_hgvs()
+
         if self.args.print_columns:
             self.print_columns()
 
@@ -741,3 +744,32 @@ class vcf():
         vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
+
+
+    def split_hgvs(self) -> pd.DataFrame:
+        """
+        If --split_hgvs specified, attempt to split HGVSc and HGVSp columns
+        into 2 separate ones: c. change (DNA) and p. change (Protein).
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            # check required columns are in the dataframe
+            if not all(col in vcf.columns for col in ['CSQ_HGVSc', 'CSQ_HGVSp']):
+                print(
+                    'WARNING: --split_hgvs specified but CSQ_HGVSc and/or '
+                    'CSQHGVSp not present in VCF fields. Continuing without '
+                    'splitting HGVS.'
+                )
+                continue
+            
+            # ensure columns we're going to create don't already exist
+            if any(col in vcf.columns for col in ['DNA', 'Protein']):
+                print(
+                    'WARNING: --split_hgvs specified but DNA and/or Protein '
+                    'already exist in the vcf. Continuing without splitting HGVS.'
+                )
+                continue
+
+            vcf['DNA'] = vcf['CSQ_HGVSc'].str.split(':').str[1]
+            vcf['Protein'] = vcf['CSQ_HGVSp'].str.split(':').str[1]
+
+            self.vcfs[idx] = vcf

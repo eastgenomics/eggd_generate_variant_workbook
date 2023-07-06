@@ -294,6 +294,13 @@ class arguments():
                 "just keep first header row always in view (A2)"
             )
         )
+        parser.add_argument(
+            '--split_hgvs', action='store_true',
+            help=(
+                'If true, the c. and p. changes in HGVSc and HGVSp will be '
+                'split out into DNA and Protein columns, without the transcript'
+            )
+        )
 
         return parser.parse_args()
 

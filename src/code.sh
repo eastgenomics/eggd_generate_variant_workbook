@@ -106,6 +106,7 @@ main() {
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$additional_columns" ]; then args+="--additional_columns ${additional_columns} "; fi
+    if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

@@ -1049,6 +1049,8 @@ class excel():
             "consequence": 25,
             "hgvsc": 27,
             "hgvsp": 27,
+            "dna": 17,
+            "protein": 17,
             "gnomad_af": 16,
             "gnomad_exomes_af": 16,
             "gnomad_genomes_af": 16,

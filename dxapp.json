@@ -255,6 +255,13 @@
       "optional": true,
       "help": "List of additional columns to add with hyperlinks to external resources. See readme for details.",
       "group": "app"
+    },
+    {
+      "name": "split_hgvs",
+      "label": "split hgvs",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns, without the transcript'"
     }
   ],
   "outputSpec": [
