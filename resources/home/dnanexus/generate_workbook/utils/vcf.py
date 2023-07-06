@@ -303,6 +303,10 @@ class vcf():
         if self.args.add_comment_column:
             # add empty 'Comment' column to end of df
             vcf_df['Comment'] = ''
+        
+        if self.args.add_classification_column:
+            # add empty 'Classification' column to end of df
+            vcf_df['Classification'] = ''
 
         return vcf_df
 

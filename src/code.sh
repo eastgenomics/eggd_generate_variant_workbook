@@ -85,6 +85,7 @@ main() {
     if [ "$rename_columns" ]; then args+="--rename ${rename_columns} "; fi
     if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
     if [ "$add_comment_column" == true ]; then args+="--add_comment_column "; fi
+    if [ "$add_classification_column" == true ]; then args+="--add_classification_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$additional_sheet_names" ]; then args+="--additional_sheets ${additional_sheet_names} "; fi
     if [ "$print_columns" == true ]; then args+="--print_columns "; fi
