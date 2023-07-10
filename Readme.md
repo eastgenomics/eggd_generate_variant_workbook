@@ -96,6 +96,8 @@ This app may be executed as a standalone app.
 
 `--additional_columns` (`string`): List of additional columns to add with hyperlinks to external resources. Currently supports the following: decipher, oncokb, cbioportal and pecan. These should be passed as a space separated strings (i.e. -iadditional_columns="oncoKB PeCan cBioPortal"). Details on exact URLs used are given in the table below.
 
+`--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
+
 
 **Example**:
 
