@@ -565,7 +565,6 @@ class TestAddRawChange():
             'Raw change incorrect'
         )
 
-        # assert vcf_handler.
     
     def test_empty_df(self):
         """
