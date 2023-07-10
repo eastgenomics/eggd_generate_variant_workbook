@@ -304,7 +304,7 @@ class arguments():
         parser.add_argument(
             '--add_raw_change', action='store_true',
             help=(
-                'If true, will add a column named rawChange of concatenation '
+                'If true, will add a column named "rawChange" with a concatenation '
                 'of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}'
             )
         )

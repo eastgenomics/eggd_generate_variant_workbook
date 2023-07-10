@@ -268,7 +268,7 @@
       "label": "add raw change",
       "class": "boolean",
       "optional" : true,
-      "help": "If true, will add a column named rawChange of concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
+      "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
     }
   ],
   "outputSpec": [
