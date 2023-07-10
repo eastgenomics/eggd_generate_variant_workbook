@@ -602,9 +602,6 @@ class TestAddRawChange():
         )
 
 
-
-
-
 if __name__ == "__main__":
     TestAddRawChange().test_normal_df()
     TestAddRawChange().test_missing_column()
