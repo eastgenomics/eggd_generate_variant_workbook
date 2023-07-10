@@ -176,7 +176,7 @@ Some columns will be formatted with URLs as hyperlinks in the output variant she
 | hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
 | mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
 
-URLs used for generating of columns specified from `-iadditoinal_columns`:
+URLs used for generating of columns specified from `-iadditional_columns`:
 
 | Name | URL |
 | ---  | --- |
