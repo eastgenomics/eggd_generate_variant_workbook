@@ -301,6 +301,13 @@ class arguments():
                 'split out into DNA and Protein columns, without the transcript'
             )
         )
+        parser.add_argument(
+            '--add_raw_change', action='store_true',
+            help=(
+                'If true, will add a column named "rawChange" with a concatenation '
+                'of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}'
+            )
+        )
 
         return parser.parse_args()
 

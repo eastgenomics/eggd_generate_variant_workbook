@@ -261,7 +261,14 @@
       "label": "split hgvs",
       "class": "boolean",
       "optional" : true,
-      "help": "If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns, without the transcript'"
+      "help": "If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns, without the transcript"
+    },
+    {
+      "name": "add_raw_change",
+      "label": "add raw change",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
     }
   ],
   "outputSpec": [
