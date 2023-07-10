@@ -532,10 +532,80 @@ class TestHyperlinks():
         )
 
 
+class TestAddRawChange():
+    """
+    Tests for vcf.add_raw_change()
+    """
+    # initialise vcf class with a valid argparse input to
+    # allow calling .read()
+    vcf_handler = vcf(argparse.Namespace(
+        add_name=True, analysis='',
+        filter=None, keep=False, merge=False,
+        reorder=[], exclude=None, include=None,
+        add_comment_column=False,
+        out_dir='', output='',
+        panel='', print_columns=False, print_header=False, reads='',
+        rename=None, sample='', sheets=['variants'], summary=None,
+        vcfs=[], workflow=('', '')
+    ))
+
+    def test_normal_df(self):
+        """
+        Test with a 'normal' vcf it works
+        """
+        vcf_handler.vcfs = [
+            pd.DataFrame([
+                {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'}
+            ])
+        ]
+
+        vcf_handler.add_raw_change()
+
+        assert vcf_handler.vcfs[0].iloc[0]['rawChange'] == '1:g.64883298T>C', (
+            'Raw change incorrect'
+        )
+
+        # assert vcf_handler.
+    
+    def test_empty_df(self):
+        """
+        Test when df is empty that function doesn't break and adds empty column
+        """
+        vcf_handler.vcfs = [
+            pd.DataFrame(columns=['CHROM', 'POS', 'REF', 'ALT'])
+        ]
+
+        vcf_handler.add_raw_change()
+
+        assert vcf_handler.vcfs[0].columns.tolist() == [
+            'CHROM', 'POS', 'REF', 'ALT', 'rawChange'
+        ], (
+            'Raw change incorrectly added to empty df'
+        )
+    
+    def test_missing_column(self):
+        """
+        Test when one or more required columns is missing that the option is
+        skipped
+        """
+        vcf_handler.vcfs = [
+            pd.DataFrame([
+                {'CHROM': 1, 'POS': 64883298, 'REF': 'T'}
+            ])
+        ]
+
+        vcf_handler.add_raw_change()
+
+        assert vcf_handler.vcfs[0].columns.tolist() == [
+            'CHROM', 'POS', 'REF'
+        ], (
+            'Columns incorrect after calling add_raw_change() on df with missing columns'
+        )
+
+
+
+
+
 if __name__ == "__main__":
-    header = TestHeader()
-    header.test_column_names()
-
-    df_actions = TestDataFrameActions()
-
-    hyperlinks = TestHyperlinks()
+    TestAddRawChange().test_normal_df()
+    TestAddRawChange().test_missing_column()

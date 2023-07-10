@@ -780,13 +780,24 @@ class vcf():
 
     def add_raw_change(self) -> None:
         """
-        Adds a column named 'rawChange' of the 'raw' genomic change, formatted as
-        {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by VEP,
-        but will not include text such as INV and DEL.
+        Adds a column named 'rawChange' of the 'raw' genomic change, formatted
+        as {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by 
+        VEP, but will not include text such as INV and DEL.
         """
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
                 self.vcfs[idx]['rawChange'] = ''
-            else:
-                self.vcfs[idx]['rawChange'] = vcf.agg(
-                    '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
+                continue
+            
+            if not all(
+                col in vcf.columns for col in ['CHROM', 'POS', 'REF', 'ALT']
+            ):
+                # one or more required columns missing => skip
+                print(
+                    "WARNING: one or more required columns missing for "
+                    "add_raw_change, continuing without adding"
+                )
+                continue
+
+            self.vcfs[idx]['rawChange'] = vcf.agg(
+                '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
