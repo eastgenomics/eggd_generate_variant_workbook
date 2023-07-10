@@ -107,6 +107,7 @@ main() {
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
     if [ "$additional_columns" ]; then args+="--additional_columns ${additional_columns} "; fi
     if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
+    if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

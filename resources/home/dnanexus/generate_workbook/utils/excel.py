@@ -1066,7 +1066,8 @@ class excel():
             "feature": 17,
             "decipher": 24,
             "Metric (UOM)": 52,  # TSO500 MetricsOutput.tsv
-            "[TMB]": 32  # TSO500 CombinedVariantOutput.tsv
+            "[TMB]": 32,  # TSO500 CombinedVariantOutput.tsv
+            "rawChange": 20
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
