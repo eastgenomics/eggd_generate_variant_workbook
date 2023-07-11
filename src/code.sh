@@ -85,6 +85,7 @@ main() {
     if [ "$rename_columns" ]; then args+="--rename ${rename_columns} "; fi
     if [ "$add_samplename_column" == true ]; then args+="--add_name "; fi
     if [ "$add_comment_column" == true ]; then args+="--add_comment_column "; fi
+    if [ "$add_classification_column" == true ]; then args+="--add_classification_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$additional_sheet_names" ]; then args+="--additional_sheets ${additional_sheet_names} "; fi
     if [ "$print_columns" == true ]; then args+="--print_columns "; fi
@@ -96,6 +97,7 @@ main() {
     if [ "$print_header" == true ]; then args+="--print_header "; fi
     if [ "$merge_vcfs" == true ]; then args+="--merge "; fi
     if [ "$colour_cells" ]; then args+="--colour ${colour_cells} "; fi
+    if [ "$freeze_column" ]; then args+="--freeze_column ${freeze_column} "; fi
     if [ "$output_name" ]; then args+="--sample ${output_name} "; fi
     if [ "$output_prefix" ]; then args+="--output ${output_prefix} "; fi
     if [ "$workflow_id" ]; then args+="--workflow ${workflow_name} ${workflow_id} "; fi
@@ -103,7 +105,9 @@ main() {
     if [ "$types" ]; then args+="--types ${types} "; fi
     if [ "$panel" ]; then args+="--panel ${panel} "; fi
     if [ "$clinical_indication" ]; then args+="--clinical_indication ${clinical_indication} "; fi
-    if [ "$decipher" == true ]; then args+="--decipher "; fi
+    if [ "$additional_columns" ]; then args+="--additional_columns ${additional_columns} "; fi
+    if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
+    if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

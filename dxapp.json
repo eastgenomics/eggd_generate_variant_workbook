@@ -3,11 +3,8 @@
   "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
-  "version": "2.4.0",
-  "properties": {
-    "githubRelease": "v2.4.0"
-  },
-  "whatsNew": "* v2.0.0 Rewrite of previous app to generate xlsx file from a VEP annotated VCF(s); * v2.0.1 Bug fix to correctly treat CHROM as string values; * v2.0.2 Bug fix for ACMG report template structure; * v2.0.3 Bug fixes for issues with hyperlinks, changed app name to eggd_generate_variant_workbook; * v2.1.0 Handle VCFs from GATK gCNV and Illumina TSO500, readability tweaks to variant sheets; * v2.1.1 Bug fix for typing of numeric values in hyperlinks; * v2.2.0 Added ability to pass in non VCF files (tsvs/csvs and images) to additional sheets, optional adding of links to DECIPHER with --decipher; * v2.3.0 Added conditional colouring of cells in variant sheets, new 'basic' summary sheet;  * v2.4.0 Added handling for duplicate annotation in VEP fields (i.e. cosmic, CGC, etc..);",
+  "version": "2.5.0",
+  "whatsNew": "* v2.0.0 Rewrite of previous app to generate xlsx file from a VEP annotated VCF(s); * v2.0.1 Bug fix to correctly treat CHROM as string values; * v2.0.2 Bug fix for ACMG report template structure; * v2.0.3 Bug fixes for issues with hyperlinks, changed app name to eggd_generate_variant_workbook; * v2.1.0 Handle VCFs from GATK gCNV and Illumina TSO500, readability tweaks to variant sheets; * v2.1.1 Bug fix for typing of numeric values in hyperlinks; * v2.2.0 Added ability to pass in non VCF files (tsvs/csvs and images) to additional sheets, optional adding of links to DECIPHER with --decipher; * v2.3.0 Added conditional colouring of cells in variant sheets, new 'basic' summary sheet;  * v2.4.0 Added handling for duplicate annotation in VEP fields (i.e. cosmic, CGC, etc..); v2.5.0 Better parsing of CombinedVariantOutput files as additional files",
   "authorizedUsers": [
     "org-emee_1"
   ],
@@ -137,6 +134,15 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "add_classification_column",
+      "label": "Add classification column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty classification column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",
@@ -158,6 +164,14 @@
       "class": "string",
       "optional": true,
       "help": "Prefix for naming output xlsx file",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "freeze_column",
+      "label": "freeze column",
+      "class": "string",
+      "optional": true,
+      "help": "Optional column / row on which to freeze Excel scrolling for variant sheets (default: A2)",
       "group": "generate_workbook.py"
     },
     {
@@ -235,12 +249,26 @@
       "group": "app"
     },
     {
-      "name": "decipher",
-      "label": "Determines whether or not to include column of DECIPHER links",
-      "class": "boolean",
+      "name": "additional_columns",
+      "label": "additional columns",
+      "class": "string",
       "optional": true,
-      "help": "If this input is included an extra column will be added to the spreadsheet with links to the variants in DECIPHER. Note DECIPHER only has build 38 variants",
+      "help": "List of additional columns to add with hyperlinks to external resources. See readme for details.",
       "group": "app"
+    },
+    {
+      "name": "split_hgvs",
+      "label": "split hgvs",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns, without the transcript"
+    },
+    {
+      "name": "add_raw_change",
+      "label": "add raw change",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
     }
   ],
   "outputSpec": [

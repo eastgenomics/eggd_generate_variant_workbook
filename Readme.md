@@ -53,9 +53,13 @@ This app may be executed as a standalone app.
 
 `--add_comment_column` (`bool`): Determines if to append empty 'Comment' column to end of each sheet of variants.
 
+`--add_classification_column` (`bool`): Determines if to append empty 'Classification' column to end of each sheet of variants.
+
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 
 `--additional_sheet_names` (`list`): Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order (`-iadditional_files=file1 -iadditional_files=file2 -iadditional_sheet_names='name_1 name_2'`). If not given, the first 31 characters of the filename will be used.
+
+`--freeze_columns` (`string`): Column letter and row number of which to 'freeze' (i.e. always keep in view) for sheets of variants, default is to just keep first header row always in view (A2)
 
 `--colour_cells` (`string`): Add conditional colouring of cells for a given column, this should be specified as column:value_range:colour, where colour is a valid hex value or colour name. Multiple conditions may be given in a single `value_range` for the same column and colour values by chaining multiple with either `&` for all or `|` for any condition (n.b. `&` and `|` cannot be used in the same expression). Column names should be given as they appear in the VCF, except for cases where renaming has been specified with `--rename`, in which case the given column name should be used. Example formats:
 ```
@@ -76,7 +80,7 @@ This app may be executed as a standalone app.
 
 `--merge_vcfs` (`bool`): Determines if to merge multiple VCFs to one sheet (default: `False`).
 
-`--summary` (`string`): If to include summary sheet, specify key of assay. Currently only supports `dias`.
+`--summary` (`string`): If to include summary sheet, specify key of assay. Currently supports `dias` and `helios`.
 
 `--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
 
@@ -90,7 +94,9 @@ This app may be executed as a standalone app.
 
 `--print_header` (`bool`): Print header of first vcf and exit. Useful for inspecting all fields and types for filtering.
 
-`--decipher` (`bool`): Add an extra column containing links to the variants in DECIPHER. Note DECIPHER only stores build 38 variants.
+`--additional_columns` (`string`): List of additional columns to add with hyperlinks to external resources. Currently supports the following: decipher, oncokb, cbioportal and pecan. These should be passed as a space separated strings (i.e. -iadditional_columns="oncoKB PeCan cBioPortal"). Details on exact URLs used are given in the table below.
+
+`--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
 
 **Example**:
@@ -122,6 +128,8 @@ The above will do the following:
 - `-include_columns` and `-exclude_columns` are mutually exclusive and can not be passed together
 - any arguments that are strings and passing multiple should be one space seperated string (i.e. `-iexclude="MLEAF MQRankSum MLEAC"`)
 - Fields in `INFO` and `FORMAT` columns will be split to individual columns, with the field key as the column name. If any duplicates are in the **FORMAT** column, these will have the suffix `(FMT)` (i.e. if depth is present in both `INFO` and `FORMAT`, the depth from `INFO` will be in column `DP` and the depth from `FORMAT` will be in `DP (FMT)`).
+- If the CombinedVariantOutput.tsv file from Illumina's TSO500 local app is passed to `-iadditional_files`, only the TMB, MSI and Gene Amplifications sections will be written to the sheet.
+- If the MetricsOutput.tsv file from Illumina's TSO500 local app is passed to `-iadditional_files`, the given sample's metrics will attempt to be parsed from the file. If the sample prefix inferred from the input vcf prefix can't be parsed from the file, then the whole metrics file will be written to the sheet.
 
 
 **Filtering**
@@ -169,8 +177,17 @@ Some columns will be formatted with URLs as hyperlinks in the output variant she
 | cosmic (exact) | https://cancer.sanger.ac.uk/cosmic/search?q= |
 | hgmd (exact) | https://my.qiagendigitalinsights.com/bbp/view/hgmd/pro/mut.php?acc= |
 | mastermind_mmid3 (exact) | https://mastermind.genomenon.com/detail?mutation= |
-| decipher (NA) | https://www.deciphergenomics.org/sequence-variant/ |
 
+URLs used for generating of columns specified from `-iadditional_columns`:
+
+| Name | URL |
+| ---  | --- |
+| decipher | https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT |
+| oncoKB | https://www.oncokb.org/gene/ |
+| PeCan | https://pecan.stjude.cloud/variants/protein-paint/?gene=SYMBOL |
+| cBioPortal | https://www.cbioportal.org/results/mutations?case_set_id=all&gene_list=SYMBOL&cancer_study_list=5c8a7d55e4b046111fee2296 |
+
+n.b. the above link to cBioPortal defaults to the 'TCGA PanCancer Atlas Studies' dataset.
 
 
 ## What does this app output?
