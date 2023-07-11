@@ -210,7 +210,7 @@ class excel():
             to_bold.append(f"B{row_count}")
             row_count += 1
 
-        row_count += 4
+        row_count += 3
 
         # Parsing of MetricsOutput metrics into summary sheet
         for _, df in self.additional_files.items():
@@ -313,6 +313,18 @@ class excel():
 
         row_count += 1
 
+        # write genome reference(s) parsed from vcf header
+        if self.refs:
+            self.summary.cell(row_count, 1).value = "Reference:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in list(set(self.refs)):
+                self.summary.cell(row_count, 2).value = ref
+                row_count += 1
+            
+            row_count += 2
+
         if self.args.human_filter:
             self.summary.cell(row_count, 1).value = "Filters applied:"
             self.summary[f"A{row_count}"].font = Font(
@@ -336,19 +348,8 @@ class excel():
             row_count, to_bold = self.summary_sheet_cell_colour_key(
                 row_count, to_bold)
 
-        # write genome reference(s) parsed from vcf header
-        if self.refs:
-            row_count += 2
-            self.summary.cell(row_count, 1).value = "Reference:"
-            self.summary[f"A{row_count}"].font = Font(
-                bold=True, name=DEFAULT_FONT.name
-            )
-            for ref in list(set(self.refs)):
-                self.summary.cell(row_count, 2).value = ref
-                row_count += 1
-
         # write more text with DNAnexus IDs etc
-        row_count += 4
+        row_count += 2
         self.summary.cell(row_count, 1).value = "Workflow:"
         self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
         self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
