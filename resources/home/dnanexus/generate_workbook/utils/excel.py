@@ -270,7 +270,7 @@ class excel():
                                 colouring["red"].append(row_count)
                     except Exception as err:
                         print(
-                            "WARNING: erorr in colouring metrics values in "
+                            "WARNING: error in colouring metrics values in "
                             f"summary sheet: {err}.\nContinuing without colouring"
                         )
                     
