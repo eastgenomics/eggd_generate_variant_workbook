@@ -224,6 +224,7 @@ class excel():
                     # utils.parse_metrics => skip
                     continue
                 
+                # specific metrics lines we want to parse out
                 idxs = []
                 idxs.append(df[0].eq('Metric (UOM)').idxmax())
                 idxs.append(df[0].eq('CONTAMINATION_SCORE (NA)').idxmax())
