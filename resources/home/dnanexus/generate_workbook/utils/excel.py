@@ -89,12 +89,11 @@ class excel():
         if self.args.summary:
             self.summary = self.workbook.create_sheet('summary')
 
-        if self.args.summary == 'basic':
-            # add summary sheet with basic metrics such as args used
-            # and DNAnexus file / job IDs used
-            self.basic_summary()
+        if self.args.summary == 'helios':
+            # add summary sheet for TSO500/Helios
+            self.helios_summary()
         if self.args.summary == 'dias':
-            # generate summary sheet in format for RD/dias
+            # generate summary sheet in format for RD/Dias
             self.dias_summary()
 
 
@@ -166,19 +165,23 @@ class excel():
         return max_colour_rows_written, to_bold
 
 
-    def basic_summary(self) -> None:
+    def helios_summary(self) -> None:
         """
-        Writes basic summary sheet with metrics such as variant records
-        per sheet, dx file IDs and parameters specified
+        Writes summary sheet for helios pipeline with metrics such as
+        variant records per sheet, dx file IDs and parameters specified
         """
         # track what cells to make bold
         to_bold = []
 
         # write titles for summary values
         self.summary.cell(1, 1).value = "Sample ID:"
-        self.summary.cell(3, 1).value = "Variant totals"
+        self.summary.cell(3, 1).value = "Name"
+        self.summary.cell(4, 1).value = "Clinical indication"
+        self.summary.cell(5, 1).value = "Additional comments"
 
-        to_bold.extend(["A1", "A3"])
+        self.summary.cell(8, 1).value = "Variant totals"
+
+        to_bold.extend(["A1", "A3", "A4", "A5", "A8"])      
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -190,13 +193,17 @@ class excel():
         sample = str(sample).strip('[]').strip("'")
         self.summary.cell(1, 2).value = sample
 
-        self.summary.column_dimensions['A'].width = 23
-        self.summary.column_dimensions['B'].width = 13
+        self.summary.column_dimensions['A'].width = 36
+        self.summary.column_dimensions['B'].width = 16
+        self.summary.column_dimensions['C'].width = 16
+        self.summary.column_dimensions['D'].width = 16
 
         self.summary.merge_cells(
-            start_row=1, end_row=1, start_column=2, end_column=4)
+            start_row=1, end_row=1, start_column=2, end_column=6)
 
-        row_count = 4
+        row_count = 8
+
+        # write counts of variants
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
             self.summary.cell(row_count, 2).value = sheet
             self.summary.cell(row_count, 3).value = len(vcf.index)
@@ -204,6 +211,100 @@ class excel():
             row_count += 1
 
         row_count += 4
+
+        # Parsing of MetricsOutput metrics into summary sheet
+        for _, df in self.additional_files.items():
+            if df.empty:
+                continue
+
+            if df.iloc[0].iloc[0] == 'Metric (UOM)':
+                # its a metrics output file
+                if not len(df.columns.tolist()) == 4:
+                    # not 4 cols => didn't parse out just sample values in
+                    # utils.parse_metrics => skip
+                    continue
+                
+                idxs = []
+                idxs.append(df[0].eq('Metric (UOM)').idxmax())
+                idxs.append(df[0].eq('CONTAMINATION_SCORE (NA)').idxmax())
+                idxs.append(df[0].eq('CONTAMINATION_P_VALUE (NA)').idxmax())
+                idxs.append(df[0].eq('PCT_EXON_50X (%)').idxmax())
+                idxs.append(df[0].eq('PCT_EXON_100X (%)').idxmax())
+
+                colouring = {"green": [], "amber": [], "red": []}
+
+                for file_row, idx in enumerate(idxs):
+                    title = df.iloc[idx].iloc[0]
+                    lsl = df.iloc[idx].iloc[1]
+                    usl = df.iloc[idx].iloc[2]
+                    sample = df.iloc[idx].iloc[3]
+
+                    self.summary.cell(row_count, 1).value = title
+                    self.summary.cell(row_count, 2).value = lsl
+                    self.summary.cell(row_count, 3).value = usl
+                    self.summary.cell(row_count, 4).value = sample
+                
+                    # perform colouring like in self.colour_metrics()
+                    if title == 'CONTAMINATION_SCORE (NA)':
+                        if float(sample) > float(usl):
+                            colouring["amber"].append(row_count)
+                        else:
+                            colouring["green"].append(row_count)
+                    elif title == 'CONTAMINATION_P_VALUE (NA)':
+                        if float(sample) > float(usl):
+                            colouring["red"].append(row_count)
+                        else:
+                            colouring["green"].append(row_count)
+                    elif title == 'PCT_EXON_50X (%)':
+                        if float(sample) >= 95:
+                            colouring["green"].append(row_count)
+                        else:
+                            colouring["red"].append(row_count)
+                    elif title == 'PCT_EXON_100X (%)':
+                        if float(sample) >= 90:
+                            colouring["green"].append(row_count)
+                        else:
+                            colouring["red"].append(row_count)
+                    
+                    to_bold.append(f"A{row_count}")
+                    row_count += 1
+                
+                # do the colouring
+                for colour, idxs in colouring.items():
+                    for idx in idxs:
+                        if colour == 'green':
+                            self.summary[f"D{idx}"].fill = PatternFill(
+                                patternType="solid",
+                                start_color='008100'
+                            )
+                        elif colour == 'amber':
+                             self.summary[f"D{idx}"].fill = PatternFill(
+                                patternType="solid",
+                                start_color='ff9f00'
+                            )
+                        elif colour == 'red':
+                            self.summary[f"D{idx}"].fill = PatternFill(
+                                patternType="solid",
+                                start_color='b30000'
+                            )
+        row_count += 2
+        
+        # Parsing of TMB/MSI/Gene Amplifications into summary
+        for _, df in self.additional_files.items():
+            if df.empty:
+                continue
+
+            if df.iloc[0].iloc[0] == '[TMB]':
+                for _, row in df.iterrows():
+                    self.summary.cell(row_count, 1).value = row[0]
+                    self.summary.cell(row_count, 2).value = row[1]
+                    print(row[0])
+                    if row[0] != 'NA':
+                        to_bold.append(f"A{row_count}")
+
+                    row_count += 1
+
+        row_count += 1
 
         if self.args.human_filter:
             self.summary.cell(row_count, 1).value = "Filters applied:"
@@ -223,6 +324,7 @@ class excel():
 
         row_count += 2
 
+        # write in the colouring of any columns if done
         if self.args.colour:
             row_count, to_bold = self.summary_sheet_cell_colour_key(
                 row_count, to_bold)
@@ -238,6 +340,7 @@ class excel():
                 self.summary.cell(row_count, 2).value = ref
                 row_count += 1
 
+        # write more text with DNAnexus IDs etc
         row_count += 4
         self.summary.cell(row_count, 1).value = "Workflow:"
         self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
