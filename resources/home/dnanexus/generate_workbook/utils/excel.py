@@ -629,6 +629,7 @@ class excel():
                 self.set_font(curr_worksheet)
                 self.colour_hyperlinks(curr_worksheet)
                 self.colour_cells(curr_worksheet)
+                self.set_dp(curr_worksheet)
 
                 # freeze header so scrolling keeps it in view
                 curr_worksheet.freeze_panes = self.args.freeze_column
@@ -831,6 +832,35 @@ class excel():
                 cell.font = Font(name=DEFAULT_FONT.name)
 
 
+    def set_dp(self, worksheet) -> None:
+        """
+        Set the dp to display values to (i.e. 0.14236 to dp -> 0.14).
+
+        Original value will remain unchanged in the formaula bar
+        on selecting the cell, just the view of data is adjusted
+        through Excel umber formatting
+
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        """
+        # mapping of column names to no. dp to display
+        col_to_dp = {
+            'VF': 2
+        }
+
+        for column, dp in col_to_dp.items():
+            for ws_column in worksheet.iter_cols(1, worksheet.max_column):
+                if ws_column[0].value.lower() == column.lower():
+                    # column is a match, loop over every cell in the column
+                    # to set formatting since there's no nicer way to apply
+                    # the style in openpyxl
+                    for row in ws_column:
+                        row.number_format = '#,##0.00'           
+
+
     def convert_colour(self, colour) -> str:
         """
         Converts string of colour to aRGB value that openpyxl will accept.
@@ -1030,7 +1060,7 @@ class excel():
             column names for sheet from DataFrame.columns
         """
         widths = {
-            "chrom": 8,
+            "chrom": 7,
             "pos": 12,
             "ref": 10,
             "alt": 10,
@@ -1040,17 +1070,19 @@ class excel():
             'ac': 10,
             'af': 10,
             'an': 10,
-            'dp': 10,
+            'dp': 8,
+            'qual': 8,
             'baseqranksum': 15,
             'clippingranksum': 16,
-            "symbol": 12,
+            "symbol": 9,
             "exon": 9,
             "variant class": 15,
-            "consequence": 25,
+            "consequence": 17,
             "hgvsc": 27,
             "hgvsp": 27,
-            "dna": 17,
-            "protein": 17,
+            "hgvsg": 18,
+            "dna": 12,
+            "protein": 13,
             "gnomad_af": 16,
             "gnomad_exomes_af": 16,
             "gnomad_genomes_af": 16,
@@ -1063,11 +1095,15 @@ class excel():
             "clinvar clndn": 18,
             "clinvar clinsig": 18,
             "cosmic": 15,
-            "feature": 17,
+            "feature": 13,
             "decipher": 24,
             "Metric (UOM)": 52,  # TSO500 MetricsOutput.tsv
             "[TMB]": 32,  # TSO500 CombinedVariantOutput.tsv
-            "rawChange": 20
+            "rawchange": 20,
+            "vf":6,
+            "comment": 10,
+            "classification": 12,
+            "spliceai pred ": 18
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
