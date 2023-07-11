@@ -244,27 +244,34 @@ class excel():
                     self.summary.cell(row_count, 3).value = usl
                     self.summary.cell(row_count, 4).value = sample
                 
-                    # perform colouring like in self.colour_metrics()
-                    if title == 'CONTAMINATION_SCORE (NA)':
-                        if float(sample) > float(usl):
-                            colouring["amber"].append(row_count)
-                        else:
-                            colouring["green"].append(row_count)
-                    elif title == 'CONTAMINATION_P_VALUE (NA)':
-                        if float(sample) > float(usl):
-                            colouring["red"].append(row_count)
-                        else:
-                            colouring["green"].append(row_count)
-                    elif title == 'PCT_EXON_50X (%)':
-                        if float(sample) >= 95:
-                            colouring["green"].append(row_count)
-                        else:
-                            colouring["red"].append(row_count)
-                    elif title == 'PCT_EXON_100X (%)':
-                        if float(sample) >= 90:
-                            colouring["green"].append(row_count)
-                        else:
-                            colouring["red"].append(row_count)
+                    # perform colouring like in self.colour_metrics(), lazily
+                    # catch anything in case of weird values to not break
+                    try:
+                        if title == 'CONTAMINATION_SCORE (NA)':
+                            if float(sample) > float(usl):
+                                colouring["amber"].append(row_count)
+                            else:
+                                colouring["green"].append(row_count)
+                        elif title == 'CONTAMINATION_P_VALUE (NA)':
+                            if float(sample) > float(usl):
+                                colouring["red"].append(row_count)
+                            else:
+                                colouring["green"].append(row_count)
+                        elif title == 'PCT_EXON_50X (%)':
+                            if float(sample) >= 95:
+                                colouring["green"].append(row_count)
+                            else:
+                                colouring["red"].append(row_count)
+                        elif title == 'PCT_EXON_100X (%)':
+                            if float(sample) >= 90:
+                                colouring["green"].append(row_count)
+                            else:
+                                colouring["red"].append(row_count)
+                    except Exception as err:
+                        print(
+                            "WARNING: erorr in colouring metrics values in "
+                            f"summary sheet: {err}.\nContinuing without colouring"
+                        )
                     
                     to_bold.append(f"A{row_count}")
                     row_count += 1
