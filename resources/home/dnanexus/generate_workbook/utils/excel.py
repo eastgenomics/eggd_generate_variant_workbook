@@ -175,13 +175,13 @@ class excel():
 
         # write titles for summary values
         self.summary.cell(1, 1).value = "Sample ID:"
-        self.summary.cell(3, 1).value = "Name"
-        self.summary.cell(4, 1).value = "Clinical indication"
-        self.summary.cell(5, 1).value = "Additional comments"
+        self.summary.cell(4, 1).value = "Name"
+        self.summary.cell(5, 1).value = "Clinical indication"
+        self.summary.cell(6, 1).value = "Additional comments"
 
-        self.summary.cell(8, 1).value = "Variant totals"
+        self.summary.cell(9, 1).value = "Variant totals"
 
-        to_bold.extend(["A1", "A3", "A4", "A5", "A8"])      
+        to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A9"])      
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -193,6 +193,11 @@ class excel():
         sample = str(sample).strip('[]').strip("'")
         self.summary.cell(1, 2).value = sample
 
+        # split sample name into constituent parts on '-' and write to
+        # separate cells for ease of them copying
+        for idx, part in enumerate(sample.split('-')):
+            self.summary.cell(2, idx+2).value = part
+
         self.summary.column_dimensions['A'].width = 36
         self.summary.column_dimensions['B'].width = 16
         self.summary.column_dimensions['C'].width = 16
@@ -201,7 +206,7 @@ class excel():
         self.summary.merge_cells(
             start_row=1, end_row=1, start_column=2, end_column=6)
 
-        row_count = 8
+        row_count = 9
 
         # write counts of variants
         for sheet, vcf in zip(self.args.sheets, self.vcfs):
@@ -306,7 +311,6 @@ class excel():
                 for _, row in df.iterrows():
                     self.summary.cell(row_count, 1).value = row[0]
                     self.summary.cell(row_count, 2).value = row[1]
-                    print(row[0])
                     if row[0] != 'NA':
                         to_bold.append(f"A{row_count}")
 
