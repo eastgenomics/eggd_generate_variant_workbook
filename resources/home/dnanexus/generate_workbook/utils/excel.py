@@ -950,7 +950,7 @@ class excel():
 
         Original value will remain unchanged in the formaula bar
         on selecting the cell, just the view of data is adjusted
-        through Excel umber formatting
+        through Excel number formatting
 
 
         Parameters
