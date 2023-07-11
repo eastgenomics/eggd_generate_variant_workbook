@@ -306,7 +306,6 @@ class excel():
                 for _, row in df.iterrows():
                     self.summary.cell(row_count, 1).value = row[0]
                     self.summary.cell(row_count, 2).value = row[1]
-                    print(row[0])
                     if row[0] != 'NA':
                         to_bold.append(f"A{row_count}")
 
