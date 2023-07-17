@@ -187,7 +187,7 @@ class buildHyperlink():
         elif 'mastermind' in column.lower() or 'mmid3' in column.lower():
             url = self.mastermind(value, build, column)
             value[column] = url.split('=')[1]
-        elif 'clinvar' in column.lower():
+        elif column.lower().endswith('clinvar'):
             url = self.clinvar(value[column])
         elif 'hgmd' in column.lower():
             url = self.hgmd(value[column])
