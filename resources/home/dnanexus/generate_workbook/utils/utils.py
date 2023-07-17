@@ -178,6 +178,10 @@ class buildHyperlink():
         url = None
 
         # partially match against column names and add appropriate hyperlink
+        # for clinvar and hgmd, only match where the column will be named
+        # with CSQ_ (i.e. CSQ_HGMD) prefix and not capture other columns such
+        # as CSQ_HGMD_CLASS which do not need linking and would not
+        # build a valid URL
         if 'gnomad' in column.lower():
             url = self.gnomad(value, build)
         elif 'cosmic' in column.lower():
@@ -189,7 +193,7 @@ class buildHyperlink():
             value[column] = url.split('=')[1]
         elif column.lower().endswith('clinvar'):
             url = self.clinvar(value[column])
-        elif 'hgmd' in column.lower():
+        elif column.lower().endswith('hgmd'):
             url = self.hgmd(value[column])
 
         # below will be exact matches as columns are from --additional_columns
