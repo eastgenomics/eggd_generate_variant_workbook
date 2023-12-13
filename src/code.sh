@@ -4,7 +4,7 @@ set -exo pipefail
 
 _dias_report_setup () {
     # function to handle parsing values and reading
-    # manifest / g2t etc. for Dias sampels
+    # manifest / g2t etc. for Dias samples
     mark-section "Getting output name for Dias"
 
     project_id=$DX_PROJECT_CONTEXT_ID
@@ -122,7 +122,8 @@ main() {
     fi
 
     mark-section "Uploading output"
-    output_xlsx=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief)
+    JSON_DETAILS=$(cat details.json)
+    output_xlsx=$(dx upload /home/dnanexus/out/xlsx_reports/* --brief --details "$JSON_DETAILS")
     dx-jobutil-add-output xlsx_report "$output_xlsx" --class=file
 
     if [ "$keep_tmp" == true ]; then

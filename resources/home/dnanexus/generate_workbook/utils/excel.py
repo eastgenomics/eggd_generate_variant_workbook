@@ -1,5 +1,7 @@
 from collections import defaultdict
+import json
 import operator
+import os
 from pathlib import Path
 import re
 from string import ascii_uppercase as uppercase
@@ -181,7 +183,7 @@ class excel():
 
         self.summary.cell(9, 1).value = "Variant totals"
 
-        to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A9"])      
+        to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A9"])
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -228,7 +230,7 @@ class excel():
                     # not 4 cols => didn't parse out just sample values in
                     # utils.parse_metrics => skip
                     continue
-                
+
                 # specific metrics lines we want to parse out
                 idxs = []
                 idxs.append(df[0].eq('Metric (UOM)').idxmax())
@@ -249,7 +251,7 @@ class excel():
                     self.summary.cell(row_count, 2).value = lsl
                     self.summary.cell(row_count, 3).value = usl
                     self.summary.cell(row_count, 4).value = sample
-                
+
                     # perform colouring like in self.colour_metrics(), lazily
                     # catch anything in case of weird values to not break
                     try:
@@ -278,10 +280,10 @@ class excel():
                             "WARNING: error in colouring metrics values in "
                             f"summary sheet: {err}.\nContinuing without colouring"
                         )
-                    
+
                     to_bold.append(f"A{row_count}")
                     row_count += 1
-                
+
                 # do the colouring
                 for colour, idxs in colouring.items():
                     for idx in idxs:
@@ -301,7 +303,7 @@ class excel():
                                 start_color='b30000'
                             )
         row_count += 2
-        
+
         # Parsing of TMB/MSI/Gene Amplifications into summary
         for _, df in self.additional_files.items():
             if df.empty:
@@ -327,7 +329,7 @@ class excel():
             for ref in list(set(self.refs)):
                 self.summary.cell(row_count, 2).value = ref
                 row_count += 1
-            
+
             row_count += 2
 
         if self.args.human_filter:
@@ -374,6 +376,7 @@ class excel():
             - sample ID, panel(s), run IDs etc.
             - formatted tables for them to fill in reporting
         """
+        details_dict = defaultdict()
         # write titles for summary values
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
@@ -394,6 +397,9 @@ class excel():
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
 
+        if self.args.clinical_indication:
+            details_dict['clinical_indication'] = self.args.clinical_indication
+
         # write total rows in each sheet
         count = 34
 
@@ -405,6 +411,11 @@ class excel():
             self.summary.cell(count, 3).value = len(vcf.index)
             to_bold.append(f"A{count}")
             count += 1
+
+        if details_dict:
+            # Write out clinical indication to JSON file
+            with open('details.json', 'w', encoding='utf8') as details_json:
+                json.dump(details_dict, details_json)
 
         count += 5
 
@@ -724,6 +735,11 @@ class excel():
                 "this may take a few minutes..."
             )
 
+        if os.path.isfile('details.json'):
+            with open('details.json', 'r') as details_json:
+                details_dict = json.load(details_json)
+        else:
+            details_dict = defaultdict()
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
@@ -732,6 +748,7 @@ class excel():
                     f"\nWriting {len(vcf)} rows to {sheet} sheet "
                     f"({sheet_no}/{len(self.args.sheets)})"
                 )
+                details_dict[sheet] = len(vcf)
 
                 # timing how long it takes to write because its slow
                 start = timer()
@@ -763,6 +780,10 @@ class excel():
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
                 self.workbook.save(self.args.output)
+
+        if details_dict:
+            with open('details.json', 'w', encoding='utf8') as details_json:
+                json.dump(details_dict, details_json)
 
 
     def write_additional_files(self) -> None:
