@@ -1402,7 +1402,7 @@ class excel():
             start_row=6, end_row=6, start_column=6, end_column=10)
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
-        
+
     def drop_down(self) -> None:
         """
         function to add drop-downs in report and included sheets
@@ -1416,13 +1416,13 @@ class excel():
         ws_re = wb['report']
         strength_options = '"Very Strong, Strong, Moderate, Supporting, NA"'
         strength_val = DataValidation(type='list', formula1=strength_options,
-                                        allow_blank=True)
+                                      allow_blank=True)
         strength_val.prompt = 'Select from the list'
         strength_val.promptTitle = 'Strength'
         ws_re.add_data_validation(strength_val)
         strength_val.add('H9:H24')
         cell_for_strenght = ['J8', 'J11', 'J12', 'J15', 'J16', 'J17', 'J20',
-                            'J21', 'J22', 'J23', 'J24', 'J25']
+                             'J21', 'J22', 'J23', 'J24', 'J25']
         for cell in cell_for_strenght:
             strength_val.add(cell)
         strength_val.showInputMessage = True
@@ -1439,7 +1439,7 @@ class excel():
         class_options = '"Pathogenic,Likely Pathogenic,Uncertain Significance,\
                          Likely Benign, Benign"'
         class_val = DataValidation(type='list', formula1=class_options,
-                                allow_blank=True)
+                                   allow_blank=True)
         class_val.prompt = 'Select from the list'
         class_val.promptTitle = 'Variant Interpretation'
         ws_re.add_data_validation(class_val)
@@ -1453,7 +1453,7 @@ class excel():
         ws_in.column_dimensions['AS'].width = 12
         interpreted_options = '"YES,NO"'
         data_val = DataValidation(type='list', formula1=interpreted_options,
-                                    allow_blank=True)
+                                  allow_blank=True)
         data_val.prompt = 'Choose YES or NO'
         data_val.promptTitle = 'Variant interpreted or not?'
         ws_in.add_data_validation(data_val)
