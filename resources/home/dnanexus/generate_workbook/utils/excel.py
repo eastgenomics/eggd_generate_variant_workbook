@@ -397,8 +397,12 @@ class excel():
         self.summary.cell(1, 6).value = self.args.clinical_indication
         self.summary.cell(2, 6).value = self.args.panel
 
+        # If clinical indication given as arg, add this to our dict
+        # Write out the dias clinical indication info to JSON file
         if self.args.clinical_indication:
             details_dict['clinical_indication'] = self.args.clinical_indication
+            with open('details.json', 'w', encoding='utf8') as details_json:
+                json.dump(details_dict, details_json)
 
         # write total rows in each sheet
         count = 34
@@ -412,10 +416,6 @@ class excel():
             to_bold.append(f"A{count}")
             count += 1
 
-        if details_dict:
-            # Write out clinical indication to JSON file
-            with open('details.json', 'w', encoding='utf8') as details_json:
-                json.dump(details_dict, details_json)
 
         count += 5
 
@@ -735,11 +735,16 @@ class excel():
                 "this may take a few minutes..."
             )
 
+        # If details.json already exists (dias summary page written and
+        # clinical indication is given as arg) then
+        # open it and read it in so we can add var counts to the dict
+        # otherwise just make a new empty dict
         if os.path.isfile('details.json'):
-            with open('details.json', 'r') as details_json:
+            with open('details.json', 'r', encoding='utf8') as details_json:
                 details_dict = json.load(details_json)
         else:
             details_dict = defaultdict()
+
         with self.writer:
             # add variants
             for sheet, vcf in zip(self.args.sheets, self.vcfs):
@@ -781,9 +786,9 @@ class excel():
                 self.set_types(curr_worksheet)
                 self.workbook.save(self.args.output)
 
-        if details_dict:
-            with open('details.json', 'w', encoding='utf8') as details_json:
-                json.dump(details_dict, details_json)
+        # Write out dict to file
+        with open('details.json', 'w', encoding='utf8') as details_json:
+            json.dump(details_dict, details_json)
 
 
     def write_additional_files(self) -> None:
