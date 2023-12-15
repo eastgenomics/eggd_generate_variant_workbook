@@ -198,6 +198,16 @@ This is the source code for an app that runs on the DNAnexus Platform.
 For more information about how to run or modify it, see
 https://documentation.dnanexus.com/.
 
+
+## File details
+The app will also add `details` metadata, in terms of variant counts, to the output xlsx report DNAnexus file. Example file details if `-isummary=Dias`, `-iclinical_indication=R208.1_Inherited breast cancer and ovarian cancer_P` and an `-ifilter` is provided, with `-ikeep_filtered=True`:
+```
+  "clinical_indication": "R208.1_Inherited breast cancer and ovarian cancer_P",
+  "included": 10,
+  "excluded": 255
+```
+Note: if `-isummary` not Dias, if `-ikeep_filtered=False`, and if `-iclinical_indication` not provided then the only details added to the file would be `"included": 10`. In this case, if no filtering is performed either then only `"variants": 265` would be added as details.
+
 #### This app was made by EMEE GLH
 
 [bcftools]: https://samtools.github.io/bcftools/bcftools.html#filter
