@@ -15,11 +15,10 @@ from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 import pandas as pd
 
 from .utils import is_numeric
-from openpyxl.worksheet.datavalidation import DataValidation
-
 
 # openpyxl style settings
 THIN = Side(border_style="thin", color="000000")
@@ -1405,65 +1404,67 @@ class excel():
 
     def drop_down(self) -> None:
         """
-        function to add drop-downs in report and included sheets
-        in report sheet, drop-downs are added for the strength
-        columns and final classification
-        in included sheet, the 'Interpreted' column is added for
-        a YES/NO drop-down
+        Function to add drop-downs in the report tab for entering
+        ACMG criteria for classification, as well as a boolean
+        drop down into the additional 'Interpreted' column of
+        the variant sheet(s).
         """
         wb = load_workbook(filename=self.args.output)
-        # adding dropdown for strenght in report table
-        ws_re = wb['report']
+
+        # adding dropdown for strength in report table
+        report_sheet = wb['report']
         strength_options = '"Very Strong, Strong, Moderate, Supporting, NA"'
         strength_val = DataValidation(type='list', formula1=strength_options,
                                       allow_blank=True)
         strength_val.prompt = 'Select from the list'
         strength_val.promptTitle = 'Strength'
-        ws_re.add_data_validation(strength_val)
+        report_sheet.add_data_validation(strength_val)
         strength_val.add('H9:H24')
-        cell_for_strenght = ['J8', 'J11', 'J12', 'J15', 'J16', 'J17', 'J20',
+        cell_for_strength = ['J8', 'J11', 'J12', 'J15', 'J16', 'J17', 'J20',
                              'J21', 'J22', 'J23', 'J24', 'J25']
-        for cell in cell_for_strenght:
+        for cell in cell_for_strength:
             strength_val.add(cell)
         strength_val.showInputMessage = True
         strength_val.showErrorMessage = True
+
         # adding final classification dropdown
-        ws_re['B27'] = 'Final Classification'
-        ws_re['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
+        report_sheet['B27'] = 'Final Classification'
+        report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
         med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
                             top=MEDIUM)
-        ws_re['B27'].fill = PatternFill(patternType="solid",
+        report_sheet['B27'].fill = PatternFill(patternType="solid",
                                         start_color="FFFF99")
-        ws_re['B27'].border = med_border
-        ws_re['C27'].border = med_border
+        report_sheet['B27'].border = med_border
+        report_sheet['C27'].border = med_border
         class_options = '"Pathogenic,Likely Pathogenic,Uncertain Significance,\
                          Likely Benign, Benign"'
         class_val = DataValidation(type='list', formula1=class_options,
                                    allow_blank=True)
         class_val.prompt = 'Select from the list'
         class_val.promptTitle = 'Variant Interpretation'
-        ws_re.add_data_validation(class_val)
+        report_sheet.add_data_validation(class_val)
         class_val.add('C27')
         class_val.showInputMessage = True
         class_val.showErrorMessage = True
-        # adding Interpreted column dropdown in included tab
-        ws_in = wb[self.args.sheets[0]]
-        ws_in['AS1'] = 'Interpreted'
-        ws_in['AS1'].font = Font(name=DEFAULT_FONT.name)
-        ws_in.column_dimensions['AS'].width = 12
+
+        # adding Interpreted column dropdown in the first variant sheet tab
+        first_variant_sheet = wb[self.args.sheets[0]]
+        first_variant_sheet['AS1'] = 'Interpreted'
+        first_variant_sheet['AS1'].font = Font(name=DEFAULT_FONT.name)
+        first_variant_sheet.column_dimensions['AS'].width = 12
         interpreted_options = '"YES,NO"'
         data_val = DataValidation(type='list', formula1=interpreted_options,
                                   allow_blank=True)
         data_val.prompt = 'Choose YES or NO'
         data_val.promptTitle = 'Variant interpreted or not?'
-        ws_in.add_data_validation(data_val)
+        first_variant_sheet.add_data_validation(data_val)
         num_variant = self.vcfs[0].shape[0]
-        for i in range(0, num_variant):
-            data_val.add(ws_in["AS"+str(i+2)])
+        for i in range(num_variant):
+            data_val.add(first_variant_sheet["AS"+str(i+2)])
         data_val.showInputMessage = True
         data_val.showErrorMessage = True
-        ws_in['AT1'] = 'Comment'
-        ws_in.column_dimensions['AT'].width = 12
-        ws_in['AT1'].alignment = Alignment(wrapText=True, horizontal='center')
-        ws_in['AT1'].border = THIN_BORDER
+        first_variant_sheet['AT1'] = 'Comment'
+        first_variant_sheet.column_dimensions['AT'].width = 12
+        first_variant_sheet['AT1'].alignment = Alignment(wrapText=True, horizontal='center')
+        first_variant_sheet['AT1'].border = THIN_BORDER
         wb.save(self.args.output)
