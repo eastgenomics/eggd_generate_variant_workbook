@@ -1447,24 +1447,34 @@ class excel():
         class_val.showInputMessage = True
         class_val.showErrorMessage = True
 
-        # adding Interpreted column dropdown in the first variant sheet tab
+        # adding Reported column dropdown in the first variant sheet tab
         first_variant_sheet = wb[self.args.sheets[0]]
-        first_variant_sheet['AS1'] = 'Interpreted'
-        first_variant_sheet['AS1'].font = Font(name=DEFAULT_FONT.name)
-        first_variant_sheet.column_dimensions['AS'].width = 12
         interpreted_options = '"YES,NO"'
         data_val = DataValidation(type='list', formula1=interpreted_options,
                                   allow_blank=True)
         data_val.prompt = 'Choose YES or NO'
-        data_val.promptTitle = 'Variant interpreted or not?'
+        data_val.promptTitle = 'Variant reported or not?'
         first_variant_sheet.add_data_validation(data_val)
+        col_value = self.get_col(first_variant_sheet) 
         num_variant = self.vcfs[0].shape[0]
         for i in range(num_variant):
-            data_val.add(first_variant_sheet["AS"+str(i+2)])
+            data_val.add(first_variant_sheet[col_value+str(i+2)])
         data_val.showInputMessage = True
         data_val.showErrorMessage = True
-        first_variant_sheet['AT1'] = 'Comment'
-        first_variant_sheet.column_dimensions['AT'].width = 12
-        first_variant_sheet['AT1'].alignment = Alignment(wrapText=True, horizontal='center')
-        first_variant_sheet['AT1'].border = THIN_BORDER
         wb.save(self.args.output)
+   
+    def get_col(self,worksheet) -> str:
+        """
+        Getting the column  value of 'Reported' column
+        
+        Parameters
+        ----------
+        worksheet: openpyxl.Writer
+               writer object of current sheet
+        """    
+        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
+            if column_cell[0].value == 'Reported':
+                col = str(column_cell[0])
+                col_value = col.split('.')[1].split('>')[0][:-1]
+                return col_value
+            
