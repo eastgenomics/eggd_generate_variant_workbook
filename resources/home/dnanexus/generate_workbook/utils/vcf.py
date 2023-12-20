@@ -158,8 +158,8 @@ class vcf():
         
         if self.args.summary == 'dias':
             # if it is dias pipeline, add the empty col
-            # named Reported in the first variant sheet
-            self.vcfs[0]['Reported']=''
+            # named Interpreted in the first variant sheet
+            self.vcfs[0]['Interpreted']=''
 
         if self.args.split_hgvs:
             self.split_hgvs()
