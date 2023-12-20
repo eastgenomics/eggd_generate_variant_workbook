@@ -1478,7 +1478,6 @@ class excel():
         """    
         for column_cell in worksheet.iter_cols(1, worksheet.max_column):
             if column_cell[0].value == 'Interpreted':
-                col = str(column_cell[0])
-                col_value = col.split('.')[1].split('>')[0][:-1]
+                col_value = column_cell[0].column_letter
                 return col_value
             
