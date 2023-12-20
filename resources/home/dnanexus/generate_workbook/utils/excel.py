@@ -1447,33 +1447,37 @@ class excel():
         class_val.showInputMessage = True
         class_val.showErrorMessage = True
 
-        # adding Reported column dropdown in the first variant sheet tab
+        # adding Interpreted column dropdown in the first variant sheet tab
         first_variant_sheet = wb[self.args.sheets[0]]
         interpreted_options = '"YES,NO"'
         data_val = DataValidation(type='list', formula1=interpreted_options,
                                   allow_blank=True)
         data_val.prompt = 'Choose YES or NO'
-        data_val.promptTitle = 'Variant reported or not?'
+        data_val.promptTitle = 'Variant interpreted or not?'
         first_variant_sheet.add_data_validation(data_val)
-        col_value = self.get_col(first_variant_sheet) 
+        col_value = self.get_col(first_variant_sheet)
         num_variant = self.vcfs[0].shape[0]
         for i in range(num_variant):
-            data_val.add(first_variant_sheet[col_value+str(i+2)])
+            data_val.add(first_variant_sheet[f"{col_value}{i+2}"])
         data_val.showInputMessage = True
         data_val.showErrorMessage = True
         wb.save(self.args.output)
    
     def get_col(self,worksheet) -> str:
         """
-        Getting the column  value of 'Reported' column
+        Getting the column value of 'Interpreted' column
         
         Parameters
         ----------
         worksheet: openpyxl.Writer
                writer object of current sheet
+        Return
+        -------
+        str
+            column value for Interpreted column (eg. A)
         """    
         for column_cell in worksheet.iter_cols(1, worksheet.max_column):
-            if column_cell[0].value == 'Reported':
+            if column_cell[0].value == 'Interpreted':
                 col = str(column_cell[0])
                 col_value = col.split('.')[1].split('>')[0][:-1]
                 return col_value
