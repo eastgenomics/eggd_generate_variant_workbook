@@ -1455,7 +1455,7 @@ class excel():
         data_val.prompt = 'Choose YES or NO'
         data_val.promptTitle = 'Variant interpreted or not?'
         first_variant_sheet.add_data_validation(data_val)
-        col_value = self.get_col(first_variant_sheet)
+        col_value = self.get_interpreted_col(first_variant_sheet)
         num_variant = self.vcfs[0].shape[0]
         for i in range(num_variant):
             data_val.add(first_variant_sheet[f"{col_value}{i+2}"])
@@ -1463,7 +1463,7 @@ class excel():
         data_val.showErrorMessage = True
         wb.save(self.args.output)
    
-    def get_col(self,worksheet) -> str:
+    def get_interpreted_col(self,worksheet) -> str:
         """
         Getting the column value of 'Interpreted' column
         
