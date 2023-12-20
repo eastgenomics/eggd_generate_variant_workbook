@@ -17,6 +17,7 @@ from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 import pandas as pd
 
 from .utils import is_numeric
@@ -80,6 +81,8 @@ class excel():
         self.write_images()
 
         self.workbook.save(self.args.output)
+        if self.args.summary == 'dias':
+            self.drop_down()
         print('Done!')
 
 
@@ -1424,3 +1427,83 @@ class excel():
             start_row=6, end_row=6, start_column=6, end_column=10)
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
+
+    def drop_down(self) -> None:
+        """
+        Function to add drop-downs in the report tab for entering
+        ACMG criteria for classification, as well as a boolean
+        drop down into the additional 'Interpreted' column of
+        the variant sheet(s).
+        """
+        wb = load_workbook(filename=self.args.output)
+
+        # adding dropdown for strength in report table
+        report_sheet = wb['report']
+        strength_options = '"Very Strong, Strong, Moderate, Supporting, NA"'
+        strength_val = DataValidation(type='list', formula1=strength_options,
+                                      allow_blank=True)
+        strength_val.prompt = 'Select from the list'
+        strength_val.promptTitle = 'Strength'
+        report_sheet.add_data_validation(strength_val)
+        strength_val.add('H9:H24')
+        cell_for_strength = ['J8', 'J11', 'J12', 'J15', 'J16', 'J17', 'J20',
+                             'J21', 'J22', 'J23', 'J24', 'J25']
+        for cell in cell_for_strength:
+            strength_val.add(cell)
+        strength_val.showInputMessage = True
+        strength_val.showErrorMessage = True
+
+        # adding final classification dropdown
+        report_sheet['B27'] = 'Final Classification'
+        report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
+        med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
+                            top=MEDIUM)
+        report_sheet['B27'].fill = PatternFill(patternType="solid",
+                                        start_color="FFFF99")
+        report_sheet['B27'].border = med_border
+        report_sheet['C27'].border = med_border
+        class_options = '"Pathogenic,Likely Pathogenic,Uncertain Significance,\
+                         Likely Benign, Benign"'
+        class_val = DataValidation(type='list', formula1=class_options,
+                                   allow_blank=True)
+        class_val.prompt = 'Select from the list'
+        class_val.promptTitle = 'Variant Interpretation'
+        report_sheet.add_data_validation(class_val)
+        class_val.add('C27')
+        class_val.showInputMessage = True
+        class_val.showErrorMessage = True
+
+        # adding Interpreted column dropdown in the first variant sheet tab
+        first_variant_sheet = wb[self.args.sheets[0]]
+        interpreted_options = '"YES,NO"'
+        data_val = DataValidation(type='list', formula1=interpreted_options,
+                                  allow_blank=True)
+        data_val.prompt = 'Choose YES or NO'
+        data_val.promptTitle = 'Variant interpreted or not?'
+        first_variant_sheet.add_data_validation(data_val)
+        col_value = self.get_interpreted_col(first_variant_sheet)
+        num_variant = self.vcfs[0].shape[0]
+        for i in range(num_variant):
+            data_val.add(first_variant_sheet[f"{col_value}{i+2}"])
+        data_val.showInputMessage = True
+        data_val.showErrorMessage = True
+        wb.save(self.args.output)
+   
+    def get_interpreted_col(self,worksheet) -> str:
+        """
+        Getting the column value of 'Interpreted' column
+        
+        Parameters
+        ----------
+        worksheet: openpyxl.Writer
+               writer object of current sheet
+        Return
+        -------
+        str
+            column value for Interpreted column (eg. A)
+        """    
+        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
+            if column_cell[0].value == 'Interpreted':
+                col_value = column_cell[0].column_letter
+                return col_value
+            
