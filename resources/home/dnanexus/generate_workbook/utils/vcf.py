@@ -76,10 +76,12 @@ class vcf():
             filter_vcf = f"{Path(vcf).stem}.filter.vcf"
             filter_vcf_gz = f"{Path(vcf).stem}.filter.vcf.gz"
 
+            # if VCF annotated with VEP and has not been split with bcftools:
             # first split multiple transcript annotation to separate VCF
             # records, and separate CSQ fields to separate INFO fields
-            self.bcftools_pre_process(vcf, split_vcf)
-            self.bgzip(split_vcf)
+            if self.check_vep_vcf(vcf):
+                self.bcftools_pre_process(vcf, split_vcf)
+                self.bgzip(split_vcf)
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
@@ -155,10 +157,10 @@ class vcf():
                 self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
-        
+
         if self.args.split_hgvs:
             self.split_hgvs()
-        
+
         if self.args.add_raw_change:
             self.add_raw_change()
 
@@ -266,6 +268,34 @@ class vcf():
             f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
         )
+
+
+    def check_vep_vcf(self, vcf) -> bool:
+        """
+        Checks if VCF is annotated with VEP and has not been previously
+        split with bcftools +split-vep. This is required to control if
+        to call self.bcftools_pre_process().
+
+        Parameters
+        ----------
+        vcf : str
+            filename of vcf to check
+
+        Returns
+        -------
+        bool
+            True if annotated and not already split, False if not
+        """
+        header, _ = self.parse_header(vcf)
+
+        if not any([x.startswith('##VEP') for x in header]):
+            # vcf not annotated with VEP
+            return False
+        elif any([x.startswith('##bcftools_split-vep') for x in header]):
+            # VCF annotated with VEP but already split
+            return False
+        else:
+            return True
 
 
     def read(self, vcf, sample=None) -> pd.DataFrame:
