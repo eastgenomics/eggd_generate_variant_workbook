@@ -309,6 +309,8 @@ class vcf():
                 shutil.copyfileobj(input_file, output_file)
                 input_file.close()
 
+            self.bgzip(split_vcf)
+
             return False
         else:
             return True
