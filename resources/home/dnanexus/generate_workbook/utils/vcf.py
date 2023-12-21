@@ -305,7 +305,7 @@ class vcf():
             else:
                 input_file = open(vcf)
 
-            with open(split_vcf) as output_file:
+            with open(split_vcf, 'w') as output_file:
                 shutil.copyfileobj(input_file, output_file)
                 input_file.close()
 
