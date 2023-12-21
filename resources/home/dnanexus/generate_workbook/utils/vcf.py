@@ -301,11 +301,11 @@ class vcf():
             # already split => create tmp vcf to continue processing
             print('VCF not annotated with VEP or already split, continuing...')
             if vcf.endswith('.gz'):
-                input_file = gzip.open(vcf)
+                input_file = gzip.open(vcf, 'rb')
             else:
-                input_file = open(vcf)
+                input_file = open(vcf, 'rb')
 
-            with open(split_vcf, 'w') as output_file:
+            with open(split_vcf, 'wb') as output_file:
                 shutil.copyfileobj(input_file, output_file)
                 input_file.close()
 
