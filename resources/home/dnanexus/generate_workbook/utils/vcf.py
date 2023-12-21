@@ -2,6 +2,7 @@ import gzip
 import os
 from pathlib import Path, PurePath
 import re
+import shutil
 import subprocess
 import sys
 from typing import Union
@@ -76,10 +77,10 @@ class vcf():
             filter_vcf = f"{Path(vcf).stem}.filter.vcf"
             filter_vcf_gz = f"{Path(vcf).stem}.filter.vcf.gz"
 
-            # if VCF annotated with VEP and has not been split with bcftools:
+            # if VCF annotated with VEP and has not been split with bcftools,
             # first split multiple transcript annotation to separate VCF
             # records, and separate CSQ fields to separate INFO fields
-            if self.check_vep_vcf(vcf):
+            if self.check_vep_vcf(vcf, split_vcf):
                 self.bcftools_pre_process(vcf, split_vcf)
                 self.bgzip(split_vcf)
 
@@ -270,11 +271,14 @@ class vcf():
         )
 
 
-    def check_vep_vcf(self, vcf) -> bool:
+    def check_vep_vcf(self, vcf, split_vcf) -> bool:
         """
         Checks if VCF is annotated with VEP and has not been previously
-        split with bcftools +split-vep. This is required to control if
-        to call self.bcftools_pre_process().
+        split with bcftools +split-vep.
+
+        This is required to control if to call self.bcftools_pre_process(),
+        if it is not annotated or has been previously split, then we
+        create a tmp vcf with the same name as when split to use downstream.
 
         Parameters
         ----------
@@ -288,11 +292,23 @@ class vcf():
         """
         header, _ = self.parse_header(vcf)
 
-        if not any([x.startswith('##VEP') for x in header]):
-            # vcf not annotated with VEP
-            return False
-        elif any([x.startswith('##bcftools_split-vep') for x in header]):
-            # VCF annotated with VEP but already split
+        if not any([
+            x.startswith('##VEP') for x in header
+        ]) or any([
+            x.startswith('##bcftools_split-vep') for x in header
+        ]):
+            # VCF not annotated with VEP or annotated with VEP but
+            # already split => create tmp vcf to continue processing
+            print('VCF not annotated with VEP or already split, continuing...')
+            if vcf.endswith('.gz'):
+                input_file = gzip.open(vcf)
+            else:
+                input_file = open(vcf)
+
+            with open(split_vcf) as output_file:
+                shutil.copyfileobj(input_file, output_file)
+                input_file.close()
+
             return False
         else:
             return True
