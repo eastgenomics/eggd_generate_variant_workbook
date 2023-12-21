@@ -72,10 +72,11 @@ class vcf():
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
-            split_vcf = f"{Path(vcf).stem}.split.vcf"
-            split_vcf_gz = f"{Path(vcf).stem}.split.vcf.gz"
-            filter_vcf = f"{Path(vcf).stem}.filter.vcf"
-            filter_vcf_gz = f"{Path(vcf).stem}.filter.vcf.gz"
+            vcf_stem = Path(vcf).stem.replace('.vcf', '')
+            split_vcf = f"{vcf_stem}.split.vcf"
+            split_vcf_gz = f"{vcf_stem}.split.vcf.gz"
+            filter_vcf = f"{vcf_stem}.filter.vcf"
+            filter_vcf_gz = f"{vcf_stem}.filter.vcf.gz"
 
             # if VCF annotated with VEP and has not been split with bcftools,
             # first split multiple transcript annotation to separate VCF
