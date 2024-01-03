@@ -564,7 +564,6 @@ class excel():
             "HGVSp": [2, 4],
             "Evidence": [4, 3],
             "Pathogenic": [4, 7],
-            "Yes / No": [4, 8],
             "Benign": [4, 9],
             "Yes / No": [4, 10],
             "Associated disease": [5, 2],
