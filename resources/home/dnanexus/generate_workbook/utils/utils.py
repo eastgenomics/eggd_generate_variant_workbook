@@ -80,7 +80,7 @@ def map_chr_to_nc(chrom, build) -> str:
     Parameters
     ----------
     chrom : str
-        chromsome to return NC value of
+        chromosome to return NC value of
     build : int
         reference build inferred from reference stored in vcf header,
         will be either 37 or 38
@@ -305,7 +305,7 @@ def parse_cvo(cvo_df) -> pd.DataFrame:
     local app CombinedVariantOutput.tsv file. Rest of file contains file
     metrics and SNVs, but as we already have the VCF of variants we will
     exclude this to just keep the additional metrics.
-    
+
     This file is structured with the following sections:
 
         [Analysis Details]
@@ -354,7 +354,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     """
     Parse out sample metrics from run level MetricsOutput.tsv TSO500 local
     app output file if provided to --additional_files.
-    
+
     Uses first VCF file prefix to assume as sample name for parsing out
     of metrics file.
 
@@ -376,7 +376,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     if not metrics_idx:
         # file doesn't have expected field for MetricsOutput
         print(
-            f'WARNING: Could not parse "[DNA Library QC Metrics]" from '
+            'WARNING: Could not parse "[DNA Library QC Metrics]" from '
             'MetricsOutput.tsv. Writing whole file to sheet.'
         )
         return metrics_df
@@ -400,7 +400,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
             f'prefix: {vcf_prefix}. Writing whole file to sheet.'
         )
         return metrics_df
-    
+
     if len(idx) > 1:
         # found more than one match for given prefix, return whole file
         print(
@@ -408,7 +408,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
             f'for prefix: {vcf_prefix}. Writing whole file to sheet.'
         )
         return metrics_df
-    
+
     # select first 3 cols with labels and our sample column
     metrics_df = metrics_df.iloc[:, [0, 1, 2, idx[0]]]
 

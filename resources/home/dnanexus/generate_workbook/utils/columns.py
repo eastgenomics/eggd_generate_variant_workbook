@@ -4,7 +4,7 @@ import pandas as pd
 
 class splitColumns():
     """
-    Functions for spliting and checking of variant annotation and
+    Functions for splitting and checking of variant annotation and
     attribute columns (FORMAT, SAMPLE, INFO, CSQ), called during reading
     of VCFs from file in vcf.read()
     """
@@ -95,7 +95,7 @@ class splitColumns():
         ------
         AssertionError
             Raised when SAMPLE column contains '##' that is used to split out
-            data to separte columns on
+            data to separate columns on
 
         Returns
         -------
@@ -204,7 +204,6 @@ class splitColumns():
 
         # drop INFO and CSQ as we fully split them out
         vcf_df.drop(['INFO'], axis=1, inplace=True)
-
 
         return vcf_df
 

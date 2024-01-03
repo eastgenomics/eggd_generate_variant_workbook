@@ -215,7 +215,7 @@ class vcf():
         # check total rows before splitting
         pre_split_total = subprocess.run(
             f"zgrep -v '^#' {vcf} | wc -l", shell=True,
-            capture_output=True
+            capture_output=True, check=True
         )
 
         cmd = (
@@ -223,7 +223,7 @@ class vcf():
             f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
         )
 
-        output = subprocess.run(cmd, shell=True, capture_output=True)
+        output = subprocess.run(cmd, shell=True, capture_output=True, check=False)
 
         assert output.returncode == 0, (
             f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
@@ -234,7 +234,7 @@ class vcf():
         # check total rows after splitting
         post_split_total = subprocess.run(
             f"zgrep -v '^#' {output_vcf} | wc -l", shell=True,
-            capture_output=True
+            capture_output=True, check=True
         )
 
         print(
@@ -262,7 +262,7 @@ class vcf():
         """
         output = subprocess.run(
             f"bgzip --force {file} -c > {file}.gz",
-            shell=True, capture_output=True
+            shell=True, capture_output=True, check=False
         )
 
         assert output.returncode == 0, (
@@ -377,7 +377,7 @@ class vcf():
 
     def read_additional_files(self):
         """
-        Attempt to read in additional tabulated files to  dataframes for
+        Attempt to read in additional tabulated files to dataframes for
         writing as additional sheets to the output workbook
 
         Updates self.additional_files dictionary with file_prefix : dataframe
@@ -482,7 +482,7 @@ class vcf():
             else:
                 break
 
-        fh.close
+        fh.close()
 
         columns = [x.strip('#') for x in header[-1].split()]
         columns[-1] = 'SAMPLE'
@@ -504,7 +504,7 @@ class vcf():
         header : list
             lines of vcf header
         """
-        ref=''
+        ref = ''
 
         # first check if we can get reference build from VEP command string
         vep = [x for x in header if x.startswith('##VEP')]
@@ -642,7 +642,7 @@ class vcf():
 
             if invalid:
                 print(
-                    f"WARNING: Columns passed with `--include / --exlcude not "
+                    f"WARNING: Columns passed with `--include / --exclude not "
                     f"present in vcf ({invalid}), skipping these columns..."
                 )
                 if self.args.exclude:
@@ -801,7 +801,7 @@ class vcf():
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
-        # don't attmept to merge empty vcfs as likely to have diff. columns
+        # don't attempt to merge empty vcfs as likely to have diff. columns
         vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
@@ -839,7 +839,7 @@ class vcf():
     def add_raw_change(self) -> None:
         """
         Adds a column named 'rawChange' of the 'raw' genomic change, formatted
-        as {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by 
+        as {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by
         VEP, but will not include text such as INV and DEL.
         """
         for idx, vcf in enumerate(self.vcfs):
