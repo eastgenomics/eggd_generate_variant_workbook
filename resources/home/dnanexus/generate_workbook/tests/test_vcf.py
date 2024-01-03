@@ -375,7 +375,7 @@ class TestHyperlinks():
         Test to ensure that the DECIPHER column is created when --decipher
         input is specified.
         """
-        # Create test dataframe with no "DECIPHER" columnn
+        # Create test dataframe with no "DECIPHER" column
         df = pd.DataFrame([
             {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'},
             {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
