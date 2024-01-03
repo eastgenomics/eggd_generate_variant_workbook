@@ -2,6 +2,8 @@
 
 # egg_generate_workbook (DNAnexus Platform App)
 
+![pytest](https://github.com/eastgenomics/eggd_generate_variant_workbook/actions/workflows/pytest.yml/badge.svg)
+
 ## What does this app do?
 
 Generate an Excel workbook from VEP annotated vcf(s)
