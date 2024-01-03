@@ -23,14 +23,30 @@ def read_test_vcf(vcf_file):
     """
     # initialise vcf class with a valid argparse input to allow calling .read()
     vcf_handler = vcf(argparse.Namespace(
-        add_name=False, analysis='', clinical_indication='', exclude=None,
-        filter=None, include=None, keep=False, merge=False,
+        add_name=False,
+        add_classification_column=False,
+        analysis='',
+        clinical_indication='',
+        exclude=None,
+        filter=None,
+        include=None,
+        keep=False,
+        merge=False,
         add_comment_column=False,
         out_dir='',
         output='',
-        panel='', print_columns=False, print_header=False, reads='',
-        rename=None, reorder=None, sample='', sheets=['variants'],
-        summary=None, usable_reads='', vcfs=[vcf_file], workflow=('', '')
+        panel='',
+        print_columns=False,
+        print_header=False,
+        reads='',
+        rename=None,
+        reorder=None,
+        sample='',
+        sheets=['variants'],
+        summary=None,
+        usable_reads='',
+        vcfs=[vcf_file],
+        workflow=('', '')
     ))
     vcf_df = vcf_handler.read(vcf_file)
 

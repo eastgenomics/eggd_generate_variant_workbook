@@ -228,7 +228,7 @@ class buildHyperlink():
             # values for everything else which is hyperlinked
             # needs to be cast to string
             return f'=HYPERLINK("{url}", "{value[column]}")'
-   
+
     def gnomad(self, value, build) -> str:
         # gnomad URL has build specific suffix
         if build == 37:
@@ -269,7 +269,7 @@ class buildHyperlink():
         # build URL and set value to display equal to what is in the URL
         url = self.urls.get('mastermind')
         url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
-        
+
         return url
 
     def clinvar(self, clinvar_id) -> str:
@@ -289,7 +289,7 @@ class buildHyperlink():
 
     def oncokb(self, value) -> str:
         return f"{self.urls.get('oncokb')}{value.CSQ_SYMBOL}"
-    
+
     def cbioportal(self, value) -> str:
         url = self.urls.get('cbioportal')
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"

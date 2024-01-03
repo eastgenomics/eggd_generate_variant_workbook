@@ -689,11 +689,11 @@ class vcf():
 
     def add_additional_columns(self) -> None:
         """
-        Append empty columns specified from --aditional_columns for adding
+        Append empty columns specified from --additional_columns for adding
         additional hyperlinks to external resources (e.g. decipher, oncoKB etc.)
         """
         for column in self.args.additional_columns:
-            if column in ['decipher']:
+            if column.lower() in ['decipher']:
                 # column is only for b38, check if vcf also is
                 if not self.refs:
                     print(
@@ -718,7 +718,7 @@ class vcf():
 
     def rename_columns(self) -> None:
         """
-        Rename columnns from key value pairs passed from --rename argument,
+        Rename columns from key value pairs passed from --rename argument,
         also remove underscores from all names for nicer reading
 
         Raises

@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
@@ -354,7 +355,7 @@ class TestHyperlinks():
         ])
 
 
-        to_add_column = vcf(VCF_ARGS)
+        to_add_column = vcf(deepcopy(VCF_ARGS))
         to_add_column.args.additional_columns = ['decipher']
         to_add_column.vcfs = [df]
         to_add_column.refs = ['38']  # Set reference = build 38
@@ -382,7 +383,7 @@ class TestHyperlinks():
 
         # Include --decipher input, all other inputs are false to avoid giving
         # this dataframe to other functions except make_decipher_columns
-        should_have_decipher_column = vcf(VCF_ARGS)
+        should_have_decipher_column = vcf(deepcopy(VCF_ARGS))
         should_have_decipher_column.args.additional_columns = ['DECIPHER']
         should_have_decipher_column.vcfs = [df]
         should_have_decipher_column.refs = ['38']  # Set build = 38
@@ -408,7 +409,7 @@ class TestHyperlinks():
         # Using the same test dataframe but without --decipher input, all other
         # inputs are false to avoid giving this dataframe to other functions
         # except make_decipher_columns
-        should_not_have_decipher_column = vcf(VCF_ARGS)
+        should_not_have_decipher_column = vcf(deepcopy(VCF_ARGS))
 
         should_not_have_decipher_column.vcfs = [df]
         should_not_have_decipher_column.refs = ['38']  # Set build = 38
@@ -434,7 +435,7 @@ class TestHyperlinks():
              'ALT': 'C'},
         ])
 
-        build_37_vcf = vcf(VCF_ARGS)
+        build_37_vcf = vcf(deepcopy(VCF_ARGS))
         build_37_vcf.vcfs = [df]
         build_37_vcf.refs = ['37']  # Set reference = build 37
 
@@ -463,7 +464,7 @@ class TestHyperlinks():
              'ALT': 'T', 'DECIPHER': 'DECIPHER'},
         ])
 
-        test_vcf = vcf(VCF_ARGS)
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.args.decipher = True
         test_vcf.vcfs = [df]
         test_vcf.refs = ['38']  # Set reference = build 38
@@ -494,7 +495,7 @@ class TestHyperlinks():
              'ALT': 'T', 'gnomAD': 0.0108147},
         ])
 
-        test_vcf = vcf(argparse.Namespace())
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['37']  # Set reference = build 37
 
@@ -522,12 +523,7 @@ class TestHyperlinks():
              'ALT': 'C', 'gnomADg AF': 0.0004271},
         ])
 
-        test_vcf = vcf(argparse.Namespace(
-            additional_files=False, filter=False, print_columns=False,
-            rename=False, vcfs=[], merge=False, include=False, exclude=False,
-            reorder=False, decipher=True, split_hgvs=None,
-            add_classification_column=None, additional_columns=[]
-        ))
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['38']  # Set reference = build 38
 
@@ -555,7 +551,7 @@ class TestHyperlinks():
              'ALT': 'G', 'COSMICcMuts': 'COSV63186428'},
         ])
 
-        test_vcf = vcf(argparse.Namespace())
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['37']  # Set reference = build 37
 
