@@ -149,16 +149,6 @@ class TestFilters():
     vcf_handler.args.sheets = ['variants']
     vcf_handler.args.vcf = [test_vcf]
 
-    # vcf_handler = vcf(argparse.Namespace(
-    #     add_name=False, analysis='',
-    #     filter=None, keep=False, merge=False,
-    #     reorder=[], exclude=None, include=None,
-    #     out_dir='', output='', always_keep=pd.DataFrame(),
-    #     panel='', print_columns=False, print_header=False, reads='',
-    #     rename=None, sample='', sheets=['variants'], summary=None,
-    #     usable_reads='', vcfs=[test_vcf], workflow=('', ''), types=None
-    # ))
-
 
     def filter(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
         """
