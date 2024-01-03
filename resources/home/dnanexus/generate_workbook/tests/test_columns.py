@@ -1,10 +1,7 @@
 import argparse
-from cgi import test
 import os
-from pathlib import Path
 import subprocess
 import sys
-from unittest.mock import NonCallableMagicMock
 
 import pytest
 
@@ -69,7 +66,8 @@ def read_column_from_vcf(vcf, column) -> list:
     list : column data read from vcf
     """
     output = subprocess.run(
-        f"grep -v '^#' {vcf} | cut -f{column}", shell=True, capture_output=True
+        f"grep -v '^#' {vcf} | cut -f{column}",
+        shell=True, capture_output=True, check=True
     )
 
     return output.stdout.decode().splitlines()
@@ -181,7 +179,7 @@ class TestInfoColumn():
             (
                 f"cut -f8 {self.test_vcf} | grep -oh "
                 f"';[A-Za-z0-9\_\-\.]*=' | sort | uniq",
-            ), shell=True, capture_output=True
+            ), shell=True, capture_output=True, check=True
         )
 
         # get cleaned list that should be df column names
@@ -203,7 +201,7 @@ class TestInfoColumn():
             (
                 f"grep -v '^#' {self.test_vcf} | grep -oh "
                 f"'gnomAD_AF=[0-9\.e\-]*;' | sort | uniq"
-            ), shell=True, capture_output=True
+            ), shell=True, capture_output=True, check=True
         )
 
         # clean up values
@@ -235,7 +233,7 @@ class TestFormatSample():
     # get list of FORMAT fields from VCF FORMAT column
     output = subprocess.run((
         f"grep -v '^#' {test_vcf} | cut -f9 | sort | uniq"
-    ), shell=True, capture_output=True)
+    ), shell=True, capture_output=True, check=True)
 
     format_fields = sorted(output.stdout.decode().split())[0].split(':')
 
@@ -248,7 +246,7 @@ class TestFormatSample():
     # get all SAMPLE values from vcf
     output = subprocess.run((
         f"grep -v '^#' {test_vcf} | cut -f10"
-    ), shell=True, capture_output=True)
+    ), shell=True, capture_output=True, check=True)
 
     sample_strings_vcf = output.stdout.decode().splitlines()
 
@@ -275,6 +273,7 @@ class TestVEPHandling():
     """
     # test vcf standard sample
     test_vcf = os.path.join(TEST_DATA_DIR, "HD753-unittest_annotated.split.vcf")
+
     # run dataframe through splitColumns.info() to split out INFO column
     vcf_df = read_test_vcf(vcf_file=test_vcf)
     vcf_df = splitColumns().split(vcf_df)
@@ -290,14 +289,16 @@ class TestVEPHandling():
             (
                 f"grep -v '^#' {self.test_vcf} | grep -oh "
                 f"'COSMICcMuts=[A-Z0-9&\.]*;' | sort | uniq"
-            ), shell=True, capture_output=True
+            ), shell=True, capture_output=True, check=True
         )
+
         # clean up values
         stdout = output.stdout.decode().splitlines()
         stdout = sorted(list([
             x.replace(';', '').replace('COSMICcMuts=', '') for x in stdout
         ]))
         stdout = [' & '.join(set(x.split("&"))) for x in stdout]
+
         # get COSMICcMuts values from dataframe
         df_values = sorted(list(self.vcf_df['CSQ_COSMICcMuts'].unique().tolist()))
         assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
@@ -305,30 +306,31 @@ class TestVEPHandling():
         )
 
     def test_parsed_correct_COSMICncMuts_values(self):
-            """
-            Test values read into dataframe for COSMICncMuts match the values
-            above from the VCF
-            """
-            # read COSMICncMuts values from vcf
-            output = subprocess.run(
-                (
-                    f"grep -v '^#' {self.test_vcf} | grep -oh "
-                    f"'COSMICncMuts=[A-Z0-9&\.]*;' | sort | uniq"
-                ), shell=True, capture_output=True
-            )
+        """
+        Test values read into dataframe for COSMICncMuts match the values
+        above from the VCF
+        """
+        # read COSMICncMuts values from vcf
+        output = subprocess.run(
+            (
+                f"grep -v '^#' {self.test_vcf} | grep -oh "
+                f"'COSMICncMuts=[A-Z0-9&\.]*;' | sort | uniq"
+            ), shell=True, capture_output=True, check=True
+        )
 
-            # clean up values
-            stdout = output.stdout.decode().splitlines()
-            stdout = sorted(list([
-                x.replace(';', '').replace('COSMICncMuts=', '') for x in stdout
-            ]))
-            stdout = [' & '.join(set(x.split("&"))) for x in stdout]
-            # get COSMICncMuts values from dataframe
-            df_values = sorted(list(self.vcf_df['CSQ_COSMICncMuts'].unique().tolist()))
+        # clean up values
+        stdout = output.stdout.decode().splitlines()
+        stdout = sorted(list([
+            x.replace(';', '').replace('COSMICncMuts=', '') for x in stdout
+        ]))
+        stdout = [' & '.join(set(x.split("&"))) for x in stdout]
 
-            assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
-                "COSMICncMuts values in VCF do not match those in dataframe"
-            )
+        # get COSMICncMuts values from dataframe
+        df_values = sorted(list(self.vcf_df['CSQ_COSMICncMuts'].unique().tolist()))
+
+        assert all([str(x) == str(y) for x, y in zip(stdout, df_values)]), (
+            "COSMICncMuts values in VCF do not match those in dataframe"
+        )
 
 
 if __name__ == "__main__":

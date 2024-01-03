@@ -22,21 +22,21 @@ vcf_handler = vcf(argparse.Namespace)
 # namespace with all args coming in from parse_args, will be adjusted
 # as required in each test
 VCF_ARGS = argparse.Namespace(
-        additional_files=False,
-        filter=False,
-        print_columns=False,
-        rename=False,
-        vcfs=[],
-        merge=False,
-        include=False,
-        exclude=False,
-        reorder=False,
-        decipher=False,
-        split_hgvs=False,
-        add_raw_change=False,
-        add_classification_column=None,
-        additional_columns=[]
-    )
+    additional_files=False,
+    filter=False,
+    print_columns=False,
+    rename=False,
+    vcfs=[],
+    merge=False,
+    include=False,
+    exclude=False,
+    reorder=False,
+    decipher=False,
+    split_hgvs=False,
+    add_raw_change=False,
+    add_classification_column=None,
+    additional_columns=[]
+)
 
 class TestHeader():
     """
