@@ -36,7 +36,10 @@ class splitColumns():
     def unique_vep(self, vcf_df) -> pd.DataFrame:
         """
         Handle known bug in VEP annotation where it duplicates COSMIC IDs
-        This creates a
+
+        This creates a dataframe of variants and edits the CSQ column to
+        remove all duplicated entries and re-joins the new list of unique
+        entries with '&' as the delimiter.
 
         Parameters
         ----------
