@@ -367,7 +367,7 @@ class vcf():
         if self.args.add_comment_column:
             # add empty 'Comment' column to end of df
             vcf_df['Comment'] = ''
-        
+
         if self.args.add_classification_column:
             # add empty 'Classification' column to end of df
             vcf_df['Classification'] = ''
@@ -428,7 +428,7 @@ class vcf():
                     'parsing out TMB, MSI and Amplifications'
                 )
                 file_df = parse_cvo(cvo_df=file_df)
-            
+
             if file.endswith('MetricsOutput.tsv'):
                 # file passed is run level MetricsOutput.tsv from Illumina
                 # TSO500 app, attempt to parse out just sample metrics to display
@@ -821,7 +821,7 @@ class vcf():
                     'splitting HGVS.'
                 )
                 continue
-            
+
             # ensure columns we're going to create don't already exist
             if any(col in vcf.columns for col in ['DNA', 'Protein']):
                 print(
@@ -846,7 +846,7 @@ class vcf():
             if vcf.empty:
                 self.vcfs[idx]['rawChange'] = ''
                 continue
-            
+
             if not all(
                 col in vcf.columns for col in ['CHROM', 'POS', 'REF', 'ALT']
             ):

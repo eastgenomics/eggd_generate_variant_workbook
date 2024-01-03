@@ -819,7 +819,7 @@ class excel():
 
                 col_letter = get_column_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
-            
+
             # set widths of any columns we have specified below in set_width()
             # to override the above defaults
             # get column names from first row of sheet

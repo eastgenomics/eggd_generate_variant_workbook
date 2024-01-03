@@ -159,17 +159,14 @@ class buildHyperlink():
             as any other required fields (i.e. chrom, pos, ref, alt etc.)
         build : int
             either 37 or 38, inferred perviously from reference parsed from
-            vcf header, controls URL to use for those that are build specific 
+            vcf header, controls URL to use for those that are build specific
 
         Returns
         -------
         str
             Excel formatted hyperlink if a URL is present for that resource,
-            else just the original value is returned 
+            else just the original value is returned
         """
-        print(value)
-        print(column)
-        print(' ')
         if (
             not value[column] or
             value[column] == '.' or
