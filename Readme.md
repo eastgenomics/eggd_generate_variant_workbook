@@ -6,7 +6,7 @@
 
 ## What does this app do?
 
-Generate an Excel workbook from VEP annotated vcf(s)
+Generates an Excel workbook from vcf(s)
 
 ## What are typical use cases for this app?
 
@@ -23,7 +23,7 @@ This app may be executed as a standalone app.
 
 **File inputs (required)**:
 
-- `--vcfs`: VEP annotated vcf(s)
+- `--vcfs`: vcf file(s) to write to Excel workbook sheets
 
 **Other Inputs (optional):**
 
