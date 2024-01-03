@@ -6,6 +6,12 @@ filetype==1.1.0
 jarowinkler==1.2.1
 Levenshtein==0.20.2
 numpy==1.23.2
+pytest==7.0.1
+pytest-cov==4.0.0
+pytest-html==4.1.0
+pytest-metadata==3.0.0
+pytest-mock==3.11.1
+pytest-subtests==0.11.0
 python-dateutil==2.8.2
 python-Levenshtein==0.12.2
 pytz==2022.2.1
