@@ -285,11 +285,20 @@ class vcf():
         ----------
         vcf : str
             filename of vcf to check
+        split_vcf : str
+            filename of tmp vcf to create if not annotated / already split
 
         Returns
         -------
         bool
             True if annotated and not already split, False if not
+
+        Outputs
+        -------
+        file
+            vcf file with name from split_vcf input
+        file
+            bgzipped equivalent of above
         """
         header, _ = self.parse_header(vcf)
 
@@ -701,7 +710,7 @@ class vcf():
                         f'adding {column} column.'
                     )
                     continue
-            
+
             for idx, vcf in enumerate(self.vcfs):
                 vcf[column] = column
                 self.vcfs[idx] = vcf

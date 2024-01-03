@@ -167,6 +167,9 @@ class buildHyperlink():
             Excel formatted hyperlink if a URL is present for that resource,
             else just the original value is returned 
         """
+        print(value)
+        print(column)
+        print(' ')
         if (
             not value[column] or
             value[column] == '.' or
