@@ -4,6 +4,7 @@ from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
 import sys
+import unittest
 import pandas as pd
 
 import pytest
@@ -101,7 +102,7 @@ class TestHeader():
         assert all([x.startswith('#') for x in self.header])
 
 
-class TestVcfCheckVepVcf():
+class TestVcfCheckVepVcf(unittest.TestCase):
     """
     Tests for vcf.check_vep_vcf()
 
@@ -109,8 +110,8 @@ class TestVcfCheckVepVcf():
     already split with bcftools +split-vep before trying to split
     again
     """
-    def tearDown():
-        if os.file.exists('/tmp/test.vcf'):
+    def tearDown(self):
+        if os.path.exists('/tmp/test.vcf'):
             os.remove('/tmp/test.vcf')
 
 
@@ -122,8 +123,53 @@ class TestVcfCheckVepVcf():
         # vep annotated and unsplit vcf
         vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.vcf')
 
-        assert vcf(None).check_vep_vcf(vep_vcf, '/tmp/test.vcf')
+        assert vcf(deepcopy(VCF_ARGS)).check_vep_vcf(vep_vcf, '/tmp/test.vcf')
 
+
+    def test_vcf_already_split(self):
+        """
+        Test when a vcf has already been split that the function returns
+        False as expected
+        """
+        # previously split test vcf
+        vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.split.vcf')
+
+        assert not vcf(deepcopy(VCF_ARGS)).check_vep_vcf(
+            vep_vcf, '/tmp/test.vcf')
+
+
+    def test_vcf_not_annotated_with_vep(self):
+        """
+        Test that a VCF not annotated with VEP returns False as expected
+        """
+        # unannotated test vcf
+        not_vep_vcf = os.path.join(TEST_DATA_DIR, 'unannotated.vcf.gz')
+
+        assert not vcf(deepcopy(VCF_ARGS)).check_vep_vcf(
+            not_vep_vcf, '/tmp/test.vcf')
+
+
+    def test_tmp_vcf_made(self):
+        """
+        Test when check_vep_vcf() is called and the VCF either is not
+        annotated with VEP or already split with bcftools +split-vep
+        that a temporary vcf is created with the given name that is
+        identical to the input vcf
+        """
+        # previously split test vcf
+        vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.split.vcf')
+
+        vcf(deepcopy(VCF_ARGS)).check_vep_vcf(vep_vcf, '/tmp/test.vcf')
+
+        with open(vep_vcf) as fh:
+            input_vcf = fh.read()
+
+        with open('/tmp/test.vcf') as fh:
+            created_vcf = fh.read()
+
+        assert input_vcf == created_vcf, (
+            'temporary created vcf not the same as input vcf'
+        )
 
 
 class TestDataFrameActions():
