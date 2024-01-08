@@ -82,7 +82,7 @@ class excel():
         self.write_images()
 
         self.workbook.save(self.args.output)
-        if self.args.summary == 'dias':
+        if self.args.acmg:
             self.drop_down()
         print('Done!')
 
