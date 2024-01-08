@@ -210,10 +210,10 @@
     {
       "name": "acmg",
       "label": "ACMG",
-      "class": "boolean",
+      "class": "int",
       "optional": true,
-      "default": false,
-      "help": "Determines if to add extra sheet with ACMG reporting criteria",
+      "default": 3,
+      "help": "Determines number of extra sheet(s) with ACMG reporting criteria",
       "group": "generate_workbook.py"
     },
     {
