@@ -75,13 +75,8 @@ class excel():
         """
         self.write_summary()
         if self.args.acmg:
-            if self.args.summary == 'dias':
-                # adding three report sheets as report1, report2 and report3
-                for i in range(1, 4):
-                    self.write_multiple_reporting_template(i)
-            else:
-                # adding only one report sheet
-                self.write_reporting_template()
+            for i in range(1, self.args.acmg+1):
+                self.write_reporting_template(i)
         self.write_variants()
         self.write_additional_files()
         self.write_images()
@@ -560,179 +555,12 @@ class excel():
                     cell.border = THIN_BORDER
 
 
-    def write_reporting_template(self) -> None:
+    def write_reporting_template(self, report_sheet_num) -> None:
         """
-        Writes sheet to Excel file with formatting for reporting against
+        Writes sheet(s) to Excel file with formatting for reporting against
         ACMG criteria
         """
-        report = self.workbook.create_sheet('report')
-
-        titles = {
-            "Gene": [2, 2],
-            "HGVSc": [2, 3],
-            "HGVSp": [2, 4],
-            "Evidence": [4, 3],
-            "Pathogenic": [4, 7],
-            "Yes / No": [4, 8],
-            "Benign": [4, 9],
-            "Yes / No": [4, 10],
-            "Associated disease": [5, 2],
-            "Known inheritance": [6, 2],
-            "Prevalence": [7, 2],
-            "Estimated allele frequency": [8, 2],
-            "Null variant where LOF function of disease": [9, 2],
-            "Same AA change as pathogenic change,regardless\nof nucleotide": [10, 2],
-            "De novo inheritance or inheritance confirmed / observed in\nhealthy adult": [11, 2],
-            "In vivo / in vitro functional studies": [12, 2],
-            "Prevalence in affected > controls": [13, 2],
-            "In mutational hotspot, without benign variation": [14, 2],
-            "Freq in controls eg ExAC, low/absent or >5%": [15, 2],
-            "Confirmation of in trans/in cis with pathogenic variant": [16, 2],
-            "In frame protein length change, non repeating vs. repeating": [17, 2],
-            "Same AA as a different pathogenic change": [18, 2],
-            "Assumed de novo (no confirmation)": [19, 2],
-            "Cosegregation with disease in family, not in unnaffected": [20, 2],
-            ("Missense where low rate of benign missense and common\nmechanism"
-                "(Z score >3), or missense where LOF common\nmechanism"): [21, 2],
-            "Multiple lines of computational evidence (Cant use with PS3)": [22, 2],
-            ("Phenotype/FH specific for disease of single etiology, or\n"
-                "alternative genetic cause of disease detected"): [23, 2],
-            "Reputable source reports but evidence not available": [24, 2],
-            "Synonymous change, no affect on splicing, not conserved": [25, 2],
-            "ACMG Classification": [26, 2],
-        }
-
-        for key, val in titles.items():
-            report.cell(val[0], val[1]).value = key
-            report.cell(val[0], val[1]).font = Font(
-                bold=True, name=DEFAULT_FONT.name
-            )
-
-        classifications = {
-            "Extra": [(5, 7), (6, 7), (7, 7), (8, 7), (5, 9), (6, 9), (7, 9)],
-            "PVS1": [(9, 7)],
-            "PS1": [(10, 7)],
-            "PS2": [(11, 7)],
-            "PS3": [(12, 7)],
-            "PS4": [(13, 7)],
-            "PM1": [(14, 7)],
-            "PM2": [(15, 7)],
-            "PM3": [(16, 7)],
-            "PM4": [(17, 7)],
-            "PM5": [(18, 7)],
-            "PM6": [(19, 7)],
-            "PP1": [(20, 7)],
-            "PP2": [(21, 7)],
-            "PP3": [(22, 7)],
-            "PP4": [(23, 7)],
-            "PP5": [(24, 7)],
-            "BS1": [(8, 9)],
-            "BS2": [(11, 9)],
-            "BS3": [(12, 9)],
-            "BA1": [(15, 9)],
-            "BP2": [(16, 9)],
-            "BP3": [(17, 9)],
-            "BS4": [(20, 9)],
-            "BP1": [(21, 9)],
-            "BP4": [(22, 9)],
-            "BP5": [(23, 9)],
-            "BP6": [(24, 9)],
-            "BP7": [(25, 9)]
-        }
-
-        for key, values in classifications.items():
-            for val in values:
-                report.cell(val[0], val[1]).value = key
-
-        # nice formatting of title text
-        for cell in report['B']:
-            breaks = str(cell.value).count("\n") + 1
-            report.row_dimensions[cell.row].height = 20 * breaks
-            report[f"B{cell.row}"].alignment = Alignment(
-                wrapText=True, vertical="center"
-            )
-
-        # merge evidence cells
-        for row in range(4, 26):
-            report.merge_cells(
-                start_row=row, end_row=row, start_column=3, end_column=6)
-
-        # set appropriate widths
-        report.column_dimensions['B'].width = 60
-        report.column_dimensions['C'].width = 35
-        report.column_dimensions['D'].width = 35
-        report.column_dimensions['E'].width = 5
-        report.column_dimensions['F'].width = 5
-        report.column_dimensions['G'].width = 12
-
-
-        # do some colouring
-        colour_cells = {
-            'FAC090': ['B2', 'B3', 'C2', 'C3', 'D2', 'D3'],
-            '8EB4E3': ['B4', 'B5', 'B6', 'B7', 'B8', 'C4', 'G4', 'H4', 'I4', 'J4'],
-            'FFFF99': ['B26', 'G5', 'G6', 'G7', 'G8', 'I5', 'I6', 'I7', 'I8'],
-            'E46C0A': ['G9', 'G10', 'G11', 'G12', 'G13'],
-            'FFC000': ['G14', 'G15', 'G16', 'G17', 'G18', 'G19'],
-            'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G24'],
-            '00B0F0': ['I8', 'I11', 'I12', 'I20'],
-            '92D050': ['I16', 'I17', 'I21', 'I22', 'I23', 'I24', 'I25'],
-            '0070C0': ['I15'],
-            'FF0000': ['G9'],
-            'D9D9D9': [
-                'I9', 'I10', 'J9', 'J10', 'I13', 'I14', 'J13', 'J14',
-                'I18', 'I19', 'J18', 'J19', 'G25', 'H25'
-            ]
-
-        }
-        for colour, cells in colour_cells.items():
-            for cell in cells:
-                report[cell].fill = PatternFill(
-                    patternType="solid", start_color=colour
-                )
-
-        # add some borders
-        row_ranges = {
-            'horizontal': [
-                'B3:D3', 'B4:J4', 'B5:J5',
-                'B6:J6', 'B7:J7', 'B8:J8', 'B9:J9', 'B10:J10', 'B11:J11',
-                'B12:J12', 'B13:J13', 'B14:J14', 'B15:J15', 'B16:J16',
-                'B17:J17', 'B18:J18', 'B19:J19', 'B20:J20', 'B21:J21',
-                'B22:J22', 'B23:J23', 'B24:J24', 'B25:J25'
-            ],
-            'horizontal_thick': [
-                'B2:D2', 'B4:J4', 'B26:J26', 'B27:J27'
-            ],
-            'vertical': [
-                'E2:E3', 'G4:G26', 'H4:H26', 'I4:I26', 'J4:J26'
-            ],
-            'vertical_thick': [
-                'B2:B26', 'C2:C26', 'K4:K26', 'E2:E3'
-            ]
-        }
-
-        for side, values in row_ranges.items():
-            for row in values:
-                for cells in report[row]:
-                    for cell in cells:
-                        # border style is immutable => copy current and modify
-                        cell_border = cell.border.copy()
-                        if side == 'horizontal':
-                            cell_border.top = THIN
-                        if side == 'horizontal_thick':
-                            cell_border.top = MEDIUM
-                        if side == 'vertical':
-                            cell_border.left = THIN
-                        if side == 'vertical_thick':
-                            cell_border.left = MEDIUM
-                        cell.border = cell_border
-
-
-    def write_multiple_reporting_template(self, report_sheet_num) -> None:
-        """
-        Writes three sheets to Excel file with formatting for reporting against
-        ACMG criteria
-        """
-        report = self.workbook.create_sheet(f"report{report_sheet_num}")
+        report = self.workbook.create_sheet(f"report_{report_sheet_num}")
 
         titles = {
             "Gene": [2, 2],
@@ -1611,9 +1439,9 @@ class excel():
         wb = load_workbook(filename=self.args.output)
 
         # adding dropdowns in report table
-        for sheet_num in range(1, 4):
+        for sheet_num in range(1, self.args.acmg+1):
             # adding strength dropdown
-            report_sheet = wb[f"report{sheet_num}"]
+            report_sheet = wb[f"report_{sheet_num}"]
             strength_options = '"Very Strong, Strong, Moderate, \
                                  Supporting, NA"'
             strength_val = DataValidation(type='list',
