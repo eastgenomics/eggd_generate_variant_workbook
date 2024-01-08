@@ -75,13 +75,14 @@ class excel():
         """
         self.write_summary()
         if self.args.acmg:
-            self.write_reporting_template()
+            for i in range(1, self.args.acmg+1):
+                self.write_reporting_template(i)
         self.write_variants()
         self.write_additional_files()
         self.write_images()
 
         self.workbook.save(self.args.output)
-        if self.args.summary == 'dias':
+        if self.args.acmg:
             self.drop_down()
         print('Done!')
 
@@ -554,12 +555,12 @@ class excel():
                     cell.border = THIN_BORDER
 
 
-    def write_reporting_template(self) -> None:
+    def write_reporting_template(self, report_sheet_num) -> None:
         """
-        Writes sheet to Excel file with formatting for reporting against
+        Writes sheet(s) to Excel file with formatting for reporting against
         ACMG criteria
         """
-        report = self.workbook.create_sheet('report')
+        report = self.workbook.create_sheet(f"report_{report_sheet_num}")
 
         titles = {
             "Gene": [2, 2],
@@ -658,6 +659,8 @@ class excel():
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
         report.column_dimensions['G'].width = 12
+        report.column_dimensions['H'].width = 12
+        report.column_dimensions['J'].width = 12
 
 
         # do some colouring
@@ -1437,41 +1440,47 @@ class excel():
         """
         wb = load_workbook(filename=self.args.output)
 
-        # adding dropdown for strength in report table
-        report_sheet = wb['report']
-        strength_options = '"Very Strong, Strong, Moderate, Supporting, NA"'
-        strength_val = DataValidation(type='list', formula1=strength_options,
-                                      allow_blank=True)
-        strength_val.prompt = 'Select from the list'
-        strength_val.promptTitle = 'Strength'
-        report_sheet.add_data_validation(strength_val)
-        strength_val.add('H9:H24')
-        cell_for_strength = ['J8', 'J11', 'J12', 'J15', 'J16', 'J17', 'J20',
-                             'J21', 'J22', 'J23', 'J24', 'J25']
-        for cell in cell_for_strength:
-            strength_val.add(cell)
-        strength_val.showInputMessage = True
-        strength_val.showErrorMessage = True
+        # adding dropdowns in report table
+        for sheet_num in range(1, self.args.acmg+1):
+            # adding strength dropdown
+            report_sheet = wb[f"report_{sheet_num}"]
+            strength_options = '"Very Strong, Strong, Moderate, \
+                                 Supporting, NA"'
+            strength_val = DataValidation(type='list',
+                                          formula1=strength_options,
+                                          allow_blank=True)
+            strength_val.prompt = 'Select from the list'
+            strength_val.promptTitle = 'Strength'
+            report_sheet.add_data_validation(strength_val)
+            strength_val.add('H9:H24')
+            cell_for_strength = ['J8', 'J11', 'J12', 'J15', 'J16',
+                                 'J17', 'J20', 'J21', 'J22', 'J23',
+                                 'J24', 'J25']
+            for cell in cell_for_strength:
+                strength_val.add(cell)
+            strength_val.showInputMessage = True
+            strength_val.showErrorMessage = True
 
-        # adding final classification dropdown
-        report_sheet['B27'] = 'Final Classification'
-        report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
-        med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
-                            top=MEDIUM)
-        report_sheet['B27'].fill = PatternFill(patternType="solid",
-                                        start_color="FFFF99")
-        report_sheet['B27'].border = med_border
-        report_sheet['C27'].border = med_border
-        class_options = '"Pathogenic,Likely Pathogenic,Uncertain Significance,\
-                         Likely Benign, Benign"'
-        class_val = DataValidation(type='list', formula1=class_options,
-                                   allow_blank=True)
-        class_val.prompt = 'Select from the list'
-        class_val.promptTitle = 'Variant Interpretation'
-        report_sheet.add_data_validation(class_val)
-        class_val.add('C27')
-        class_val.showInputMessage = True
-        class_val.showErrorMessage = True
+            # adding final classification dropdown
+            report_sheet['B27'] = 'Final Classification'
+            report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
+            med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
+                                top=MEDIUM)
+            report_sheet['B27'].fill = PatternFill(patternType="solid",
+                                                   start_color="FFFF99")
+            report_sheet['B27'].border = med_border
+            report_sheet['C27'].border = med_border
+            class_options = '"Pathogenic,Likely Pathogenic, \
+                              Uncertain Significance, \
+                              Likely Benign, Benign"'
+            class_val = DataValidation(type='list', formula1=class_options,
+                                       allow_blank=True)
+            class_val.prompt = 'Select from the list'
+            class_val.promptTitle = 'Variant Interpretation'
+            report_sheet.add_data_validation(class_val)
+            class_val.add('C27')
+            class_val.showInputMessage = True
+            class_val.showErrorMessage = True
 
         # adding Interpreted column dropdown in the first variant sheet tab
         first_variant_sheet = wb[self.args.sheets[0]]
@@ -1488,11 +1497,12 @@ class excel():
         data_val.showInputMessage = True
         data_val.showErrorMessage = True
         wb.save(self.args.output)
-   
-    def get_interpreted_col(self,worksheet) -> str:
+
+
+    def get_interpreted_col(self, worksheet) -> str:
         """
         Getting the column value of 'Interpreted' column
-        
+
         Parameters
         ----------
         worksheet: openpyxl.Writer
@@ -1501,9 +1511,8 @@ class excel():
         -------
         str
             column value for Interpreted column (eg. A)
-        """    
+        """
         for column_cell in worksheet.iter_cols(1, worksheet.max_column):
             if column_cell[0].value == 'Interpreted':
                 col_value = column_cell[0].column_letter
                 return col_value
-            

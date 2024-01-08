@@ -84,7 +84,7 @@ This app may be executed as a standalone app.
 
 `--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
 
-`--acmg` (`bool`): Adds extra sheet to workbook with reporting criteria against ACMG classifications
+`--acmg` (`int`): Number of extra sheet(s) to be added to workbook with reporting criteria against ACMG classifications
 
 `--panel` (`string`): Name of panel to display in summary sheet.
 
