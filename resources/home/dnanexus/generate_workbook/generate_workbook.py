@@ -230,8 +230,8 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--acmg', action='store_true',
-            help='add extra ACMG reporting template sheet'
+            '--acmg', type=int,
+            help='add extra ACMG reporting template sheet(s)'
         )
         parser.add_argument(
             '--job_id', required=False,
