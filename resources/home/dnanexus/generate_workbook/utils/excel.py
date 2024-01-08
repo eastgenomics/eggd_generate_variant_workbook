@@ -659,6 +659,8 @@ class excel():
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
         report.column_dimensions['G'].width = 12
+        report.column_dimensions['H'].width = 12
+        report.column_dimensions['J'].width = 12
 
 
         # do some colouring
