@@ -568,33 +568,46 @@ class excel():
             "HGVSp": [2, 4],
             "Evidence": [4, 3],
             "Pathogenic": [4, 7],
-            "Yes / No": [4, 8],
-            "Benign": [4, 9],
-            "Yes / No": [4, 10],
+            "P_STRENGTH": [4, 8],
+            "P_POINTS": [4, 9],
+            "BENIGN": [4, 10],
+            "B_STRENGTH": [4, 11],
+            "B_POINTS": [4, 12],
             "Associated disease": [5, 2],
             "Known inheritance": [6, 2],
             "Prevalence": [7, 2],
             "Estimated allele frequency": [8, 2],
-            "Null variant where LOF function of disease": [9, 2],
-            "Same AA change as pathogenic change,regardless\nof nucleotide": [10, 2],
-            "De novo inheritance or inheritance confirmed / observed in\nhealthy adult": [11, 2],
+            ("Null variant in a gene where LOF is known mechanism "
+             "of disease\nand non-canonical splice variants where "
+             "RNA analysis confirms\naberrant transcription"): [9, 2],
+            ("Same AA change as previously established pathogenic "
+             "variant\nregardless of nucleotide change and splicing "
+             "variants within\nsame motif with identical predicted "
+             "effect"): [10, 2],
+            ("De novo (confirmed) / observed in\nhealthy adult "
+             "with full penetrance expected at an early age"): [11, 2],
             "In vivo / in vitro functional studies": [12, 2],
             "Prevalence in affected > controls": [13, 2],
-            "In mutational hotspot, without benign variation": [14, 2],
-            "Freq in controls eg ExAC, low/absent or >5%": [15, 2],
-            "Confirmation of in trans/in cis with pathogenic variant": [16, 2],
-            "In frame protein length change, non repeating vs. repeating": [17, 2],
-            "Same AA as a different pathogenic change": [18, 2],
+            ("In mutational hot spot and/or critical functional "
+             "domain, without\nbenign variation"): [14, 2],
+            "Freq in controls eg gnomAD, low/absent or >5%": [15, 2],
+            "Detected in trans/in cis with pathogenic variant": [16, 2],
+            ("In frame protein length change/stop-loss variants, "
+             "non repeat\nvs. repeat region"): [17, 2],
+            ("Missense change at AA where different likely/pathogenic\n"
+             "missense change seen before"): [18, 2],
             "Assumed de novo (no confirmation)": [19, 2],
-            "Cosegregation with disease in family, not in unnaffected": [20, 2],
-            ("Missense where low rate of benign missense and common\nmechanism"
-                "(Z score >3), or missense where LOF common\nmechanism"): [21, 2],
-            "Multiple lines of computational evidence (Cant use with PS3)": [22, 2],
+            "Cosegregation with disease in family, not in unaffected": [20, 2],
+            ("Missense where low rate of benign missense and common\n"
+             "mechanism (Z score ≥3.09), or missense where LOF common\n"
+             "mechanism"): [21, 2],
+            "Multiple lines of computational evidence": [22, 2],
             ("Phenotype/FH specific for disease of single etiology, or\n"
-                "alternative genetic cause of disease detected"): [23, 2],
-            "Reputable source reports but evidence not available": [24, 2],
-            "Synonymous change, no affect on splicing, not conserved": [25, 2],
-            "ACMG Classification": [26, 2],
+             "alternative genetic cause of disease detected"): [23, 2],
+            ("Synonymous change, no affect on splicing, not conserved; "
+             "splice\nvariants confirmed to have no impact"): [24, 2],
+            "ACMG Classification": [25, 2],
+            "Total Points": [25, 7]
         }
 
         for key, val in titles.items():
@@ -604,7 +617,8 @@ class excel():
             )
 
         classifications = {
-            "Extra": [(5, 7), (6, 7), (7, 7), (8, 7), (5, 9), (6, 9), (7, 9)],
+            "Extra": [(5, 7), (6, 7), (7, 7), (8, 7), (5, 10), (6, 10),
+                      (7, 10)],
             "PVS1": [(9, 7)],
             "PS1": [(10, 7)],
             "PS2": [(11, 7)],
@@ -620,19 +634,17 @@ class excel():
             "PP2": [(21, 7)],
             "PP3": [(22, 7)],
             "PP4": [(23, 7)],
-            "PP5": [(24, 7)],
-            "BS1": [(8, 9)],
-            "BS2": [(11, 9)],
-            "BS3": [(12, 9)],
-            "BA1": [(15, 9)],
-            "BP2": [(16, 9)],
-            "BP3": [(17, 9)],
-            "BS4": [(20, 9)],
-            "BP1": [(21, 9)],
-            "BP4": [(22, 9)],
-            "BP5": [(23, 9)],
-            "BP6": [(24, 9)],
-            "BP7": [(25, 9)]
+            "BS1": [(8, 10)],
+            "BS2": [(11, 10)],
+            "BS3": [(12, 10)],
+            "BA1": [(15, 10)],
+            "BP2": [(16, 10)],
+            "BP3": [(17, 10)],
+            "BS4": [(20, 10)],
+            "BP1": [(21, 10)],
+            "BP4": [(22, 10)],
+            "BP5": [(23, 10)],
+            "BP7": [(24, 10)]
         }
 
         for key, values in classifications.items():
@@ -652,33 +664,42 @@ class excel():
             report.merge_cells(
                 start_row=row, end_row=row, start_column=3, end_column=6)
 
+        # merge Total Points cells
+        report.merge_cells(
+                start_row=25, end_row=25, start_column=8, end_column=12)
+
         # set appropriate widths
-        report.column_dimensions['B'].width = 60
+        report.column_dimensions['B'].width = 62
         report.column_dimensions['C'].width = 35
         report.column_dimensions['D'].width = 35
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
         report.column_dimensions['G'].width = 12
-        report.column_dimensions['H'].width = 12
-        report.column_dimensions['J'].width = 12
-
+        report.column_dimensions['H'].width = 13
+        report.column_dimensions['K'].width = 13
+        report.column_dimensions['I'].width = 10
+        report.column_dimensions['L'].width = 10
 
         # do some colouring
         colour_cells = {
             'FAC090': ['B2', 'B3', 'C2', 'C3', 'D2', 'D3'],
-            '8EB4E3': ['B4', 'B5', 'B6', 'B7', 'B8', 'C4', 'G4', 'H4', 'I4', 'J4'],
-            'FFFF99': ['B26', 'G5', 'G6', 'G7', 'G8', 'I5', 'I6', 'I7', 'I8'],
+            '8EB4E3': ['B4', 'B5', 'B6', 'B7', 'B8', 'C4', 'G4', 'H4', 'I4',
+                       'J4', 'K4', 'L4'],
+            'FFFF99': ['B25', 'G5', 'G6', 'G7', 'G8', 'J5', 'J6', 'J7'],
             'E46C0A': ['G9', 'G10', 'G11', 'G12', 'G13'],
             'FFC000': ['G14', 'G15', 'G16', 'G17', 'G18', 'G19'],
-            'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G24'],
-            '00B0F0': ['I8', 'I11', 'I12', 'I20'],
-            '92D050': ['I16', 'I17', 'I21', 'I22', 'I23', 'I24', 'I25'],
-            '0070C0': ['I15'],
+            'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G25'],
+            '00B0F0': ['J8', 'J11', 'J12', 'J20'],
+            '92D050': ['J16', 'J17', 'J21', 'J22', 'J23', 'J24'],
+            '0070C0': ['J15'],
             'FF0000': ['G9'],
-            'D9D9D9': [
-                'I9', 'I10', 'J9', 'J10', 'I13', 'I14', 'J13', 'J14',
-                'I18', 'I19', 'J18', 'J19', 'G25', 'H25'
-            ]
+            'D9D9D9': ['G24', 'H5', 'H6', 'H7', 'H8', 'H24',
+                       'I5', 'I6', 'I7', 'I8', 'I24',
+                       'J9', 'J10', 'J13', 'J14', 'J18',
+                       'J19', 'K5', 'K6', 'K7', 'K9', 'K10', 'K13',
+                       'K14', 'K18', 'K19', 'L5', 'L6', 'L7',
+                       'L9', 'L10', 'L13', 'L14', 'L18', 'L19'
+                       ]
 
         }
         for colour, cells in colour_cells.items():
@@ -690,20 +711,21 @@ class excel():
         # add some borders
         row_ranges = {
             'horizontal': [
-                'B3:D3', 'B4:J4', 'B5:J5',
-                'B6:J6', 'B7:J7', 'B8:J8', 'B9:J9', 'B10:J10', 'B11:J11',
-                'B12:J12', 'B13:J13', 'B14:J14', 'B15:J15', 'B16:J16',
-                'B17:J17', 'B18:J18', 'B19:J19', 'B20:J20', 'B21:J21',
-                'B22:J22', 'B23:J23', 'B24:J24', 'B25:J25'
+                'B3:D3', 'B4:J4', 'B5:L5',
+                'B6:L6', 'B7:L7', 'B8:L8', 'B9:L9', 'B10:L10', 'B11:L11',
+                'B12:L12', 'B13:L13', 'B14:L14', 'B15:L15', 'B16:L16',
+                'B17:L17', 'B18:L18', 'B19:L19', 'B20:L20', 'B21:L21',
+                'B22:L22', 'B23:L23', 'B24:L24', 'B25:L25'
             ],
             'horizontal_thick': [
-                'B2:D2', 'B4:J4', 'B26:J26', 'B27:J27'
+                'B2:D2', 'B4:L4', 'B25:L25', 'B26:L26',
             ],
             'vertical': [
-                'E2:E3', 'G4:G26', 'H4:H26', 'I4:I26', 'J4:J26'
+                'E2:E3', 'G4:G25', 'H4:H25', 'I4:I25', 'J4:J25',
+                'K4:K25', 'L4:L25',
             ],
             'vertical_thick': [
-                'B2:B26', 'C2:C26', 'K4:K26', 'E2:E3'
+                'B2:B25', 'C2:C25', 'M4:M25', 'E2:E3'
             ]
         }
 
@@ -1452,24 +1474,24 @@ class excel():
             strength_val.prompt = 'Select from the list'
             strength_val.promptTitle = 'Strength'
             report_sheet.add_data_validation(strength_val)
-            strength_val.add('H9:H24')
-            cell_for_strength = ['J8', 'J11', 'J12', 'J15', 'J16',
-                                 'J17', 'J20', 'J21', 'J22', 'J23',
-                                 'J24', 'J25']
+            strength_val.add('H9:H23')
+            cell_for_strength = ['K8', 'K11', 'K12', 'K15', 'K16',
+                                 'K17', 'K20', 'K21', 'K22', 'K23',
+                                 'K24']
             for cell in cell_for_strength:
                 strength_val.add(cell)
             strength_val.showInputMessage = True
             strength_val.showErrorMessage = True
 
             # adding final classification dropdown
-            report_sheet['B27'] = 'Final Classification'
-            report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
+            report_sheet['B26'] = 'Final Classification'
+            report_sheet['B26'].font = Font(bold=True, name=DEFAULT_FONT.name)
             med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
                                 top=MEDIUM)
-            report_sheet['B27'].fill = PatternFill(patternType="solid",
+            report_sheet['B26'].fill = PatternFill(patternType="solid",
                                                    start_color="FFFF99")
-            report_sheet['B27'].border = med_border
-            report_sheet['C27'].border = med_border
+            report_sheet['B26'].border = med_border
+            report_sheet['C26'].border = med_border
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
@@ -1478,7 +1500,7 @@ class excel():
             class_val.prompt = 'Select from the list'
             class_val.promptTitle = 'Variant Interpretation'
             report_sheet.add_data_validation(class_val)
-            class_val.add('C27')
+            class_val.add('C26')
             class_val.showInputMessage = True
             class_val.showErrorMessage = True
 
