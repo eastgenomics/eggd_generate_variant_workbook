@@ -669,14 +669,14 @@ class excel():
                 start_row=25, end_row=25, start_column=8, end_column=12)
 
         # set appropriate widths
-        report.column_dimensions['B'].width = 60
+        report.column_dimensions['B'].width = 62
         report.column_dimensions['C'].width = 35
         report.column_dimensions['D'].width = 35
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
         report.column_dimensions['G'].width = 12
-        report.column_dimensions['H'].width = 12
-        report.column_dimensions['K'].width = 12
+        report.column_dimensions['H'].width = 13
+        report.column_dimensions['K'].width = 13
         report.column_dimensions['I'].width = 10
         report.column_dimensions['L'].width = 10
 
