@@ -18,6 +18,7 @@ from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.styles.protection import Protection
 import pandas as pd
 
 from .utils import is_numeric
@@ -553,6 +554,20 @@ class excel():
             for cells in self.summary[row]:
                 for cell in cells:
                     cell.border = THIN_BORDER
+        cell_to_unlock = ["B10", "C10", "D10", "E10", "B11", "C11", "D11",
+                          "E11", "B12", "C12", "D12", "E12", "B13", "C13",
+                          "D13", "E13", "B17", "C17", "D17", "E17", "F17",
+                          "G17", "H17", "I17", "B18", "C18", "D18", "E18",
+                          "F18", "G18", "H18", "I18", "B23", "C23", "D23",
+                          "E23", "F23", "G23", "H23", "B24", "C24", "D24",
+                          "E24", "F24", "G24", "H24", "B25", "C25", "D25",
+                          "E25", "F25", "G25", "H25", "B29", "C29", "D29",
+                          "E29", "F29", "B30", "C30", "D30", "E30", "F30",
+                          "B31", "C31", "D31", "E31", "F31", "B32", "C32",
+                          "D32", "E32", "F32",
+                          ]
+        self.lock_sheet(self.summary, cell_to_unlock, self.summary.max_row+1,
+                        10, self.args.row_to_unlock, self.args.col_to_unlock)
 
 
     def write_reporting_template(self, report_sheet_num) -> None:
@@ -744,6 +759,21 @@ class excel():
                         if side == 'vertical_thick':
                             cell_border.left = MEDIUM
                         cell.border = cell_border
+        cell_to_unlock = ["B3", "C3", "D3", "C5", "C6", "C7", "C8",
+                          "C9", "C10", "C11", "C12", "C13", "C14", "C15",
+                          "C16", "C17", "C18", "C19", "C20", "C21", "C22",
+                          "C23", "C24", "C25", "C26", "H9", "H10", "H11",
+                          "H12", "H13", "H14", "H15", "H16", "H17", "H18",
+                          "H19", "H20", "H21", "H22", "H23", "I9", "I10",
+                          "I11", "I12", "I13", "I14", "I15", "I16", "I17",
+                          "I18", "I19", "I20", "I21", "I22", "I23", "K8",
+                          "K11", "K12", "K15", "K16", "K17", "K20", "K21",
+                          "K22", "K23", "K24", "L8", "L11", "L12", "L15",
+                          "L16", "L17", "L20", "L21", "L22", "L23", "L24",
+                          "H25"]
+        self.lock_sheet(report, cell_to_unlock, report.max_row+1,
+                        report.max_column, self.args.row_to_unlock,
+                        self.args.col_to_unlock)
 
 
     def write_variants(self) -> None:
@@ -812,6 +842,18 @@ class excel():
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
+                if self.args.acmg:
+                    num_variant = vcf.shape[0]
+                    cell_to_unlock = []
+                    for row in range(2, num_variant+2):
+                        cell_to_unlock.append(f"AS{row}")
+                        if curr_worksheet.title == self.args.sheets[0]:
+                            cell_to_unlock.append(f"AT{row}")
+                    self.lock_sheet(curr_worksheet, cell_to_unlock,
+                                    num_variant+2,
+                                    curr_worksheet.max_column+1,
+                                    self.args.row_to_unlock,
+                                    self.args.col_to_unlock)
                 self.workbook.save(self.args.output)
 
         # Write out dict to file
@@ -1538,3 +1580,45 @@ class excel():
             if column_cell[0].value == 'Interpreted':
                 col_value = column_cell[0].column_letter
                 return col_value
+
+    def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
+                   unlock_row_num, unlock_col_num) -> None:
+        """
+        locking the workbooksheet (password protected) and unlocking
+        specific cells inside the table and regions outside table
+
+        Parameters:
+        -----------
+        ws: str
+            current worksheet
+        cell_to_unlock: list
+            list containing cells to unlock
+        start_row: int
+            integer indicating row starting to unlock
+        start_col: int
+            integer indicating col starting to unlock
+        unlock_row_num: int
+            integer indication number of row(s) to unlock
+        unlock_col_num: int
+            integer indication number of col(s) to unlock
+        """
+        ws.protection.sheet = True
+        ws.protection.password = "sheet_is_protected"
+
+        # unlocking specific cells inside the table
+        for cell in cell_to_unlock:
+            ws[cell].protection = Protection(locked=False)
+
+        # unlocking regions outside table
+        for col in range(1, start_col+unlock_col_num):
+            for row in range(start_row, start_row+unlock_row_num):
+                col_letter = get_column_letter(col)
+                row_num = row
+                cell = f"{col_letter}{row_num}"
+                ws[cell].protection = Protection(locked=False)
+        for col in range(start_col, start_col+unlock_col_num):
+            for row in range(1, start_row):
+                col_letter = get_column_letter(col)
+                row_num = row
+                cell = f"{col_letter}{row_num}"
+                ws[cell].protection = Protection(locked=False)
