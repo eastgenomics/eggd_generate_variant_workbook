@@ -269,6 +269,24 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
+    },
+    {
+      "name": "row_to_unlock",
+      "label": "row_to_unlock",
+      "class": "int",
+      "optional": true,
+      "default": 200,
+      "help": "number of rows to unlock if the sheet is locked",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "col_to_unlock",
+      "label": "col_to_unlock",
+      "class": "int",
+      "optional": true,
+      "default": 200,
+      "help": "number of columns to unlock if the sheet is locked",
+      "group": "generate_workbook.py"
     }
   ],
   "outputSpec": [
