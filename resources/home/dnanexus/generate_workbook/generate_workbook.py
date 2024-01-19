@@ -234,6 +234,12 @@ class arguments():
             help='add extra ACMG reporting template sheet(s)'
         )
         parser.add_argument(
+            "--row_to_unlock", type=int, help="num of row(s) to unlock",
+        )
+        parser.add_argument(
+            "--col_to_unlock", type=int, help="num of col(s) to unlock",
+        )
+        parser.add_argument(
             '--job_id', required=False,
             help='Job ID of eggd_generate_workbook to add to Dias summary'
         )
