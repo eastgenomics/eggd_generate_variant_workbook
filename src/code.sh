@@ -108,6 +108,8 @@ main() {
     if [ "$additional_columns" ]; then args+="--additional_columns ${additional_columns} "; fi
     if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
     if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
+    if [ "$row_to_unlock" ]; then args+="--row_to_unlock ${row_to_unlock} "; fi
+    if [ "$col_to_unlock" ]; then args+="--col_to_unlock ${col_to_unlock} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
