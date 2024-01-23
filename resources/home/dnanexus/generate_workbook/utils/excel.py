@@ -846,9 +846,13 @@ class excel():
                     num_variant = vcf.shape[0]
                     cell_to_unlock = []
                     for row in range(2, num_variant+2):
-                        cell_to_unlock.append(f"AS{row}")
+                        comment_col = self.get_col_letter(curr_worksheet,
+                                                          "Comment")
+                        cell_to_unlock.append(f"{comment_col}{row}")
                         if curr_worksheet.title == self.args.sheets[0]:
-                            cell_to_unlock.append(f"AT{row}")
+                            interpreted_col = self.get_col_letter(
+                                              curr_worksheet, "Interpreted")
+                            cell_to_unlock.append(f"{interpreted_col}{row}")
                     self.lock_sheet(curr_worksheet, cell_to_unlock,
                                     num_variant+2,
                                     curr_worksheet.max_column+1,
@@ -1554,32 +1558,13 @@ class excel():
         data_val.prompt = 'Choose YES or NO'
         data_val.promptTitle = 'Variant interpreted or not?'
         first_variant_sheet.add_data_validation(data_val)
-        col_value = self.get_interpreted_col(first_variant_sheet)
+        col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
         num_variant = self.vcfs[0].shape[0]
         for i in range(num_variant):
-            data_val.add(first_variant_sheet[f"{col_value}{i+2}"])
+            data_val.add(first_variant_sheet[f"{col_letter}{i+2}"])
         data_val.showInputMessage = True
         data_val.showErrorMessage = True
         wb.save(self.args.output)
-
-
-    def get_interpreted_col(self, worksheet) -> str:
-        """
-        Getting the column value of 'Interpreted' column
-
-        Parameters
-        ----------
-        worksheet: openpyxl.Writer
-               writer object of current sheet
-        Return
-        -------
-        str
-            column value for Interpreted column (eg. A)
-        """
-        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
-            if column_cell[0].value == 'Interpreted':
-                col_value = column_cell[0].column_letter
-                return col_value
 
     def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
                    unlock_row_num, unlock_col_num) -> None:
@@ -1622,3 +1607,24 @@ class excel():
                 row_num = row
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
+
+    def get_col_letter(self, worksheet, col_name) -> str:
+        """
+        Getting the column letter with specific col name
+
+        Parameters
+        ----------
+        worksheet: openpyxl.Writer
+               writer object of current sheet
+        col_name: str
+               name of column to get col letter
+        Return
+        -------
+        str
+            column letter for specific column name
+        """
+        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
+            if column_cell[0].value == col_name:
+                col_letter = column_cell[0].column_letter
+
+        return col_letter
