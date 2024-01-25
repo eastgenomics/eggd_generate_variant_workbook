@@ -98,9 +98,7 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
-`--row_to_unlock` (`int`): Number of rows to unlock if the sheet is locked
-
-`--col_to_unlock` (`int`): Number of columns to unlock if the sheet is locked
+`--lock_sheet` (`bool`): If true, the workbook sheets are locked
 
 
 **Example**:
