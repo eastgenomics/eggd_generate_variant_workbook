@@ -29,6 +29,9 @@ MEDIUM = Side(border_style="medium", color="000001")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 DEFAULT_FONT.name = 'Calibri'
+
+# row and col counts that are to be unlocked next to
+# populated table in all sheets if it is dias pipeline
 ROW_TO_UNLOCK = 200
 COL_TO_UNLOCK = 200
 
@@ -859,7 +862,8 @@ class excel():
                     interpreted_col = self.get_col_letter(curr_worksheet,
                                                           "Interpreted")
                     for row in range(2, num_variant+2):
-                        cell_to_unlock.append(f"{comment_col}{row}")
+                        if comment_col is not None:
+                            cell_to_unlock.append(f"{comment_col}{row}")
                         if curr_worksheet.title == self.args.sheets[0]:
                             cell_to_unlock.append(f"{interpreted_col}{row}")
                     self.lock_sheet(ws=curr_worksheet,
