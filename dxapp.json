@@ -269,6 +269,13 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
+    },
+    {
+      "name": "lock_sheet",
+      "label": "lock_sheet",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, all sheets in the variant workbook are locked for dias pipeline except specific cells"
     }
   ],
   "outputSpec": [

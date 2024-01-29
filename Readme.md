@@ -98,6 +98,7 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
+`--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
 
 **Example**:
 

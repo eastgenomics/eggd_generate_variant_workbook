@@ -238,6 +238,11 @@ class arguments():
             help='Job ID of eggd_generate_workbook to add to Dias summary'
         )
         parser.add_argument(
+            '--lock_sheet', action='store_true',
+            help='lock all sheets in the variant workbook in dias pipeline'
+                 'except specific cells'
+        )
+        parser.add_argument(
             '--workflow', default=('', ''), nargs=2,
             help='Name and ID of workflow to display in summary'
         )
