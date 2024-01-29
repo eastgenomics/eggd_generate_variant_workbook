@@ -275,7 +275,7 @@
       "label": "lock_sheet",
       "class": "boolean",
       "optional" : true,
-      "help": "If true, the workbook sheets are locked"
+      "help": "If true, all sheets in the variant workbook are locked for dias pipeline except specific cells"
     }
   ],
   "outputSpec": [
