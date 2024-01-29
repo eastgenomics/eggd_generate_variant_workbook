@@ -239,7 +239,8 @@ class arguments():
         )
         parser.add_argument(
             '--lock_sheet', action='store_true',
-            help='lock sheets in the workbook'
+            help='lock all sheets in the variant workbook in dias pipeline'
+                 'except specific cells'
         )
         parser.add_argument(
             '--workflow', default=('', ''), nargs=2,
