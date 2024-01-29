@@ -32,6 +32,7 @@ DEFAULT_FONT.name = 'Calibri'
 
 # row and col counts that are to be unlocked next to
 # populated table in all sheets if it is dias pipeline
+# required for 'lock_sheet' function
 ROW_TO_UNLOCK = 200
 COL_TO_UNLOCK = 200
 
