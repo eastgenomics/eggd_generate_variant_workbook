@@ -90,6 +90,7 @@ class excel():
 
         self.workbook.save(self.args.output)
         if self.args.acmg:
+            self.protect_rename_sheets()
             self.drop_down()
         print('Done!')
 
@@ -679,7 +680,7 @@ class excel():
                            wrapText=True, vertical="center",
                            horizontal="center"
                     )
-                    report[f"{col}{row}"].font = Font(size=15,
+                    report[f"{col}{row}"].font = Font(size=14,
                                                       name=DEFAULT_FONT.name)
 
         for col in (['B', 'C', 'D']):
@@ -708,12 +709,12 @@ class excel():
         report.column_dimensions['D'].width = 35
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
-        report.column_dimensions['G'].width = 13
-        report.column_dimensions['H'].width = 13
-        report.column_dimensions['I'].width = 13
-        report.column_dimensions['J'].width = 13
-        report.column_dimensions['K'].width = 13
-        report.column_dimensions['L'].width = 13
+        report.column_dimensions['G'].width = 14
+        report.column_dimensions['H'].width = 14
+        report.column_dimensions['I'].width = 14
+        report.column_dimensions['J'].width = 14
+        report.column_dimensions['K'].width = 14
+        report.column_dimensions['L'].width = 14
 
         # do some colouring
         colour_cells = {
@@ -1646,3 +1647,11 @@ class excel():
                 col_letter = column_cell[0].column_letter
 
         return col_letter
+
+    def protect_rename_sheets(self) -> None:
+        """
+        prevent renaming sheets in the workbook
+        """
+        wb = load_workbook(filename=self.args.output)
+        wb.security.lockStructure = True
+        wb.save(self.args.output)
