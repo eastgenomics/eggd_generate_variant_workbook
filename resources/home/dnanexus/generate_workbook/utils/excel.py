@@ -1654,4 +1654,5 @@ class excel():
         """
         wb = load_workbook(filename=self.args.output)
         wb.security.lockStructure = True
+        wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
