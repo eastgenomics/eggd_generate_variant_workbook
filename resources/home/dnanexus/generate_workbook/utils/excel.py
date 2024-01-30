@@ -392,7 +392,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(34, 1).value = "Total records:"
+        self.summary.cell(28, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -416,7 +416,7 @@ class excel():
                 json.dump(details_dict, details_json)
 
         # write total rows in each sheet
-        count = 34
+        count = 28
 
         # cells to make bold
         to_bold = []
@@ -497,9 +497,6 @@ class excel():
         self.summary.cell(22, 7).value = "WS#"
         self.summary.cell(22, 8).value = "Confirmed (Y/N)"
 
-        self.summary.cell(28, 2).value = "GEM comments summary"
-        self.summary.cell(28, 4).value = "Date"
-
         # merge some title columns that have longer text
         self.summary.merge_cells(
             start_row=1, end_row=1, start_column=2, end_column=4)
@@ -513,18 +510,14 @@ class excel():
             start_row=21, end_row=21, start_column=2, end_column=8)
         self.summary.merge_cells(
             start_row=16, end_row=16, start_column=4, end_column=5)
-        self.summary.merge_cells(
-            start_row=28, end_row=28, start_column=2, end_column=3)
-        self.summary.merge_cells(
-            start_row=28, end_row=28, start_column=4, end_column=6)
 
         # titles to set to bold
         to_bold += [
-            "A1", "A34", "A35", "A36","A38", "B1",
-            "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
-            "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
-            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
-        ]
+                "A1", "A28", "B1", "B9", "B16", "B21", "B22",
+                "B28", "B29", "C16", "C22", "D16", "D22",
+                "E1", "E2", "E22", "F16", "F22", "G16",
+                "G22", "H16", "H22", "I16"
+                ]
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -543,8 +536,8 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
-            "D28", "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
+            "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
@@ -552,10 +545,9 @@ class excel():
         # set borders around table areas
         row_ranges = [
             'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
-            'B16:I16', 'B17:I17', 'B18:I18',
-            'B21:H21', 'B22:H22', 'B23:H23', 'B24:H24', 'B25:H25',
-            'B28:F28', 'B29:F29', 'B30:F30', 'B31:F31', 'B32:F32'
-        ]
+            'B16:I16', 'B17:I17', 'B18:I18', 'B21:H21', 'B22:H22',
+            'B23:H23', 'B24:H24', 'B25:H25'
+            ]
         for row in row_ranges:
             for cells in self.summary[row]:
                 for cell in cells:
@@ -568,10 +560,7 @@ class excel():
                               "F18", "G18", "H18", "I18", "B23", "C23", "D23",
                               "E23", "F23", "G23", "H23", "B24", "C24", "D24",
                               "E24", "F24", "G24", "H24", "B25", "C25", "D25",
-                              "E25", "F25", "G25", "H25", "B29", "C29", "D29",
-                              "E29", "F29", "B30", "C30", "D30", "E30", "F30",
-                              "B31", "C31", "D31", "E31", "F31", "B32", "C32",
-                              "D32", "E32", "F32",
+                              "E25", "F25", "G25", "H25"
                               ]
             self.lock_sheet(ws=self.summary,
                             cell_to_unlock=cell_to_unlock,
@@ -591,107 +580,127 @@ class excel():
             "Gene": [2, 2],
             "HGVSc": [2, 3],
             "HGVSp": [2, 4],
-            "Evidence": [4, 3],
-            "Pathogenic": [4, 7],
-            "P_STRENGTH": [4, 8],
-            "P_POINTS": [4, 9],
-            "BENIGN": [4, 10],
-            "B_STRENGTH": [4, 11],
-            "B_POINTS": [4, 12],
-            "Associated disease": [5, 2],
-            "Known inheritance": [6, 2],
-            "Prevalence": [7, 2],
-            "Estimated allele frequency": [8, 2],
+            "EVIDENCE": [8, 3],
+            "PATHOGENIC": [8, 7],
+            "P_STRENGTH": [8, 8],
+            "P_POINTS": [8, 9],
+            "BENIGN": [8, 10],
+            "B_STRENGTH": [8, 11],
+            "B_POINTS": [8, 12],
+            "Associated disease": [4, 2],
+            "Known inheritance": [5, 2],
+            "Prevalence": [6, 2],
+            "Estimated allele frequency": [9, 2],
             ("Null variant in a gene where LOF is known mechanism "
              "of disease\nand non-canonical splice variants where "
-             "RNA analysis confirms\naberrant transcription"): [9, 2],
+             "RNA analysis confirms\naberrant transcription"): [10, 2],
             ("Same AA change as previously established pathogenic "
              "variant\nregardless of nucleotide change and splicing "
              "variants within\nsame motif with identical predicted "
-             "effect"): [10, 2],
+             "effect"): [11, 2],
             ("De novo (confirmed) / observed in\nhealthy adult "
-             "with full penetrance expected at an early age"): [11, 2],
-            "In vivo / in vitro functional studies": [12, 2],
-            "Prevalence in affected > controls": [13, 2],
+             "with full penetrance expected at an early age"): [12, 2],
+            "In vivo / in vitro functional studies": [13, 2],
+            "Prevalence in affected > controls": [14, 2],
             ("In mutational hot spot and/or critical functional "
-             "domain, without\nbenign variation"): [14, 2],
-            "Freq in controls eg gnomAD, low/absent or >5%": [15, 2],
-            "Detected in trans/in cis with pathogenic variant": [16, 2],
+             "domain, without\nbenign variation"): [15, 2],
+            "Freq in controls eg gnomAD, low/absent or >5%": [16, 2],
+            "Detected in trans/in cis with pathogenic variant": [17, 2],
             ("In frame protein length change/stop-loss variants, "
-             "non repeat\nvs. repeat region"): [17, 2],
+             "non repeat\nvs. repeat region"): [18, 2],
             ("Missense change at AA where different likely/pathogenic\n"
-             "missense change seen before"): [18, 2],
-            "Assumed de novo (no confirmation)": [19, 2],
-            "Cosegregation with disease in family, not in unaffected": [20, 2],
+             "missense change seen before"): [19, 2],
+            "Assumed de novo (no confirmation)": [20, 2],
+            "Cosegregation with disease in family, not in unaffected": [21, 2],
             ("Missense where low rate of benign missense and common\n"
              "mechanism (Z score ≥3.09), or missense where LOF common\n"
-             "mechanism"): [21, 2],
-            "Multiple lines of computational evidence": [22, 2],
+             "mechanism"): [22, 2],
+            "Multiple lines of computational evidence": [23, 2],
             ("Phenotype/FH specific for disease of single etiology, or\n"
-             "alternative genetic cause of disease detected"): [23, 2],
+             "alternative genetic cause of disease detected"): [24, 2],
             ("Synonymous change, no affect on splicing, not conserved; "
-             "splice\nvariants confirmed to have no impact"): [24, 2],
-            "ACMG Classification": [25, 2],
-            "Total Points": [25, 7]
+             "splice\nvariants confirmed to have no impact"): [25, 2],
+            "ACMG CLASSIFICATION": [26, 2],
+            "POINTS": [26, 7]
         }
-
         for key, val in titles.items():
             report.cell(val[0], val[1]).value = key
             report.cell(val[0], val[1]).font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-
         classifications = {
-            "Extra": [(5, 7), (6, 7), (7, 7), (8, 7), (5, 10), (6, 10),
-                      (7, 10)],
-            "PVS1": [(9, 7)],
-            "PS1": [(10, 7)],
-            "PS2": [(11, 7)],
-            "PS3": [(12, 7)],
-            "PS4": [(13, 7)],
-            "PM1": [(14, 7)],
-            "PM2": [(15, 7)],
-            "PM3": [(16, 7)],
-            "PM4": [(17, 7)],
-            "PM5": [(18, 7)],
-            "PM6": [(19, 7)],
-            "PP1": [(20, 7)],
-            "PP2": [(21, 7)],
-            "PP3": [(22, 7)],
-            "PP4": [(23, 7)],
-            "BS1": [(8, 10)],
-            "BS2": [(11, 10)],
-            "BS3": [(12, 10)],
-            "BA1": [(15, 10)],
-            "BP2": [(16, 10)],
-            "BP3": [(17, 10)],
-            "BS4": [(20, 10)],
-            "BP1": [(21, 10)],
-            "BP4": [(22, 10)],
-            "BP5": [(23, 10)],
-            "BP7": [(24, 10)]
+            "PVS1": [(10, 7)],
+            "PS1": [(11, 7)],
+            "PS2": [(12, 7)],
+            "PS3": [(13, 7)],
+            "PS4": [(14, 7)],
+            "PM1": [(15, 7)],
+            "PM2": [(16, 7)],
+            "PM3": [(17, 7)],
+            "PM4": [(18, 7)],
+            "PM5": [(19, 7)],
+            "PM6": [(20, 7)],
+            "PP1": [(21, 7)],
+            "PP2": [(22, 7)],
+            "PP3": [(23, 7)],
+            "PP4": [(24, 7)],
+            "BS1": [(9, 10)],
+            "BS2": [(12, 10)],
+            "BS3": [(13, 10)],
+            "BA1": [(16, 10)],
+            "BP2": [(17, 10)],
+            "BP3": [(18, 10)],
+            "BS4": [(21, 10)],
+            "BP1": [(22, 10)],
+            "BP4": [(23, 10)],
+            "BP5": [(24, 10)],
+            "BP7": [(25, 10)]
         }
 
         for key, values in classifications.items():
             for val in values:
                 report.cell(val[0], val[1]).value = key
 
-        # nice formatting of title text
-        for cell in report['B']:
-            breaks = str(cell.value).count("\n") + 1
-            report.row_dimensions[cell.row].height = 20 * breaks
-            report[f"B{cell.row}"].alignment = Alignment(
-                wrapText=True, vertical="center"
-            )
+        # nice formatting of title text and columns
+        for col in (['B', 'C', 'G', 'H', 'I', 'J', 'K', 'L']):
+            for row in range(8, 26):
+                if row == 8:
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center",
+                           horizontal="center"
+                    )
+                elif (col == "B" and row != 8) or (col == "C" and row != 8):
+                    report.row_dimensions[row].height = 50
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center"
+                    )
+                else:
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center",
+                           horizontal="center"
+                    )
+                    report[f"{col}{row}"].font = Font(size=15,
+                                                      name=DEFAULT_FONT.name)
+
+        for col in (['B', 'C', 'D']):
+            for row in range(2, 7):
+                report.row_dimensions[row].height = 20
+                report[f"{col}{row}"].font = Font(size=14, bold=True,
+                                                  name=DEFAULT_FONT.name)
+
+        # merge associated disease, inheritance and prevalence cells
+        for row in range(4, 8):
+            report.merge_cells(
+                start_row=row, end_row=row, start_column=3, end_column=12)
 
         # merge evidence cells
-        for row in range(4, 26):
+        for row in range(8, 27):
             report.merge_cells(
                 start_row=row, end_row=row, start_column=3, end_column=6)
 
-        # merge Total Points cells
+        # merge POINTS cells
         report.merge_cells(
-                start_row=25, end_row=25, start_column=8, end_column=12)
+                start_row=26, end_row=26, start_column=8, end_column=12)
 
         # set appropriate widths
         report.column_dimensions['B'].width = 62
@@ -699,31 +708,26 @@ class excel():
         report.column_dimensions['D'].width = 35
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
-        report.column_dimensions['G'].width = 12
+        report.column_dimensions['G'].width = 13
         report.column_dimensions['H'].width = 13
+        report.column_dimensions['I'].width = 13
+        report.column_dimensions['J'].width = 13
         report.column_dimensions['K'].width = 13
-        report.column_dimensions['I'].width = 10
-        report.column_dimensions['L'].width = 10
+        report.column_dimensions['L'].width = 13
 
         # do some colouring
         colour_cells = {
-            'FAC090': ['B2', 'B3', 'C2', 'C3', 'D2', 'D3'],
-            '8EB4E3': ['B4', 'B5', 'B6', 'B7', 'B8', 'C4', 'G4', 'H4', 'I4',
-                       'J4', 'K4', 'L4'],
-            'FFFF99': ['B25', 'G5', 'G6', 'G7', 'G8', 'J5', 'J6', 'J7'],
-            'E46C0A': ['G9', 'G10', 'G11', 'G12', 'G13'],
-            'FFC000': ['G14', 'G15', 'G16', 'G17', 'G18', 'G19'],
-            'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G25'],
-            '00B0F0': ['J8', 'J11', 'J12', 'J20'],
-            '92D050': ['J16', 'J17', 'J21', 'J22', 'J23', 'J24'],
-            '0070C0': ['J15'],
-            'FF0000': ['G9'],
-            'D9D9D9': ['G24', 'H5', 'H6', 'H7', 'H8', 'H24',
-                       'I5', 'I6', 'I7', 'I8', 'I24',
-                       'J9', 'J10', 'J13', 'J14', 'J18',
-                       'J19', 'K5', 'K6', 'K7', 'K9', 'K10', 'K13',
-                       'K14', 'K18', 'K19', 'L5', 'L6', 'L7',
-                       'L9', 'L10', 'L13', 'L14', 'L18', 'L19'
+            'E46C0A': ['G11', 'G12', 'G13', 'G14'],
+            'FFC000': ['G15', 'G16', 'G17', 'G18', 'G19', 'G20'],
+            'FFFF00': ['G21', 'G22', 'G23', 'G24'],
+            '00B0F0': ['J9', 'J12', 'J13', 'J21'],
+            '92D050': ['J17', 'J18', 'J22', 'J23', 'J24', 'J25'],
+            '0070C0': ['J16'],
+            'FF0000': ['G10'],
+            'D9D9D9': ['G9', 'G25', 'H9', 'H25', 'I9', 'I25',
+                       'J10', 'J11', 'J14', 'J15', 'J19', 'J20',
+                       'K10', 'K11', 'K14', 'K15', 'K19', 'K20',
+                       'L10', 'L11', 'L14', 'L15', 'L19', 'L20'
                        ]
 
         }
@@ -743,14 +747,15 @@ class excel():
                 'B22:L22', 'B23:L23', 'B24:L24', 'B25:L25'
             ],
             'horizontal_thick': [
-                'B2:D2', 'B4:L4', 'B25:L25', 'B26:L26',
+                'B2:D2', 'B4:L4', 'B7:L7', 'B8:L8', 'B26:L26', 'B27:L27'
             ],
             'vertical': [
-                'E2:E3', 'G4:G25', 'H4:H25', 'I4:I25', 'J4:J25',
-                'K4:K25', 'L4:L25',
+                'E2:E3', 'G8:G26', 'H8:H25', 'I8:I25', 'J8:J25',
+                'K8:K25', 'L8:L25',
             ],
             'vertical_thick': [
-                'B2:B25', 'C2:C25', 'M4:M25', 'E2:E3'
+                'B2:B6', 'B8:B26', 'C2:C6', 'C8:C26', 'M4:M6', 'M8:M26',
+                'E2:E3'
             ]
         }
 
@@ -770,18 +775,18 @@ class excel():
                             cell_border.left = MEDIUM
                         cell.border = cell_border
         if self.args.lock_sheet:
-            cell_to_unlock = ["B3", "C3", "D3", "C5", "C6", "C7", "C8",
+            cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
                               "C16", "C17", "C18", "C19", "C20", "C21", "C22",
-                              "C23", "C24", "C25", "C26", "H9", "H10", "H11",
+                              "C23", "C24", "C25", "C26", "C27", "H10", "H11",
                               "H12", "H13", "H14", "H15", "H16", "H17", "H18",
-                              "H19", "H20", "H21", "H22", "H23", "I9", "I10",
+                              "H19", "H20", "H21", "H22", "H23", "H24", "I10",
                               "I11", "I12", "I13", "I14", "I15", "I16", "I17",
-                              "I18", "I19", "I20", "I21", "I22", "I23", "K8",
-                              "K11", "K12", "K15", "K16", "K17", "K20", "K21",
-                              "K22", "K23", "K24", "L8", "L11", "L12", "L15",
-                              "L16", "L17", "L20", "L21", "L22", "L23", "L24",
-                              "H25"]
+                              "I18", "I19", "I20", "I21", "I22", "I23", "I24",
+                              "K9", "K12", "K13", "K16", "K17", "K18", "K21",
+                              "K22", "K23", "K24", "K25", "L9", "L12", "L13",
+                              "L16", "L17", "L18", "L21", "L22", "L23", "L24",
+                              "L25", "H26"]
             self.lock_sheet(ws=report,
                             cell_to_unlock=cell_to_unlock,
                             start_row=report.max_row+1,
@@ -1535,24 +1540,21 @@ class excel():
             strength_val.prompt = 'Select from the list'
             strength_val.promptTitle = 'Strength'
             report_sheet.add_data_validation(strength_val)
-            strength_val.add('H9:H23')
-            cell_for_strength = ['K8', 'K11', 'K12', 'K15', 'K16',
-                                 'K17', 'K20', 'K21', 'K22', 'K23',
-                                 'K24']
+            strength_val.add('H10:H24')
+            cell_for_strength = ['K9', 'K12', 'K13', 'K16', 'K17',
+                                 'K18', 'K21', 'K22', 'K23', 'K24', 'K25']
             for cell in cell_for_strength:
                 strength_val.add(cell)
             strength_val.showInputMessage = True
             strength_val.showErrorMessage = True
 
             # adding final classification dropdown
-            report_sheet['B26'] = 'Final Classification'
-            report_sheet['B26'].font = Font(bold=True, name=DEFAULT_FONT.name)
+            report_sheet['B27'] = 'FINAL CLASSIFICATION'
+            report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
             med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
                                 top=MEDIUM)
-            report_sheet['B26'].fill = PatternFill(patternType="solid",
-                                                   start_color="FFFF99")
-            report_sheet['B26'].border = med_border
-            report_sheet['C26'].border = med_border
+            report_sheet['B27'].border = med_border
+            report_sheet['C27'].border = med_border
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
@@ -1561,7 +1563,7 @@ class excel():
             class_val.prompt = 'Select from the list'
             class_val.promptTitle = 'Variant Interpretation'
             report_sheet.add_data_validation(class_val)
-            class_val.add('C26')
+            class_val.add('C27')
             class_val.showInputMessage = True
             class_val.showErrorMessage = True
 
