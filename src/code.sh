@@ -91,7 +91,7 @@ main() {
     if [ "$print_columns" == true ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
     if [ "$human_filter" ]; then args+="--human_filter ${human_filter} "; fi
-    if [ "$acmg" == true ]; then args+="--acmg "; fi
+    if [ "$acmg" ]; then args+="--acmg ${acmg} "; fi
     if [ "$keep_filtered" == true ]; then args+="--keep "; fi
     if [ "$keep_tmp" == true ]; then args+="--keep_tmp "; fi
     if [ "$print_header" == true ]; then args+="--print_header "; fi
@@ -108,6 +108,7 @@ main() {
     if [ "$additional_columns" ]; then args+="--additional_columns ${additional_columns} "; fi
     if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
     if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
+    if [ "$lock_sheet" == true ]; then args+="--lock_sheet "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

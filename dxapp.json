@@ -3,7 +3,7 @@
   "title": "eggd_generate_variant_workbook",
   "summary": "Create Excel workbook from VEP annotated vcf",
   "dxapi": "1.0.0",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "whatsNew": "* v2.0.0 Rewrite of previous app to generate xlsx file from a VEP annotated VCF(s); * v2.0.1 Bug fix to correctly treat CHROM as string values; * v2.0.2 Bug fix for ACMG report template structure; * v2.0.3 Bug fixes for issues with hyperlinks, changed app name to eggd_generate_variant_workbook; * v2.1.0 Handle VCFs from GATK gCNV and Illumina TSO500, readability tweaks to variant sheets; * v2.1.1 Bug fix for typing of numeric values in hyperlinks; * v2.2.0 Added ability to pass in non VCF files (tsvs/csvs and images) to additional sheets, optional adding of links to DECIPHER with --decipher; * v2.3.0 Added conditional colouring of cells in variant sheets, new 'basic' summary sheet;  * v2.4.0 Added handling for duplicate annotation in VEP fields (i.e. cosmic, CGC, etc..); * v2.5.0 Better parsing of CombinedVariantOutput files as additional files; * v2.6.0 Add variant counts as DNAnexus file details to the .xlsx workbook",
   "authorizedUsers": [
     "org-emee_1"
@@ -210,10 +210,10 @@
     {
       "name": "acmg",
       "label": "ACMG",
-      "class": "boolean",
+      "class": "int",
       "optional": true,
-      "default": false,
-      "help": "Determines if to add extra sheet with ACMG reporting criteria",
+      "default": 3,
+      "help": "Determines number of extra sheet(s) with ACMG reporting criteria",
       "group": "generate_workbook.py"
     },
     {
@@ -269,6 +269,13 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}"
+    },
+    {
+      "name": "lock_sheet",
+      "label": "lock_sheet",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, all sheets in the variant workbook are locked for dias pipeline except specific cells"
     }
   ],
   "outputSpec": [

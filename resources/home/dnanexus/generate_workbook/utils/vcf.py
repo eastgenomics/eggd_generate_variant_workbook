@@ -160,6 +160,11 @@ class vcf():
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
 
+        if self.args.summary == 'dias':
+            # if it is dias pipeline, add the empty col
+            # named Interpreted in the first variant sheet
+            self.vcfs[0]['Interpreted'] = ''
+
         if self.args.split_hgvs:
             self.split_hgvs()
 

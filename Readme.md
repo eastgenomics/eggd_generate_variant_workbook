@@ -86,7 +86,7 @@ This app may be executed as a standalone app.
 
 `--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
 
-`--acmg` (`bool`): Adds extra sheet to workbook with reporting criteria against ACMG classifications
+`--acmg` (`int`): Number of extra sheet(s) to be added to workbook with reporting criteria against ACMG classifications
 
 `--panel` (`string`): Name of panel to display in summary sheet.
 
@@ -100,6 +100,7 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
+`--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
 
 **Example**:
 

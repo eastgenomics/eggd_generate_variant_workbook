@@ -17,6 +17,8 @@ from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.styles.protection import Protection
 import pandas as pd
 
 from .utils import is_numeric
@@ -27,6 +29,12 @@ MEDIUM = Side(border_style="medium", color="000001")
 THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 DEFAULT_FONT.name = 'Calibri'
+
+# row and col counts that are to be unlocked next to
+# populated table in all sheets if it is dias pipeline
+# required for 'lock_sheet' function
+ROW_TO_UNLOCK = 200
+COL_TO_UNLOCK = 200
 
 
 class excel():
@@ -74,12 +82,16 @@ class excel():
         """
         self.write_summary()
         if self.args.acmg:
-            self.write_reporting_template()
+            for i in range(1, self.args.acmg+1):
+                self.write_reporting_template(i)
         self.write_variants()
         self.write_additional_files()
         self.write_images()
 
         self.workbook.save(self.args.output)
+        if self.args.acmg:
+            self.protect_rename_sheets()
+            self.drop_down()
         print('Done!')
 
 
@@ -381,7 +393,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(34, 1).value = "Total records:"
+        self.summary.cell(28, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -405,7 +417,7 @@ class excel():
                 json.dump(details_dict, details_json)
 
         # write total rows in each sheet
-        count = 34
+        count = 28
 
         # cells to make bold
         to_bold = []
@@ -486,9 +498,6 @@ class excel():
         self.summary.cell(22, 7).value = "WS#"
         self.summary.cell(22, 8).value = "Confirmed (Y/N)"
 
-        self.summary.cell(28, 2).value = "GEM comments summary"
-        self.summary.cell(28, 4).value = "Date"
-
         # merge some title columns that have longer text
         self.summary.merge_cells(
             start_row=1, end_row=1, start_column=2, end_column=4)
@@ -502,18 +511,14 @@ class excel():
             start_row=21, end_row=21, start_column=2, end_column=8)
         self.summary.merge_cells(
             start_row=16, end_row=16, start_column=4, end_column=5)
-        self.summary.merge_cells(
-            start_row=28, end_row=28, start_column=2, end_column=3)
-        self.summary.merge_cells(
-            start_row=28, end_row=28, start_column=4, end_column=6)
 
         # titles to set to bold
         to_bold += [
-            "A1", "A34", "A35", "A36","A38", "B1",
-            "B9", "B16", "B21", "B22", "B28", "B34", "B35", "B36", "B37",
-            "C16", "C22", "D16", "D22", "D28", "E1", "E2", "E22",
-            "F16", "F22", "G16", "G22", "H16", "H22", "I16"
-        ]
+                "A1", "A28", "B1", "B9", "B16", "B21", "B22",
+                "B28", "B29", "C16", "C22", "D16", "D22",
+                "E1", "E2", "E22", "F16", "F22", "G16",
+                "G22", "H16", "H22", "I16"
+                ]
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -532,8 +537,8 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "B9", "B16", "B21", "B22", "B28", "C16", "C22", "D16", "D22",
-            "D28", "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
+            "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
@@ -541,137 +546,189 @@ class excel():
         # set borders around table areas
         row_ranges = [
             'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
-            'B16:I16', 'B17:I17', 'B18:I18',
-            'B21:H21', 'B22:H22', 'B23:H23', 'B24:H24', 'B25:H25',
-            'B28:F28', 'B29:F29', 'B30:F30', 'B31:F31', 'B32:F32'
-        ]
+            'B16:I16', 'B17:I17', 'B18:I18', 'B21:H21', 'B22:H22',
+            'B23:H23', 'B24:H24', 'B25:H25'
+            ]
         for row in row_ranges:
             for cells in self.summary[row]:
                 for cell in cells:
                     cell.border = THIN_BORDER
+        if self.args.lock_sheet:
+            cell_to_unlock = ["B10", "C10", "D10", "E10", "B11", "C11", "D11",
+                              "E11", "B12", "C12", "D12", "E12", "B13", "C13",
+                              "D13", "E13", "B17", "C17", "D17", "E17", "F17",
+                              "G17", "H17", "I17", "B18", "C18", "D18", "E18",
+                              "F18", "G18", "H18", "I18", "B23", "C23", "D23",
+                              "E23", "F23", "G23", "H23", "B24", "C24", "D24",
+                              "E24", "F24", "G24", "H24", "B25", "C25", "D25",
+                              "E25", "F25", "G25", "H25"
+                              ]
+            self.lock_sheet(ws=self.summary,
+                            cell_to_unlock=cell_to_unlock,
+                            start_row=self.summary.max_row+1,
+                            start_col=10,
+                            unlock_row_num=ROW_TO_UNLOCK,
+                            unlock_col_num=COL_TO_UNLOCK)
 
-
-    def write_reporting_template(self) -> None:
+    def write_reporting_template(self, report_sheet_num) -> None:
         """
-        Writes sheet to Excel file with formatting for reporting against
+        Writes sheet(s) to Excel file with formatting for reporting against
         ACMG criteria
         """
-        report = self.workbook.create_sheet('report')
+        report = self.workbook.create_sheet(f"interpret_{report_sheet_num}")
 
         titles = {
             "Gene": [2, 2],
             "HGVSc": [2, 3],
             "HGVSp": [2, 4],
-            "Evidence": [4, 3],
-            "Pathogenic": [4, 7],
-            "Benign": [4, 9],
-            "Yes / No": [4, 10],
-            "Associated disease": [5, 2],
-            "Known inheritance": [6, 2],
-            "Prevalence": [7, 2],
-            "Estimated allele frequency": [8, 2],
-            "Null variant where LOF function of disease": [9, 2],
-            "Same AA change as pathogenic change,regardless\nof nucleotide": [10, 2],
-            "De novo inheritance or inheritance confirmed / observed in\nhealthy adult": [11, 2],
-            "In vivo / in vitro functional studies": [12, 2],
-            "Prevalence in affected > controls": [13, 2],
-            "In mutational hotspot, without benign variation": [14, 2],
-            "Freq in controls eg ExAC, low/absent or >5%": [15, 2],
-            "Confirmation of in trans/in cis with pathogenic variant": [16, 2],
-            "In frame protein length change, non repeating vs. repeating": [17, 2],
-            "Same AA as a different pathogenic change": [18, 2],
-            "Assumed de novo (no confirmation)": [19, 2],
-            "Cosegregation with disease in family, not in unnaffected": [20, 2],
-            ("Missense where low rate of benign missense and common\nmechanism"
-                "(Z score >3), or missense where LOF common\nmechanism"): [21, 2],
-            "Multiple lines of computational evidence (Cant use with PS3)": [22, 2],
+            "EVIDENCE": [8, 3],
+            "PATHOGENIC": [8, 7],
+            "P_STRENGTH": [8, 8],
+            "P_POINTS": [8, 9],
+            "BENIGN": [8, 10],
+            "B_STRENGTH": [8, 11],
+            "B_POINTS": [8, 12],
+            "Associated disease": [4, 2],
+            "Known inheritance": [5, 2],
+            "Prevalence": [6, 2],
+            "Estimated allele frequency": [9, 2],
+            ("Null variant in a gene where LOF is known mechanism "
+             "of disease\nand non-canonical splice variants where "
+             "RNA analysis confirms\naberrant transcription"): [10, 2],
+            ("Same AA change as previously established pathogenic "
+             "variant\nregardless of nucleotide change and splicing "
+             "variants within\nsame motif with identical predicted "
+             "effect"): [11, 2],
+            ("De novo (confirmed) / observed in\nhealthy adult "
+             "with full penetrance expected at an early age"): [12, 2],
+            "In vivo / in vitro functional studies": [13, 2],
+            "Prevalence in affected > controls": [14, 2],
+            ("In mutational hot spot and/or critical functional "
+             "domain, without\nbenign variation"): [15, 2],
+            "Freq in controls eg gnomAD, low/absent or >5%": [16, 2],
+            "Detected in trans/in cis with pathogenic variant": [17, 2],
+            ("In frame protein length change/stop-loss variants, "
+             "non repeat\nvs. repeat region"): [18, 2],
+            ("Missense change at AA where different likely/pathogenic\n"
+             "missense change seen before"): [19, 2],
+            "Assumed de novo (no confirmation)": [20, 2],
+            "Cosegregation with disease in family, not in unaffected": [21, 2],
+            ("Missense where low rate of benign missense and common\n"
+             "mechanism (Z score ≥3.09), or missense where LOF common\n"
+             "mechanism"): [22, 2],
+            "Multiple lines of computational evidence": [23, 2],
             ("Phenotype/FH specific for disease of single etiology, or\n"
-                "alternative genetic cause of disease detected"): [23, 2],
-            "Reputable source reports but evidence not available": [24, 2],
-            "Synonymous change, no affect on splicing, not conserved": [25, 2],
-            "ACMG Classification": [26, 2],
+             "alternative genetic cause of disease detected"): [24, 2],
+            ("Synonymous change, no affect on splicing, not conserved; "
+             "splice\nvariants confirmed to have no impact"): [25, 2],
+            "POINTS": [26, 7]
         }
-
         for key, val in titles.items():
             report.cell(val[0], val[1]).value = key
             report.cell(val[0], val[1]).font = Font(
                 bold=True, name=DEFAULT_FONT.name
             )
-
         classifications = {
-            "Extra": [(5, 7), (6, 7), (7, 7), (8, 7), (5, 9), (6, 9), (7, 9)],
-            "PVS1": [(9, 7)],
-            "PS1": [(10, 7)],
-            "PS2": [(11, 7)],
-            "PS3": [(12, 7)],
-            "PS4": [(13, 7)],
-            "PM1": [(14, 7)],
-            "PM2": [(15, 7)],
-            "PM3": [(16, 7)],
-            "PM4": [(17, 7)],
-            "PM5": [(18, 7)],
-            "PM6": [(19, 7)],
-            "PP1": [(20, 7)],
-            "PP2": [(21, 7)],
-            "PP3": [(22, 7)],
-            "PP4": [(23, 7)],
-            "PP5": [(24, 7)],
-            "BS1": [(8, 9)],
-            "BS2": [(11, 9)],
-            "BS3": [(12, 9)],
-            "BA1": [(15, 9)],
-            "BP2": [(16, 9)],
-            "BP3": [(17, 9)],
-            "BS4": [(20, 9)],
-            "BP1": [(21, 9)],
-            "BP4": [(22, 9)],
-            "BP5": [(23, 9)],
-            "BP6": [(24, 9)],
-            "BP7": [(25, 9)]
+            "PVS1": [(10, 7)],
+            "PS1": [(11, 7)],
+            "PS2": [(12, 7)],
+            "PS3": [(13, 7)],
+            "PS4": [(14, 7)],
+            "PM1": [(15, 7)],
+            "PM2": [(16, 7)],
+            "PM3": [(17, 7)],
+            "PM4": [(18, 7)],
+            "PM5": [(19, 7)],
+            "PM6": [(20, 7)],
+            "PP1": [(21, 7)],
+            "PP2": [(22, 7)],
+            "PP3": [(23, 7)],
+            "PP4": [(24, 7)],
+            "BS1": [(9, 10)],
+            "BS2": [(12, 10)],
+            "BS3": [(13, 10)],
+            "BA1": [(16, 10)],
+            "BP2": [(17, 10)],
+            "BP3": [(18, 10)],
+            "BS4": [(21, 10)],
+            "BP1": [(22, 10)],
+            "BP4": [(23, 10)],
+            "BP5": [(24, 10)],
+            "BP7": [(25, 10)]
         }
 
         for key, values in classifications.items():
             for val in values:
                 report.cell(val[0], val[1]).value = key
 
-        # nice formatting of title text
-        for cell in report['B']:
-            breaks = str(cell.value).count("\n") + 1
-            report.row_dimensions[cell.row].height = 20 * breaks
-            report[f"B{cell.row}"].alignment = Alignment(
-                wrapText=True, vertical="center"
-            )
+        # nice formatting of title text and columns
+        for col in (['B', 'C', 'G', 'H', 'I', 'J', 'K', 'L']):
+            for row in range(8, 26):
+                if row == 8:
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center",
+                           horizontal="center"
+                    )
+                elif (col == "B" and row != 8) or (col == "C" and row != 8):
+                    report.row_dimensions[row].height = 50
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center"
+                    )
+                else:
+                    report[f"{col}{row}"].alignment = Alignment(
+                           wrapText=True, vertical="center",
+                           horizontal="center"
+                    )
+                    report[f"{col}{row}"].font = Font(size=14,
+                                                      name=DEFAULT_FONT.name)
+
+        for col in (['B', 'C', 'D']):
+            for row in range(2, 7):
+                report.row_dimensions[row].height = 20
+                report[f"{col}{row}"].font = Font(size=14, bold=True,
+                                                  name=DEFAULT_FONT.name)
+
+        # merge associated disease, inheritance and prevalence cells
+        for row in range(4, 8):
+            report.merge_cells(
+                start_row=row, end_row=row, start_column=3, end_column=12)
 
         # merge evidence cells
-        for row in range(4, 26):
+        for row in range(8, 27):
             report.merge_cells(
                 start_row=row, end_row=row, start_column=3, end_column=6)
 
+        # merge POINTS cells
+        report.merge_cells(
+                start_row=26, end_row=26, start_column=8, end_column=12)
+
         # set appropriate widths
-        report.column_dimensions['B'].width = 60
+        report.column_dimensions['B'].width = 62
         report.column_dimensions['C'].width = 35
         report.column_dimensions['D'].width = 35
         report.column_dimensions['E'].width = 5
         report.column_dimensions['F'].width = 5
-        report.column_dimensions['G'].width = 12
-
+        report.column_dimensions['G'].width = 14
+        report.column_dimensions['H'].width = 14
+        report.column_dimensions['I'].width = 14
+        report.column_dimensions['J'].width = 14
+        report.column_dimensions['K'].width = 14
+        report.column_dimensions['L'].width = 14
 
         # do some colouring
         colour_cells = {
-            'FAC090': ['B2', 'B3', 'C2', 'C3', 'D2', 'D3'],
-            '8EB4E3': ['B4', 'B5', 'B6', 'B7', 'B8', 'C4', 'G4', 'H4', 'I4', 'J4'],
-            'FFFF99': ['B26', 'G5', 'G6', 'G7', 'G8', 'I5', 'I6', 'I7', 'I8'],
-            'E46C0A': ['G9', 'G10', 'G11', 'G12', 'G13'],
-            'FFC000': ['G14', 'G15', 'G16', 'G17', 'G18', 'G19'],
-            'FFFF00': ['G20', 'G21', 'G22', 'G23', 'G24'],
-            '00B0F0': ['I8', 'I11', 'I12', 'I20'],
-            '92D050': ['I16', 'I17', 'I21', 'I22', 'I23', 'I24', 'I25'],
-            '0070C0': ['I15'],
-            'FF0000': ['G9'],
-            'D9D9D9': [
-                'I9', 'I10', 'J9', 'J10', 'I13', 'I14', 'J13', 'J14',
-                'I18', 'I19', 'J18', 'J19', 'G25', 'H25'
-            ]
+            'E46C0A': ['G11', 'G12', 'G13', 'G14'],
+            'FFC000': ['G15', 'G16', 'G17', 'G18', 'G19', 'G20'],
+            'FFFF00': ['G21', 'G22', 'G23', 'G24'],
+            '00B0F0': ['J9', 'J12', 'J13', 'J21'],
+            '92D050': ['J17', 'J18', 'J22', 'J23', 'J24', 'J25'],
+            '0070C0': ['J16'],
+            'FF0000': ['G10'],
+            'D9D9D9': ['G9', 'G25', 'H9', 'H25', 'I9', 'I25',
+                       'J10', 'J11', 'J14', 'J15', 'J19', 'J20',
+                       'K10', 'K11', 'K14', 'K15', 'K19', 'K20',
+                       'L10', 'L11', 'L14', 'L15', 'L19', 'L20'
+                       ]
 
         }
         for colour, cells in colour_cells.items():
@@ -683,20 +740,22 @@ class excel():
         # add some borders
         row_ranges = {
             'horizontal': [
-                'B3:D3', 'B4:J4', 'B5:J5',
-                'B6:J6', 'B7:J7', 'B8:J8', 'B9:J9', 'B10:J10', 'B11:J11',
-                'B12:J12', 'B13:J13', 'B14:J14', 'B15:J15', 'B16:J16',
-                'B17:J17', 'B18:J18', 'B19:J19', 'B20:J20', 'B21:J21',
-                'B22:J22', 'B23:J23', 'B24:J24', 'B25:J25'
+                'B3:D3', 'B4:J4', 'B5:L5',
+                'B6:L6', 'B7:L7', 'B8:L8', 'B9:L9', 'B10:L10', 'B11:L11',
+                'B12:L12', 'B13:L13', 'B14:L14', 'B15:L15', 'B16:L16',
+                'B17:L17', 'B18:L18', 'B19:L19', 'B20:L20', 'B21:L21',
+                'B22:L22', 'B23:L23', 'B24:L24', 'B25:L25'
             ],
             'horizontal_thick': [
-                'B2:D2', 'B4:J4', 'B26:J26', 'B27:J27'
+                'B2:D2', 'B4:L4', 'B7:L7', 'B8:L8', 'B26:L26', 'B27:L27'
             ],
             'vertical': [
-                'E2:E3', 'G4:G26', 'H4:H26', 'I4:I26', 'J4:J26'
+                'E2:E3', 'G8:G26', 'H8:H25', 'I8:I25', 'J8:J25',
+                'K8:K25', 'L8:L25',
             ],
             'vertical_thick': [
-                'B2:B26', 'C2:C26', 'K4:K26', 'E2:E3'
+                'B2:B6', 'B8:B26', 'C2:C6', 'C8:C26', 'M4:M6', 'M8:M26',
+                'E2:E3'
             ]
         }
 
@@ -715,7 +774,25 @@ class excel():
                         if side == 'vertical_thick':
                             cell_border.left = MEDIUM
                         cell.border = cell_border
-
+        if self.args.lock_sheet:
+            cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
+                              "C9", "C10", "C11", "C12", "C13", "C14", "C15",
+                              "C16", "C17", "C18", "C19", "C20", "C21", "C22",
+                              "C23", "C24", "C25", "C26", "H10", "H11",
+                              "H12", "H13", "H14", "H15", "H16", "H17", "H18",
+                              "H19", "H20", "H21", "H22", "H23", "H24", "I10",
+                              "I11", "I12", "I13", "I14", "I15", "I16", "I17",
+                              "I18", "I19", "I20", "I21", "I22", "I23", "I24",
+                              "K9", "K12", "K13", "K16", "K17", "K18", "K21",
+                              "K22", "K23", "K24", "K25", "L9", "L12", "L13",
+                              "L16", "L17", "L18", "L21", "L22", "L23", "L24",
+                              "L25", "H26"]
+            self.lock_sheet(ws=report,
+                            cell_to_unlock=cell_to_unlock,
+                            start_row=report.max_row,
+                            start_col=report.max_column,
+                            unlock_row_num=ROW_TO_UNLOCK,
+                            unlock_col_num=COL_TO_UNLOCK)
 
     def write_variants(self) -> None:
         """
@@ -783,6 +860,24 @@ class excel():
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
+                if self.args.acmg and self.args.lock_sheet:
+                    num_variant = vcf.shape[0]
+                    cell_to_unlock = []
+                    comment_col = self.get_col_letter(curr_worksheet,
+                                                      "Comment")
+                    interpreted_col = self.get_col_letter(curr_worksheet,
+                                                          "Interpreted")
+                    for row in range(2, num_variant+2):
+                        if comment_col is not None:
+                            cell_to_unlock.append(f"{comment_col}{row}")
+                        if curr_worksheet.title == self.args.sheets[0]:
+                            cell_to_unlock.append(f"{interpreted_col}{row}")
+                    self.lock_sheet(ws=curr_worksheet,
+                                    cell_to_unlock=cell_to_unlock,
+                                    start_row=num_variant+2,
+                                    start_col=curr_worksheet.max_column+1,
+                                    unlock_row_num=ROW_TO_UNLOCK,
+                                    unlock_col_num=COL_TO_UNLOCK)
                 self.workbook.save(self.args.output)
 
         # Write out dict to file
@@ -1421,3 +1516,136 @@ class excel():
             start_row=6, end_row=6, start_column=6, end_column=10)
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
+
+    def drop_down(self) -> None:
+        """
+        Function to add drop-downs in the report tab for entering
+        ACMG criteria for classification, as well as a boolean
+        drop down into the additional 'Interpreted' column of
+        the variant sheet(s).
+        """
+        wb = load_workbook(filename=self.args.output)
+
+        # adding dropdowns in report table
+        for sheet_num in range(1, self.args.acmg+1):
+            # adding strength dropdown
+            report_sheet = wb[f"interpret_{sheet_num}"]
+            strength_options = '"Very Strong, Strong, Moderate, \
+                                 Supporting, NA"'
+            strength_val = DataValidation(type='list',
+                                          formula1=strength_options,
+                                          allow_blank=True)
+            strength_val.prompt = 'Select from the list'
+            strength_val.promptTitle = 'Strength'
+            report_sheet.add_data_validation(strength_val)
+            strength_val.add('H10:H24')
+            cell_for_strength = ['K9', 'K12', 'K13', 'K16', 'K17',
+                                 'K18', 'K21', 'K22', 'K23', 'K24', 'K25']
+            for cell in cell_for_strength:
+                strength_val.add(cell)
+            strength_val.showInputMessage = True
+            strength_val.showErrorMessage = True
+
+            # adding final classification dropdown
+            report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
+            report_sheet['B26'].font = Font(bold=True, name=DEFAULT_FONT.name)
+            class_options = '"Pathogenic,Likely Pathogenic, \
+                              Uncertain Significance, \
+                              Likely Benign, Benign"'
+            class_val = DataValidation(type='list', formula1=class_options,
+                                       allow_blank=True)
+            class_val.prompt = 'Select from the list'
+            class_val.promptTitle = 'Variant Interpretation'
+            report_sheet.add_data_validation(class_val)
+            class_val.add('C26')
+            class_val.showInputMessage = True
+            class_val.showErrorMessage = True
+
+        # adding Interpreted column dropdown in the first variant sheet tab
+        first_variant_sheet = wb[self.args.sheets[0]]
+        interpreted_options = '"YES,NO"'
+        data_val = DataValidation(type='list', formula1=interpreted_options,
+                                  allow_blank=True)
+        data_val.prompt = 'Choose YES or NO'
+        data_val.promptTitle = 'Variant interpreted or not?'
+        first_variant_sheet.add_data_validation(data_val)
+        col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
+        num_variant = self.vcfs[0].shape[0]
+        for i in range(num_variant):
+            data_val.add(first_variant_sheet[f"{col_letter}{i+2}"])
+        data_val.showInputMessage = True
+        data_val.showErrorMessage = True
+        wb.save(self.args.output)
+
+    def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
+                   unlock_row_num, unlock_col_num) -> None:
+        """
+        locking the workbooksheet (password protected) and unlocking
+        specific cells inside the table and regions outside table
+
+        Parameters:
+        -----------
+        ws: str
+            current worksheet
+        cell_to_unlock: list
+            list containing cells to unlock
+        start_row: int
+            integer indicating row starting to unlock
+        start_col: int
+            integer indicating col starting to unlock
+        unlock_row_num: int
+            integer indication number of row(s) to unlock
+        unlock_col_num: int
+            integer indication number of col(s) to unlock
+        """
+        ws.protection.sheet = True
+        ws.protection.password = "sheet_is_protected"
+
+        # unlocking specific cells inside the table
+        for cell in cell_to_unlock:
+            ws[cell].protection = Protection(locked=False)
+
+        # unlocking regions outside table
+        for col in range(1, start_col+unlock_col_num):
+            col_letter = get_column_letter(col)
+            for row in range(start_row, start_row+unlock_row_num):
+                row_num = row
+                cell = f"{col_letter}{row_num}"
+                ws[cell].protection = Protection(locked=False)
+        for col in range(start_col, start_col+unlock_col_num):
+            col_letter = get_column_letter(col)
+            for row in range(1, start_row):
+                row_num = row
+                cell = f"{col_letter}{row_num}"
+                ws[cell].protection = Protection(locked=False)
+
+    def get_col_letter(self, worksheet, col_name) -> str:
+        """
+        Getting the column letter with specific col name
+
+        Parameters
+        ----------
+        worksheet: openpyxl.Writer
+               writer object of current sheet
+        col_name: str
+               name of column to get col letter
+        Return
+        -------
+        str
+            column letter for specific column name
+        """
+        col_letter = None
+        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
+            if column_cell[0].value == col_name:
+                col_letter = column_cell[0].column_letter
+
+        return col_letter
+
+    def protect_rename_sheets(self) -> None:
+        """
+        prevent renaming sheets in the workbook
+        """
+        wb = load_workbook(filename=self.args.output)
+        wb.security.lockStructure = True
+        wb.security.workbookPassword = "sheet_name_protected"
+        wb.save(self.args.output)
