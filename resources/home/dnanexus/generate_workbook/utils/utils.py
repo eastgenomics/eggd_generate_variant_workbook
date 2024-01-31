@@ -80,7 +80,7 @@ def map_chr_to_nc(chrom, build) -> str:
     Parameters
     ----------
     chrom : str
-        chromsome to return NC value of
+        chromosome to return NC value of
     build : int
         reference build inferred from reference stored in vcf header,
         will be either 37 or 38
@@ -159,13 +159,13 @@ class buildHyperlink():
             as any other required fields (i.e. chrom, pos, ref, alt etc.)
         build : int
             either 37 or 38, inferred perviously from reference parsed from
-            vcf header, controls URL to use for those that are build specific 
+            vcf header, controls URL to use for those that are build specific
 
         Returns
         -------
         str
             Excel formatted hyperlink if a URL is present for that resource,
-            else just the original value is returned 
+            else just the original value is returned
         """
         if (
             not value[column] or
@@ -228,7 +228,7 @@ class buildHyperlink():
             # values for everything else which is hyperlinked
             # needs to be cast to string
             return f'=HYPERLINK("{url}", "{value[column]}")'
-   
+
     def gnomad(self, value, build) -> str:
         # gnomad URL has build specific suffix
         if build == 37:
@@ -269,7 +269,7 @@ class buildHyperlink():
         # build URL and set value to display equal to what is in the URL
         url = self.urls.get('mastermind')
         url = f'{url}{nc_id}:g.{value.POS}{value.REF}%3E{value.ALT}'
-        
+
         return url
 
     def clinvar(self, clinvar_id) -> str:
@@ -289,7 +289,7 @@ class buildHyperlink():
 
     def oncokb(self, value) -> str:
         return f"{self.urls.get('oncokb')}{value.CSQ_SYMBOL}"
-    
+
     def cbioportal(self, value) -> str:
         url = self.urls.get('cbioportal')
         return f"{url.replace('SYMBOL', value.CSQ_SYMBOL)}"
@@ -305,7 +305,7 @@ def parse_cvo(cvo_df) -> pd.DataFrame:
     local app CombinedVariantOutput.tsv file. Rest of file contains file
     metrics and SNVs, but as we already have the VCF of variants we will
     exclude this to just keep the additional metrics.
-    
+
     This file is structured with the following sections:
 
         [Analysis Details]
@@ -354,7 +354,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     """
     Parse out sample metrics from run level MetricsOutput.tsv TSO500 local
     app output file if provided to --additional_files.
-    
+
     Uses first VCF file prefix to assume as sample name for parsing out
     of metrics file.
 
@@ -376,7 +376,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
     if not metrics_idx:
         # file doesn't have expected field for MetricsOutput
         print(
-            f'WARNING: Could not parse "[DNA Library QC Metrics]" from '
+            'WARNING: Could not parse "[DNA Library QC Metrics]" from '
             'MetricsOutput.tsv. Writing whole file to sheet.'
         )
         return metrics_df
@@ -400,7 +400,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
             f'prefix: {vcf_prefix}. Writing whole file to sheet.'
         )
         return metrics_df
-    
+
     if len(idx) > 1:
         # found more than one match for given prefix, return whole file
         print(
@@ -408,7 +408,7 @@ def parse_metrics_output(metrics_df, sample_vcf) -> pd.DataFrame:
             f'for prefix: {vcf_prefix}. Writing whole file to sheet.'
         )
         return metrics_df
-    
+
     # select first 3 cols with labels and our sample column
     metrics_df = metrics_df.iloc[:, [0, 1, 2, idx[0]]]
 

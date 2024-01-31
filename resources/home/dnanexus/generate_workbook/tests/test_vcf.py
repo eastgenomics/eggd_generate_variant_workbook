@@ -1,11 +1,11 @@
 import argparse
+from copy import deepcopy
 from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
 import sys
+import unittest
 import pandas as pd
-from types import new_class
-from bleach import clean
 
 import pytest
 
@@ -20,6 +20,25 @@ from tests import TEST_DATA_DIR
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
 
+# namespace with all args coming in from parse_args, will be adjusted
+# as required in each test
+VCF_ARGS = argparse.Namespace(
+    additional_files=False,
+    filter=False,
+    print_columns=False,
+    rename=False,
+    vcfs=[],
+    merge=False,
+    include=False,
+    exclude=False,
+    reorder=False,
+    decipher=False,
+    split_hgvs=False,
+    add_raw_change=False,
+    add_classification_column=None,
+    additional_columns=[],
+    summary=None
+)
 
 class TestHeader():
     """
@@ -84,6 +103,76 @@ class TestHeader():
         assert all([x.startswith('#') for x in self.header])
 
 
+class TestVcfCheckVepVcf(unittest.TestCase):
+    """
+    Tests for vcf.check_vep_vcf()
+
+    Function checks if a given VCF has been annotated with VEP or
+    already split with bcftools +split-vep before trying to split
+    again
+    """
+    def tearDown(self):
+        if os.path.exists('/tmp/test.vcf'):
+            os.remove('/tmp/test.vcf')
+
+
+    def test_annotated_and_not_split(self):
+        """
+        Test when VCF is annotated and hasn't been split that the
+        function returns True as expected
+        """
+        # vep annotated and unsplit vcf
+        vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.vcf')
+
+        assert vcf(deepcopy(VCF_ARGS)).check_vep_vcf(vep_vcf, '/tmp/test.vcf')
+
+
+    def test_vcf_already_split(self):
+        """
+        Test when a vcf has already been split that the function returns
+        False as expected
+        """
+        # previously split test vcf
+        vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.split.vcf')
+
+        assert not vcf(deepcopy(VCF_ARGS)).check_vep_vcf(
+            vep_vcf, '/tmp/test.vcf')
+
+
+    def test_vcf_not_annotated_with_vep(self):
+        """
+        Test that a VCF not annotated with VEP returns False as expected
+        """
+        # unannotated test vcf
+        not_vep_vcf = os.path.join(TEST_DATA_DIR, 'unannotated.vcf.gz')
+
+        assert not vcf(deepcopy(VCF_ARGS)).check_vep_vcf(
+            not_vep_vcf, '/tmp/test.vcf')
+
+
+    def test_tmp_vcf_made(self):
+        """
+        Test when check_vep_vcf() is called and the VCF either is not
+        annotated with VEP or already split with bcftools +split-vep
+        that a temporary vcf is created with the given name that is
+        identical to the input vcf
+        """
+        # previously split test vcf
+        vep_vcf = os.path.join(TEST_DATA_DIR, 'NA12878_unittest.split.vcf')
+
+        vcf(deepcopy(VCF_ARGS)).check_vep_vcf(vep_vcf, '/tmp/test.vcf')
+
+        with open(vep_vcf) as fh:
+            input_vcf = fh.read()
+
+        with open('/tmp/test.vcf') as fh:
+            created_vcf = fh.read()
+
+        assert input_vcf == created_vcf, (
+            'temporary created vcf not the same as input vcf'
+        )
+
+
 class TestDataFrameActions():
     """
     Tests for functions that modify dataframes of variants (i.e. reorder(),
@@ -116,7 +205,8 @@ class TestDataFrameActions():
             out_dir='', output='',
             panel='', print_columns=False, print_header=False, reads='',
             rename=None, sample='', sheets=['variants'], summary=None,
-            vcfs=[self.columns_vcf], workflow=('', '')
+            vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
+            add_classification_column=None, additional_columns=[]
         ))
 
         # first split multiple transcript annotation to separate VCF
@@ -311,17 +401,19 @@ class TestHyperlinks():
             {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
         ])
 
-        to_add_column = vcf(argparse.Namespace())
+
+        to_add_column = vcf(deepcopy(VCF_ARGS))
+        to_add_column.args.additional_columns = ['decipher']
         to_add_column.vcfs = [df]
         to_add_column.refs = ['38']  # Set reference = build 38
 
         # Call add_decipher_column which should add an empty column titled
         # 'DECIPHER' to this dataframe
-        vcf.add_decipher_column(to_add_column)
+        to_add_column.add_additional_columns()
 
         # Assert statement to check that DECIPHER column exists
-        assert "DECIPHER" in to_add_column.vcfs[0].columns, (
-            'DECIPHER column not created by make_decipher_columns() function'
+        assert "DECIPHER" in [x.upper() for x in to_add_column.vcfs[0].columns], (
+            'DECIPHER column not created'
         )
 
     @staticmethod
@@ -330,7 +422,7 @@ class TestHyperlinks():
         Test to ensure that the DECIPHER column is created when --decipher
         input is specified.
         """
-        # Create test dataframe with no "DECIPHER" columnn
+        # Create test dataframe with no "DECIPHER" column
         df = pd.DataFrame([
             {'CHROM': 1, 'POS': 64883298, 'REF': 'T', 'ALT': 'C'},
             {'CHROM': 10, 'POS': 27035066, 'REF': 'C', 'ALT': 'T'},
@@ -338,11 +430,8 @@ class TestHyperlinks():
 
         # Include --decipher input, all other inputs are false to avoid giving
         # this dataframe to other functions except make_decipher_columns
-        should_have_decipher_column = vcf(argparse.Namespace(
-            additional_files=False, filter=False, print_columns=False,
-            rename=False, vcfs=[], merge=False, include=False, exclude=False,
-            reorder=False, decipher=True,  # Set DECIPHER = True
-            ))
+        should_have_decipher_column = vcf(deepcopy(VCF_ARGS))
+        should_have_decipher_column.args.additional_columns = ['DECIPHER']
         should_have_decipher_column.vcfs = [df]
         should_have_decipher_column.refs = ['38']  # Set build = 38
 
@@ -367,11 +456,8 @@ class TestHyperlinks():
         # Using the same test dataframe but without --decipher input, all other
         # inputs are false to avoid giving this dataframe to other functions
         # except make_decipher_columns
-        should_not_have_decipher_column = vcf(argparse.Namespace(
-            additional_files=False, filter=False, print_columns=False,
-            rename=False, vcfs=[], merge=False, include=False, exclude=False,
-            reorder=False, decipher=False,  # Set DECIPHER = False
-            ))
+        should_not_have_decipher_column = vcf(deepcopy(VCF_ARGS))
+
         should_not_have_decipher_column.vcfs = [df]
         should_not_have_decipher_column.refs = ['38']  # Set build = 38
 
@@ -396,12 +482,7 @@ class TestHyperlinks():
              'ALT': 'C'},
         ])
 
-        build_37_vcf = vcf(argparse.Namespace(
-            additional_files=False, filter=False, print_columns=False,
-            rename=False, vcfs=[], merge=False, include=False, exclude=False,
-            reorder=False, decipher=True  # Set DECIPHER = True
-        ))
-
+        build_37_vcf = vcf(deepcopy(VCF_ARGS))
         build_37_vcf.vcfs = [df]
         build_37_vcf.refs = ['37']  # Set reference = build 37
 
@@ -425,12 +506,13 @@ class TestHyperlinks():
         # DECIPHER column is empty as that is the input to generate hyperlinks
         df = pd.DataFrame([
             {'CHROM': 1, 'POS': 64883298, 'REF': 'T',
-             'ALT': 'C', 'DECIPHER': ''},
+             'ALT': 'C', 'DECIPHER': 'DECIPHER'},
             {'CHROM': 10, 'POS': 27035066, 'REF': 'C',
-             'ALT': 'T', 'DECIPHER': ''},
+             'ALT': 'T', 'DECIPHER': 'DECIPHER'},
         ])
 
-        test_vcf = vcf(argparse.Namespace(decipher=True))
+        test_vcf = vcf(deepcopy(VCF_ARGS))
+        test_vcf.args.decipher = True
         test_vcf.vcfs = [df]
         test_vcf.refs = ['38']  # Set reference = build 38
 
@@ -441,6 +523,8 @@ class TestHyperlinks():
             '=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-6'
             '4883298-T-C", "1-64883298-T-C")'
         )
+
+        print(test_vcf.args)
 
         # Assert that output is as expected
         assert test_vcf.vcfs[0]["DECIPHER"][0] == valid_string, (
@@ -458,7 +542,7 @@ class TestHyperlinks():
              'ALT': 'T', 'gnomAD': 0.0108147},
         ])
 
-        test_vcf = vcf(argparse.Namespace())
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['37']  # Set reference = build 37
 
@@ -486,7 +570,7 @@ class TestHyperlinks():
              'ALT': 'C', 'gnomADg AF': 0.0004271},
         ])
 
-        test_vcf = vcf(argparse.Namespace())
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['38']  # Set reference = build 38
 
@@ -514,7 +598,7 @@ class TestHyperlinks():
              'ALT': 'G', 'COSMICcMuts': 'COSV63186428'},
         ])
 
-        test_vcf = vcf(argparse.Namespace())
+        test_vcf = vcf(deepcopy(VCF_ARGS))
         test_vcf.vcfs = [df]
         test_vcf.refs = ['37']  # Set reference = build 37
 
@@ -546,7 +630,8 @@ class TestAddRawChange():
         out_dir='', output='',
         panel='', print_columns=False, print_header=False, reads='',
         rename=None, sample='', sheets=['variants'], summary=None,
-        vcfs=[], workflow=('', '')
+        vcfs=[], workflow=('', ''), split_hgvs=None,
+        add_classification_column=None, additional_columns=[]
     ))
 
     def test_normal_df(self):
@@ -565,7 +650,7 @@ class TestAddRawChange():
             'Raw change incorrect'
         )
 
-    
+
     def test_empty_df(self):
         """
         Test when df is empty that function doesn't break and adds empty column
@@ -581,7 +666,7 @@ class TestAddRawChange():
         ], (
             'Raw change incorrectly added to empty df'
         )
-    
+
     def test_missing_column(self):
         """
         Test when one or more required columns is missing that the option is

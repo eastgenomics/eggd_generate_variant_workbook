@@ -145,7 +145,7 @@ class excel():
         colour_col = 2
         max_colour_rows_written = 0
 
-        # write colouring applied to each field as seperate column in summary
+        # write colouring applied to each field as separate column in summary
         for column, conditions in cols_to_colours.items():
             colour_row = row_count + 1
             column_letter = get_column_letter(colour_col)
@@ -913,7 +913,7 @@ class excel():
 
                 col_letter = get_column_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
-            
+
             # set widths of any columns we have specified below in set_width()
             # to override the above defaults
             # get column names from first row of sheet
@@ -1072,7 +1072,7 @@ class excel():
         """
         Set the dp to display values to (i.e. 0.14236 to dp -> 0.14).
 
-        Original value will remain unchanged in the formaula bar
+        Original value will remain unchanged in the formula bar
         on selecting the cell, just the view of data is adjusted
         through Excel number formatting
 
@@ -1088,13 +1088,14 @@ class excel():
         }
 
         for column, dp in col_to_dp.items():
+            dp = '0' * dp
             for ws_column in worksheet.iter_cols(1, worksheet.max_column):
                 if ws_column[0].value.lower() == column.lower():
                     # column is a match, loop over every cell in the column
                     # to set formatting since there's no nicer way to apply
                     # the style in openpyxl
                     for row in ws_column:
-                        row.number_format = '#,##0.00'           
+                        row.number_format = f'#,##0.{dp}'
 
 
     def convert_colour(self, colour) -> str:
@@ -1144,7 +1145,7 @@ class excel():
     def colour_cells(self, worksheet) -> None:
         """
         Conditionally colours cells in a variant worksheet by user specified
-        coniditons and colours for a given column with --colour.
+        conditions and colours for a given column with --colour.
 
         Arguments will be in the following formats:
             - VF:>=0.9:green        => single condition
@@ -1177,7 +1178,7 @@ class excel():
             "<=": operator.le
         }
 
-        # dict to add any previously coloured cells that are likley from
+        # dict to add any previously coloured cells that are likely from
         # overlapping expressions -> raise error if anything is present
         errors = defaultdict(dict)
 
@@ -1262,7 +1263,7 @@ class excel():
                                 )
         if errors:
             error_message = (
-                f"\n{'#' * 35} ERROR {'#' * 35}\n\n" 
+                f"\n{'#' * 35} ERROR {'#' * 35}\n\n"
                 "Overlapping colouring of cells, the following "
                 "cells colour were not changed due \nto being previously coloured:"
             )
@@ -1301,13 +1302,10 @@ class excel():
             "ref": 10,
             "alt": 10,
             "qual": 10,
-            "af": 6,
             "dp": 10,
             'ac': 10,
             'af': 10,
             'an': 10,
-            'dp': 8,
-            'qual': 8,
             'baseqranksum': 15,
             'clippingranksum': 16,
             "symbol": 9,
@@ -1405,7 +1403,7 @@ class excel():
         of rows dependent on the sample value and upper and lower limits
 
         File is formatted as:
-			
+
         Metric (UOM)                LSL Guideline	USL Guideline	Sample
         COVERAGE_MAD (Count)        0	            0.21	        0.12
         MEDIAN_BIN_COUNT_CNV_TARGET	1	            NA	            6.1
@@ -1460,14 +1458,14 @@ class excel():
                         green.append(idx)
                     else:
                         red.append(idx)
-        
+
         # PCT EXON 50x and 100x using more stringent thresholds than in file
         if float(file_df.iloc[:, 3][8]) >= 95:
             # 50x
             green.append(8)
         else:
             red.append(8)
-        
+
         if float(file_df.iloc[:, 3][25]) >= 90:
             # 100x
             green.append(25)
@@ -1479,7 +1477,7 @@ class excel():
             amber.append(1)
         else:
             green.append(1)
-        
+
         to_colour.extend([1, 8, 25])
 
         for idx in to_colour:

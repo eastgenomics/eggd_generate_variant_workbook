@@ -2,7 +2,6 @@ import argparse
 import os
 from pathlib import Path
 import re
-import sys
 
 from filetype import is_image
 
@@ -429,7 +428,7 @@ class arguments():
 
         if self.args.image_sizes:
             assert all(
-                [re.match('\d+:\d+', x) for x in self.args.image_sizes]
+                [re.match(r'\d+:\d+', x) for x in self.args.image_sizes]
             ), (
                 'Sizes for images specified not in correct format: '
                 f'{self.args.image_sizes}'

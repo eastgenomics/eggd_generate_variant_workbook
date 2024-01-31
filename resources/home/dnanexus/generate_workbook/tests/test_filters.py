@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 import os
 from pathlib import Path
 import shutil
@@ -21,6 +22,29 @@ from tests import TEST_DATA_DIR
 # annotation for each
 TEST_VCF = "NA12878_unittest.vcf"
 
+# namespace with all args coming in from parse_args, will be adjusted
+# as required in each test
+VCF_ARGS = argparse.Namespace(
+    additional_files=False,
+    filter=False,
+    print_columns=False,
+    print_header=False,
+    rename=False,
+    vcfs=[],
+    types=None,
+    merge=False,
+    include=False,
+    exclude=False,
+    reorder=False,
+    decipher=False,
+    split_hgvs=False,
+    add_name=False,
+    add_raw_change=False,
+    add_comment_column=False,
+    add_classification_column=None,
+    additional_columns=[]
+)
+
 
 class TestModifyingFieldTypes():
     """
@@ -36,16 +60,10 @@ class TestModifyingFieldTypes():
 
     # initialise vcf class with a valid argparse input to allow
     # calling .read()
-    vcf_handler = vcf(argparse.Namespace(
-        add_name=True, analysis='',
-        filter=None, keep=False, merge=False,
-        reorder=[], exclude=None, include=None,
-        out_dir='', output='', always_keep=pd.DataFrame(),
-        panel='', print_columns=False, reads='', rename=None,
-        sample='', sheets=['variants'], summary=None, usable_reads='',
-        vcfs=[columns_vcf], workflow=('', ''),
-        types={'gnomADg_AF': 'Float'}
-    ))
+    vcf_handler = vcf(deepcopy(VCF_ARGS))
+    vcf_handler.args.types = {'gnomADg_AF': 'Float'}
+    vcf_handler.args.sheets = ['variants']
+    vcf_handler.args.vcf = [columns_vcf]
 
     # get header from vcf
     file_header, _ = vcf_handler.parse_header(columns_vcf)
@@ -127,15 +145,9 @@ class TestFilters():
 
     # initialise vcf class with a valid argparse input to allow
     # calling .read()
-    vcf_handler = vcf(argparse.Namespace(
-        add_name=False, analysis='',
-        filter=None, keep=False, merge=False,
-        reorder=[], exclude=None, include=None,
-        out_dir='', output='', always_keep=pd.DataFrame(),
-        panel='', print_columns=False, print_header=False, reads='',
-        rename=None, sample='', sheets=['variants'], summary=None,
-        usable_reads='', vcfs=[test_vcf], workflow=('', ''), types=None
-    ))
+    vcf_handler = vcf(deepcopy(VCF_ARGS))
+    vcf_handler.args.sheets = ['variants']
+    vcf_handler.args.vcf = [test_vcf]
 
 
     def filter(self, filter_str) -> Union[pd.DataFrame, pd.DataFrame]:
