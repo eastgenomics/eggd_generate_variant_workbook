@@ -1530,23 +1530,29 @@ class excel():
 
         # adding dropdowns in report table
         for sheet_num in range(1, self.args.acmg+1):
-            # adding strength dropdown
+            # adding strength dropdown except for BA1
             report_sheet = wb[f"interpret_{sheet_num}"]
+            cells_for_strength = ['H10', 'H11', 'H12', 'H13', 'H14', 'H15',
+                                  'H16', 'H17', 'H18', 'H19', 'H20', 'H21',
+                                  'H22', 'H23', 'H24', 'K9', 'K12', 'K13',
+                                  'K17', 'K18', 'K21', 'K22', 'K23', 'K24',
+                                  'K25']
             strength_options = '"Very Strong, Strong, Moderate, \
                                  Supporting, NA"'
-            strength_val = DataValidation(type='list',
-                                          formula1=strength_options,
-                                          allow_blank=True)
-            strength_val.prompt = 'Select from the list'
-            strength_val.promptTitle = 'Strength'
-            report_sheet.add_data_validation(strength_val)
-            strength_val.add('H10:H24')
-            cell_for_strength = ['K9', 'K12', 'K13', 'K16', 'K17',
-                                 'K18', 'K21', 'K22', 'K23', 'K24', 'K25']
-            for cell in cell_for_strength:
-                strength_val.add(cell)
-            strength_val.showInputMessage = True
-            strength_val.showErrorMessage = True
+            self.get_drop_down(dropdown_options=strength_options,
+                               prompt='Select from the list',
+                               title='Strength',
+                               sheet=report_sheet,
+                               cells=cells_for_strength)
+
+            # add stregth for BA1
+            BA1_options = '"Stand-Alone, Very Strong, Strong, Moderate, \
+                            Supporting, NA"'
+            self.get_drop_down(dropdown_options=BA1_options,
+                               prompt='Select from the list',
+                               title='Strength',
+                               sheet=report_sheet,
+                               cells=['K16'])
 
             # adding final classification dropdown
             report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
@@ -1554,29 +1560,25 @@ class excel():
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
-            class_val = DataValidation(type='list', formula1=class_options,
-                                       allow_blank=True)
-            class_val.prompt = 'Select from the list'
-            class_val.promptTitle = 'Variant Interpretation'
-            report_sheet.add_data_validation(class_val)
-            class_val.add('C26')
-            class_val.showInputMessage = True
-            class_val.showErrorMessage = True
+            self.get_drop_down(dropdown_options=class_options,
+                               prompt='Select from the list',
+                               title='ACMG classification',
+                               sheet=report_sheet,
+                               cells=['C26'])
 
         # adding Interpreted column dropdown in the first variant sheet tab
         first_variant_sheet = wb[self.args.sheets[0]]
         interpreted_options = '"YES,NO"'
-        data_val = DataValidation(type='list', formula1=interpreted_options,
-                                  allow_blank=True)
-        data_val.prompt = 'Choose YES or NO'
-        data_val.promptTitle = 'Variant interpreted or not?'
-        first_variant_sheet.add_data_validation(data_val)
         col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
         num_variant = self.vcfs[0].shape[0]
+        cells_for_variant = []
         for i in range(num_variant):
-            data_val.add(first_variant_sheet[f"{col_letter}{i+2}"])
-        data_val.showInputMessage = True
-        data_val.showErrorMessage = True
+            cells_for_variant.append(f"{col_letter}{i+2}")
+        self.get_drop_down(dropdown_options=interpreted_options,
+                           prompt='Choose YES or NO',
+                           title='Variant interpreted or not?',
+                           sheet=first_variant_sheet,
+                           cells=cells_for_variant)
         wb.save(self.args.output)
 
     def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
@@ -1651,3 +1653,31 @@ class excel():
         wb.security.lockStructure = True
         wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
+
+    def get_drop_down(self, dropdown_options, prompt, title, sheet, cells) -> None:
+        """
+        create the drop-downs items for designated cells
+
+        Parameters
+        ----------
+        dropdown_options: str
+            str containing drop-down items
+        prompt: str
+            prompt message for drop-down
+        title: str
+            title message for drop-down
+        sheet: openpyxl.Writer writer object
+            current worksheet
+        cells: list
+            list of cells to add drop-down
+        """
+        options = dropdown_options
+        val = DataValidation(type='list', formula1=options,
+                             allow_blank=True)
+        val.prompt = prompt
+        val.promptTitle = title
+        sheet.add_data_validation(val)
+        for cell in cells:
+            val.add(sheet[cell])
+        val.showInputMessage = True
+        val.showErrorMessage = True
