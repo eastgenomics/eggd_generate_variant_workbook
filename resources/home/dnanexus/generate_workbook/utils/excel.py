@@ -621,7 +621,6 @@ class excel():
              "alternative genetic cause of disease detected"): [24, 2],
             ("Synonymous change, no affect on splicing, not conserved; "
              "splice\nvariants confirmed to have no impact"): [25, 2],
-            "ACMG CLASSIFICATION": [26, 2],
             "POINTS": [26, 7]
         }
         for key, val in titles.items():
@@ -779,7 +778,7 @@ class excel():
             cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
                               "C16", "C17", "C18", "C19", "C20", "C21", "C22",
-                              "C23", "C24", "C25", "C26", "C27", "H10", "H11",
+                              "C23", "C24", "C25", "C26", "H10", "H11",
                               "H12", "H13", "H14", "H15", "H16", "H17", "H18",
                               "H19", "H20", "H21", "H22", "H23", "H24", "I10",
                               "I11", "I12", "I13", "I14", "I15", "I16", "I17",
@@ -790,7 +789,7 @@ class excel():
                               "L25", "H26"]
             self.lock_sheet(ws=report,
                             cell_to_unlock=cell_to_unlock,
-                            start_row=report.max_row+1,
+                            start_row=report.max_row,
                             start_col=report.max_column,
                             unlock_row_num=ROW_TO_UNLOCK,
                             unlock_col_num=COL_TO_UNLOCK)
@@ -1550,12 +1549,8 @@ class excel():
             strength_val.showErrorMessage = True
 
             # adding final classification dropdown
-            report_sheet['B27'] = 'FINAL CLASSIFICATION'
-            report_sheet['B27'].font = Font(bold=True, name=DEFAULT_FONT.name)
-            med_border = Border(left=MEDIUM, right=MEDIUM, bottom=MEDIUM,
-                                top=MEDIUM)
-            report_sheet['B27'].border = med_border
-            report_sheet['C27'].border = med_border
+            report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
+            report_sheet['B26'].font = Font(bold=True, name=DEFAULT_FONT.name)
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
@@ -1564,7 +1559,7 @@ class excel():
             class_val.prompt = 'Select from the list'
             class_val.promptTitle = 'Variant Interpretation'
             report_sheet.add_data_validation(class_val)
-            class_val.add('C27')
+            class_val.add('C26')
             class_val.showInputMessage = True
             class_val.showErrorMessage = True
 
