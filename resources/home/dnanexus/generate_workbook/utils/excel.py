@@ -89,8 +89,9 @@ class excel():
         self.write_images()
 
         self.workbook.save(self.args.output)
-        if self.args.acmg:
+        if self.args.acmg and self.args.lock_sheet:
             self.protect_rename_sheets()
+        if self.args.acmg:
             self.drop_down()
         print('Done!')
 
