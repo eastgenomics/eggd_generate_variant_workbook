@@ -89,8 +89,9 @@ class excel():
         self.write_images()
 
         self.workbook.save(self.args.output)
-        if self.args.acmg:
+        if self.args.acmg and self.args.lock_sheet:
             self.protect_rename_sheets()
+        if self.args.acmg:
             self.drop_down()
         print('Done!')
 
@@ -1569,14 +1570,15 @@ class excel():
         interpreted_options = '"YES,NO"'
         col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
         num_variant = self.vcfs[0].shape[0]
-        cells_for_variant = []
-        for i in range(num_variant):
-            cells_for_variant.append(f"{col_letter}{i+2}")
-        self.get_drop_down(dropdown_options=interpreted_options,
-                           prompt='Choose YES or NO',
-                           title='Variant interpreted or not?',
-                           sheet=first_variant_sheet,
-                           cells=cells_for_variant)
+        if num_variant > 0:
+            cells_for_variant = []
+            for i in range(num_variant):
+                cells_for_variant.append(f"{col_letter}{i+2}")
+            self.get_drop_down(dropdown_options=interpreted_options,
+                               prompt='Choose YES or NO',
+                               title='Variant interpreted or not?',
+                               sheet=first_variant_sheet,
+                               cells=cells_for_variant)
         wb.save(self.args.output)
 
     def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
