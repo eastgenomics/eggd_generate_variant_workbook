@@ -212,7 +212,7 @@
       "label": "ACMG",
       "class": "int",
       "optional": true,
-      "default": 3,
+      "default": 0,
       "help": "Determines number of extra sheet(s) with ACMG reporting criteria",
       "group": "generate_workbook.py"
     },
