@@ -2,9 +2,11 @@
 
 # egg_generate_workbook (DNAnexus Platform App)
 
+![pytest](https://github.com/eastgenomics/eggd_generate_variant_workbook/actions/workflows/pytest.yml/badge.svg)
+
 ## What does this app do?
 
-Generate an Excel workbook from VEP annotated vcf(s)
+Generates an Excel workbook from vcf(s)
 
 ## What are typical use cases for this app?
 
@@ -21,7 +23,7 @@ This app may be executed as a standalone app.
 
 **File inputs (required)**:
 
-- `--vcfs`: VEP annotated vcf(s)
+- `--vcfs`: vcf file(s) to write to Excel workbook sheets
 
 **Other Inputs (optional):**
 
@@ -84,7 +86,7 @@ This app may be executed as a standalone app.
 
 `--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
 
-`--acmg` (`bool`): Adds extra sheet to workbook with reporting criteria against ACMG classifications
+`--acmg` (`int`): Number of extra sheet(s) to be added to workbook with reporting criteria against ACMG classifications
 
 `--panel` (`string`): Name of panel to display in summary sheet.
 
@@ -98,6 +100,7 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
+`--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
 
 **Example**:
 

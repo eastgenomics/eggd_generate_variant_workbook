@@ -2,6 +2,7 @@ import gzip
 import os
 from pathlib import Path, PurePath
 import re
+import shutil
 import subprocess
 import sys
 from typing import Union
@@ -71,15 +72,18 @@ class vcf():
         # read in the each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
-            split_vcf = f"{Path(vcf).stem}.split.vcf"
-            split_vcf_gz = f"{Path(vcf).stem}.split.vcf.gz"
-            filter_vcf = f"{Path(vcf).stem}.filter.vcf"
-            filter_vcf_gz = f"{Path(vcf).stem}.filter.vcf.gz"
+            vcf_stem = Path(vcf).stem.replace('.vcf', '')
+            split_vcf = f"{vcf_stem}.split.vcf"
+            split_vcf_gz = f"{vcf_stem}.split.vcf.gz"
+            filter_vcf = f"{vcf_stem}.filter.vcf"
+            filter_vcf_gz = f"{vcf_stem}.filter.vcf.gz"
 
+            # if VCF annotated with VEP and has not been split with bcftools,
             # first split multiple transcript annotation to separate VCF
             # records, and separate CSQ fields to separate INFO fields
-            self.bcftools_pre_process(vcf, split_vcf)
-            self.bgzip(split_vcf)
+            if self.check_vep_vcf(vcf, split_vcf):
+                self.bcftools_pre_process(vcf, split_vcf)
+                self.bgzip(split_vcf)
 
             if self.args.filter:
                 # filter vcf against specified filters using bcftools
@@ -155,10 +159,15 @@ class vcf():
                 self.filtered_vcfs = self.merge(self.filtered_vcfs)
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
-        
+
+        if self.args.summary == 'dias':
+            # if it is dias pipeline, add the empty col
+            # named Interpreted in the first variant sheet
+            self.vcfs[0]['Interpreted'] = ''
+
         if self.args.split_hgvs:
             self.split_hgvs()
-        
+
         if self.args.add_raw_change:
             self.add_raw_change()
 
@@ -211,7 +220,7 @@ class vcf():
         # check total rows before splitting
         pre_split_total = subprocess.run(
             f"zgrep -v '^#' {vcf} | wc -l", shell=True,
-            capture_output=True
+            capture_output=True, check=True
         )
 
         cmd = (
@@ -219,7 +228,7 @@ class vcf():
             f"bcftools annotate -x INFO/CSQ -o {output_vcf}"
         )
 
-        output = subprocess.run(cmd, shell=True, capture_output=True)
+        output = subprocess.run(cmd, shell=True, capture_output=True, check=False)
 
         assert output.returncode == 0, (
             f"\n\tError in splitting VCF with bcftools +split-vep. VCF: {vcf}"
@@ -230,7 +239,7 @@ class vcf():
         # check total rows after splitting
         post_split_total = subprocess.run(
             f"zgrep -v '^#' {output_vcf} | wc -l", shell=True,
-            capture_output=True
+            capture_output=True, check=True
         )
 
         print(
@@ -258,7 +267,7 @@ class vcf():
         """
         output = subprocess.run(
             f"bgzip --force {file} -c > {file}.gz",
-            shell=True, capture_output=True
+            shell=True, capture_output=True, check=False
         )
 
         assert output.returncode == 0, (
@@ -266,6 +275,60 @@ class vcf():
             f"\n\tExitcode:{output.returncode}"
             f"\n\t{output.stderr.decode()}"
         )
+
+
+    def check_vep_vcf(self, vcf, split_vcf) -> bool:
+        """
+        Checks if VCF is annotated with VEP and has not been previously
+        split with bcftools +split-vep.
+
+        This is required to control if to call self.bcftools_pre_process(),
+        if it is not annotated or has been previously split, then we
+        create a tmp vcf with the same name as when split to use downstream.
+
+        Parameters
+        ----------
+        vcf : str
+            filename of vcf to check
+        split_vcf : str
+            filename of tmp vcf to create if not annotated / already split
+
+        Returns
+        -------
+        bool
+            True if annotated and not already split, False if not
+
+        Outputs
+        -------
+        file
+            vcf file with name from split_vcf input
+        file
+            bgzipped equivalent of above
+        """
+        header, _ = self.parse_header(vcf)
+
+        if not any([
+            x.startswith('##VEP') for x in header
+        ]) or any([
+            x.startswith('##bcftools_split-vep') for x in header
+        ]):
+            # VCF not annotated with VEP or annotated with VEP but
+            # already split => create tmp vcf to continue processing
+            print('VCF not annotated with VEP or already split, continuing...')
+            if vcf.endswith('.gz'):
+                input_file = gzip.open(vcf, 'rb')
+            else:
+                input_file = open(vcf, 'rb')
+
+            with open(split_vcf, 'wb') as output_file:
+                shutil.copyfileobj(input_file, output_file)
+                input_file.close()
+
+            self.bgzip(split_vcf)
+
+            return False
+        else:
+            return True
 
 
     def read(self, vcf, sample=None) -> pd.DataFrame:
@@ -309,7 +372,7 @@ class vcf():
         if self.args.add_comment_column:
             # add empty 'Comment' column to end of df
             vcf_df['Comment'] = ''
-        
+
         if self.args.add_classification_column:
             # add empty 'Classification' column to end of df
             vcf_df['Classification'] = ''
@@ -319,7 +382,7 @@ class vcf():
 
     def read_additional_files(self):
         """
-        Attempt to read in additional tabulated files to  dataframes for
+        Attempt to read in additional tabulated files to dataframes for
         writing as additional sheets to the output workbook
 
         Updates self.additional_files dictionary with file_prefix : dataframe
@@ -370,7 +433,7 @@ class vcf():
                     'parsing out TMB, MSI and Amplifications'
                 )
                 file_df = parse_cvo(cvo_df=file_df)
-            
+
             if file.endswith('MetricsOutput.tsv'):
                 # file passed is run level MetricsOutput.tsv from Illumina
                 # TSO500 app, attempt to parse out just sample metrics to display
@@ -424,7 +487,7 @@ class vcf():
             else:
                 break
 
-        fh.close
+        fh.close()
 
         columns = [x.strip('#') for x in header[-1].split()]
         columns[-1] = 'SAMPLE'
@@ -446,7 +509,7 @@ class vcf():
         header : list
             lines of vcf header
         """
-        ref=''
+        ref = ''
 
         # first check if we can get reference build from VEP command string
         vep = [x for x in header if x.startswith('##VEP')]
@@ -584,7 +647,7 @@ class vcf():
 
             if invalid:
                 print(
-                    f"WARNING: Columns passed with `--include / --exlcude not "
+                    f"WARNING: Columns passed with `--include / --exclude not "
                     f"present in vcf ({invalid}), skipping these columns..."
                 )
                 if self.args.exclude:
@@ -631,11 +694,11 @@ class vcf():
 
     def add_additional_columns(self) -> None:
         """
-        Append empty columns specified from --aditional_columns for adding
+        Append empty columns specified from --additional_columns for adding
         additional hyperlinks to external resources (e.g. decipher, oncoKB etc.)
         """
         for column in self.args.additional_columns:
-            if column in ['decipher']:
+            if column.lower() in ['decipher']:
                 # column is only for b38, check if vcf also is
                 if not self.refs:
                     print(
@@ -652,7 +715,7 @@ class vcf():
                         f'adding {column} column.'
                     )
                     continue
-            
+
             for idx, vcf in enumerate(self.vcfs):
                 vcf[column] = column
                 self.vcfs[idx] = vcf
@@ -660,7 +723,7 @@ class vcf():
 
     def rename_columns(self) -> None:
         """
-        Rename columnns from key value pairs passed from --rename argument,
+        Rename columns from key value pairs passed from --rename argument,
         also remove underscores from all names for nicer reading
 
         Raises
@@ -743,7 +806,7 @@ class vcf():
         --add_name argument if provenance of variants in merged dataframe
         is important
         """
-        # don't attmept to merge empty vcfs as likely to have diff. columns
+        # don't attempt to merge empty vcfs as likely to have diff. columns
         vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
@@ -763,7 +826,7 @@ class vcf():
                     'splitting HGVS.'
                 )
                 continue
-            
+
             # ensure columns we're going to create don't already exist
             if any(col in vcf.columns for col in ['DNA', 'Protein']):
                 print(
@@ -781,14 +844,14 @@ class vcf():
     def add_raw_change(self) -> None:
         """
         Adds a column named 'rawChange' of the 'raw' genomic change, formatted
-        as {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by 
+        as {CHROM}:g.{POS}{REF}>{ALT}. This is analogous to HGVSg output by
         VEP, but will not include text such as INV and DEL.
         """
         for idx, vcf in enumerate(self.vcfs):
             if vcf.empty:
                 self.vcfs[idx]['rawChange'] = ''
                 continue
-            
+
             if not all(
                 col in vcf.columns for col in ['CHROM', 'POS', 'REF', 'ALT']
             ):

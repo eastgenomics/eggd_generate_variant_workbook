@@ -2,7 +2,6 @@ import argparse
 import os
 from pathlib import Path
 import re
-import sys
 
 from filetype import is_image
 
@@ -230,12 +229,17 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--acmg', action='store_true',
-            help='add extra ACMG reporting template sheet'
+            '--acmg', type=int,
+            help='add extra ACMG reporting template sheet(s)'
         )
         parser.add_argument(
             '--job_id', required=False,
             help='Job ID of eggd_generate_workbook to add to Dias summary'
+        )
+        parser.add_argument(
+            '--lock_sheet', action='store_true',
+            help='lock all sheets in the variant workbook in dias pipeline'
+                 'except specific cells'
         )
         parser.add_argument(
             '--workflow', default=('', ''), nargs=2,
@@ -424,7 +428,7 @@ class arguments():
 
         if self.args.image_sizes:
             assert all(
-                [re.match('\d+:\d+', x) for x in self.args.image_sizes]
+                [re.match(r'\d+:\d+', x) for x in self.args.image_sizes]
             ), (
                 'Sizes for images specified not in correct format: '
                 f'{self.args.image_sizes}'
