@@ -481,7 +481,7 @@ class excel():
 
         # write center reporting section tables
         self.summary.cell(4, 2).value = "Name"
-        self.summary.cell(5, 2).value = "sample ID"
+        self.summary.cell(5, 2).value = "Sample ID"
         self.summary.cell(9, 2).value = "Phenotype:"
 
         self.summary.cell(16, 2).value = "Panels"
