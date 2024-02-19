@@ -480,6 +480,8 @@ class excel():
 
 
         # write center reporting section tables
+        self.summary.cell(4, 2).value = "Name"
+        self.summary.cell(5, 2).value = "sample ID"
         self.summary.cell(9, 2).value = "Phenotype:"
 
         self.summary.cell(16, 2).value = "Panels"
@@ -515,7 +517,7 @@ class excel():
 
         # titles to set to bold
         to_bold += [
-                "A1", "A28", "B1", "B9", "B16", "B21", "B22",
+                "A1", "A28", "B1", "B4", "B5", "B9", "B16", "B21", "B22",
                 "B28", "B29", "C16", "C22", "D16", "D22",
                 "E1", "E2", "E22", "F16", "F22", "G16",
                 "G22", "H16", "H22", "I16"
@@ -538,7 +540,7 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
+            "B4", "B5", "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
             "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
         ]
         for cell in colour_cells:
@@ -546,6 +548,7 @@ class excel():
 
         # set borders around table areas
         row_ranges = [
+            'B4:C4', 'B5:C5',
             'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
             'B16:I16', 'B17:I17', 'B18:I18', 'B21:H21', 'B22:H22',
             'B23:H23', 'B24:H24', 'B25:H25'
@@ -555,7 +558,7 @@ class excel():
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
-            cell_to_unlock = ["B10", "C10", "D10", "E10", "B11", "C11", "D11",
+            cell_to_unlock = ["B10", "C4", "C5", "C10", "D10", "E10", "B11", "C11", "D11",
                               "E11", "B12", "C12", "D12", "E12", "B13", "C13",
                               "D13", "E13", "B17", "C17", "D17", "E17", "F17",
                               "G17", "H17", "I17", "B18", "C18", "D18", "E18",
