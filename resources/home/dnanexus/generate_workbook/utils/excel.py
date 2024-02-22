@@ -33,7 +33,7 @@ DEFAULT_FONT.name = 'Calibri'
 # row and col counts that are to be unlocked next to
 # populated table in all sheets if it is dias pipeline
 # required for 'lock_sheet' function
-ROW_TO_UNLOCK = 200
+ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
 
@@ -480,8 +480,11 @@ class excel():
 
 
         # write center reporting section tables
-        self.summary.cell(4, 2).value = "Name"
-        self.summary.cell(5, 2).value = "Sample ID"
+        self.summary.cell(2, 1).value = "Lab no."
+        self.summary.cell(2, 3).value = "First name"
+        self.summary.cell(2, 4).value = "Last name"
+        self.summary.cell(4, 1).value = "Number checked"
+        self.summary.cell(5, 1).value = "Summary coverage"
         self.summary.cell(9, 2).value = "Phenotype:"
 
         self.summary.cell(16, 2).value = "Panels"
@@ -517,8 +520,8 @@ class excel():
 
         # titles to set to bold
         to_bold += [
-                "A1", "A28", "B1", "B4", "B5", "B9", "B16", "B21", "B22",
-                "B28", "B29", "C16", "C22", "D16", "D22",
+                "A1", "A2", "A4", "A5", "A28", "B1", "B9", "B16", "B21", "B22",
+                "B28", "B29", "C2", "C16", "C22", "D2", "D16", "D22",
                 "E1", "E2", "E22", "F16", "F22", "G16",
                 "G22", "H16", "H22", "I16"
                 ]
@@ -540,15 +543,16 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "B4", "B5", "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
-            "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "A2", "A4", "A5", "B2", "B9", "B16", "B21", "B22", "C2", "C16",
+            "C22", "D2", "D16", "D22", "E22", "F16", "F22", "G16",
+            "G22", "H16", "H22", "I16"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
 
         # set borders around table areas
         row_ranges = [
-            'B4:C4', 'B5:C5',
+            'A2:D2', 'A3:D3', 'A4:D4', 'A5:D5',
             'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
             'B16:I16', 'B17:I17', 'B18:I18', 'B21:H21', 'B22:H22',
             'B23:H23', 'B24:H24', 'B25:H25'
@@ -558,7 +562,8 @@ class excel():
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
-            cell_to_unlock = ["B10", "C4", "C5", "C10", "D10", "E10", "B11",
+            cell_to_unlock = ["A3", "B3", "B4", "B5", "C3", "C4", "C5", "D3",
+                              "D4", "D5", "B10", "C10", "D10", "E10", "B11",
                               "C11", "D11", "E11", "B12", "C12", "D12", "E12",
                               "B13", "C13", "D13", "E13", "B17", "C17", "D17",
                               "E17", "F17", "G17", "H17", "I17", "B18", "C18",
@@ -595,7 +600,8 @@ class excel():
             "Associated disease": [4, 2],
             "Known inheritance": [5, 2],
             "Prevalence": [6, 2],
-            "Estimated allele frequency": [9, 2],
+            ("Allele frequency is >5% (or gene-specific cut off) in "
+             "population data e.g. gnomAD, UKB"): [9, 2],
             ("Null variant in a gene where LOF is known mechanism "
              "of disease\nand non-canonical splice variants where "
              "RNA analysis confirms\naberrant transcription"): [10, 2],
@@ -609,7 +615,8 @@ class excel():
             "Prevalence in affected > controls": [14, 2],
             ("In mutational hot spot and/or critical functional "
              "domain, without\nbenign variation"): [15, 2],
-            "Freq in controls eg gnomAD, low/absent or >5%": [16, 2],
+            ("Freq in controls eg gnomAD, low/absent (PM2) or allele "
+             "frequency is greater than expected for disorder (BS1)"): [16, 2],
             "Detected in trans/in cis with pathogenic variant": [17, 2],
             ("In frame protein length change/stop-loss variants, "
              "non repeat\nvs. repeat region"): [18, 2],
@@ -648,10 +655,10 @@ class excel():
             "PP2": [(22, 7)],
             "PP3": [(23, 7)],
             "PP4": [(24, 7)],
-            "BS1": [(9, 10)],
+            "BA1": [(9, 10)],
             "BS2": [(12, 10)],
             "BS3": [(13, 10)],
-            "BA1": [(16, 10)],
+            "BS1": [(16, 10)],
             "BP2": [(17, 10)],
             "BP3": [(18, 10)],
             "BS4": [(21, 10)],
@@ -724,9 +731,9 @@ class excel():
             'E46C0A': ['G11', 'G12', 'G13', 'G14'],
             'FFC000': ['G15', 'G16', 'G17', 'G18', 'G19', 'G20'],
             'FFFF00': ['G21', 'G22', 'G23', 'G24'],
-            '00B0F0': ['J9', 'J12', 'J13', 'J21'],
+            '00B0F0': ['J12', 'J13', 'J16', 'J21'],
             '92D050': ['J17', 'J18', 'J22', 'J23', 'J24', 'J25'],
-            '0070C0': ['J16'],
+            '0070C0': ['J9'],
             'FF0000': ['G10'],
             'D9D9D9': ['G9', 'G25', 'H9', 'H25', 'I9', 'I25',
                        'J10', 'J11', 'J14', 'J15', 'J19', 'J20',
@@ -1536,7 +1543,7 @@ class excel():
             report_sheet = wb[f"interpret_{sheet_num}"]
             cells_for_strength = ['H10', 'H11', 'H12', 'H13', 'H14', 'H15',
                                   'H16', 'H17', 'H18', 'H19', 'H20', 'H21',
-                                  'H22', 'H23', 'H24', 'K9', 'K12', 'K13',
+                                  'H22', 'H23', 'H24', 'K12', 'K13', 'K16',
                                   'K17', 'K18', 'K21', 'K22', 'K23', 'K24',
                                   'K25']
             strength_options = '"Very Strong, Strong, Moderate, \
@@ -1554,7 +1561,7 @@ class excel():
                                prompt='Select from the list',
                                title='Strength',
                                sheet=report_sheet,
-                               cells=['K16'])
+                               cells=['K9'])
 
             # adding final classification dropdown
             report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
