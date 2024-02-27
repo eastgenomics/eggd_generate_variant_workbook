@@ -558,10 +558,9 @@ class excel():
 
         # set borders around table areas
         row_ranges = [
-            'A2:D2', 'A3:D3', 'A4:D4', 'A5:D5', 'A6:D6', 'A7:D7', 'A8:D8',
-            'A9:D9', 'A10:D10', 'A11:D11', 'B14:E14', 'B15:E15', 'B16:E16',
-            'B17:E17', 'B18:E18', 'B21:I21', 'B22:I22', 'B23:I23', 'B26:H26',
-            'B27:H27', 'B28:H28', 'B29:H29', 'B30:H30'
+            'A2:D2', 'A3:D3', 'A4:D4', 'A5:A5', 'B14:E14', 'B15:E15',
+            'B16:E16', 'B17:E17', 'B18:E18', 'B21:I21', 'B22:I22',
+            'B23:I23', 'B26:H26', 'B27:H27', 'B28:H28', 'B29:H29', 'B30:H30'
             ]
         for row in row_ranges:
             for cells in self.summary[row]:
