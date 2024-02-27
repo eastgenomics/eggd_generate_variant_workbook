@@ -394,7 +394,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(29, 1).value = "Total records:"
+        self.summary.cell(33, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -418,7 +418,7 @@ class excel():
                 json.dump(details_dict, details_json)
 
         # write total rows in each sheet
-        count = 29
+        count = 33
 
         # cells to make bold
         to_bold = []
@@ -485,24 +485,24 @@ class excel():
         self.summary.cell(2, 4).value = "Last name"
         self.summary.cell(4, 1).value = "Number checked"
         self.summary.cell(5, 1).value = "Summary coverage"
-        self.summary.cell(10, 2).value = "Phenotype:"
+        self.summary.cell(14, 2).value = "Phenotype:"
 
-        self.summary.cell(17, 2).value = "Panels"
-        self.summary.cell(17, 3).value = "Excel file"
-        self.summary.cell(17, 4).value = "Comments"
-        self.summary.cell(17, 6).value = "Analysis by"
-        self.summary.cell(17, 7).value = "Date"
-        self.summary.cell(17, 8).value = "Checked by"
-        self.summary.cell(17, 9).value = "Date"
+        self.summary.cell(21, 2).value = "Panels"
+        self.summary.cell(21, 3).value = "Excel file"
+        self.summary.cell(21, 4).value = "Comments"
+        self.summary.cell(21, 6).value = "Analysis by"
+        self.summary.cell(21, 7).value = "Date"
+        self.summary.cell(21, 8).value = "Checked by"
+        self.summary.cell(21, 9).value = "Date"
 
-        self.summary.cell(22, 2).value = "Sanger sequencing confirmation"
-        self.summary.cell(23, 2).value = "Gene"
-        self.summary.cell(23, 3).value = "NM_#"
-        self.summary.cell(23, 4).value = "Coordinate"
-        self.summary.cell(23, 5).value = "cDNA"
-        self.summary.cell(23, 6).value = "Protein change"
-        self.summary.cell(23, 7).value = "WS#"
-        self.summary.cell(23, 8).value = "Confirmed (Y/N)"
+        self.summary.cell(26, 2).value = "Sanger sequencing confirmation"
+        self.summary.cell(27, 2).value = "Gene"
+        self.summary.cell(27, 3).value = "NM_#"
+        self.summary.cell(27, 4).value = "Coordinate"
+        self.summary.cell(27, 5).value = "cDNA"
+        self.summary.cell(27, 6).value = "Protein change"
+        self.summary.cell(27, 7).value = "WS#"
+        self.summary.cell(27, 8).value = "Confirmed (Y/N)"
 
         # merge some title columns that have longer text
         self.summary.merge_cells(
@@ -512,13 +512,13 @@ class excel():
         self.summary.merge_cells(
             start_row=2, end_row=2, start_column=6, end_column=20)
         self.summary.merge_cells(
-            start_row=10, end_row=10, start_column=2, end_column=5)
+            start_row=14, end_row=14, start_column=2, end_column=5)
         self.summary.merge_cells(
-            start_row=22, end_row=22, start_column=2, end_column=8)
+            start_row=26, end_row=26, start_column=2, end_column=8)
         self.summary.merge_cells(
-            start_row=17, end_row=17, start_column=4, end_column=5)
+            start_row=21, end_row=21, start_column=4, end_column=5)
         self.summary.merge_cells(
-            start_row=5, end_row=9, start_column=1, end_column=1)
+            start_row=5, end_row=11, start_column=1, end_column=1)
         
         # make the coverage tile centre of merged rows
         self.summary["A5"].alignment = Alignment(
@@ -526,10 +526,10 @@ class excel():
 
         # titles to set to bold
         to_bold += [
-                "A1", "A2", "A4", "A5", "A29", "B1", "B10", "B17", "B22",
-                "B23", "B29", "B30", "C2", "C17", "C23", "D2", "D17", "D23",
-                "E1", "E2", "E23", "F17", "F23", "G17", "G23", "H17", "H23",
-                "I17"
+                "A1", "A2", "A4", "A5", "A33", "B1", "B14", "B21", "B26",
+                "B27", "B33", "B34", "C2", "C21", "C27", "D2", "D21", "D27",
+                "E1", "E2", "E27", "F21", "F27", "G21", "G27", "H21", "H27",
+                "I21"
                 ]
 
         for cell in to_bold:
@@ -549,10 +549,9 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "A2", "A4", "A5", "B2", "B10",
-            "B17", "B22", "B23", "C2", "C17",
-            "C23", "D2", "D17", "D23", "E23", "F17", "F23",
-            "G17", "G23", "H17", "H23", "I17"
+            "A2", "A4", "A5", "B2", "B14", "B21", "B26", "B27",
+            "C2", "C21", "C27", "D2", "D21", "D27", "E27", "F21",
+            "F27", "G21", "G27", "H21", "H27", "I21"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
@@ -560,26 +559,27 @@ class excel():
         # set borders around table areas
         row_ranges = [
             'A2:D2', 'A3:D3', 'A4:D4', 'A5:D5', 'A6:D6', 'A7:D7', 'A8:D8',
-            'A9:D9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13', 'B14:E14',
-            'B17:I17', 'B18:I18', 'B19:I19',  'B22:H22',
-            'B23:H23', 'B24:H24', 'B25:H25', 'B26:H26'
+            'A9:D9', 'A10:D10', 'A11:D11', 'B14:E14', 'B15:E15', 'B16:E16',
+            'B17:E17', 'B18:E18', 'B21:I21', 'B22:I22', 'B23:I23', 'B26:H26',
+            'B27:H27', 'B28:H28', 'B29:H29', 'B30:H30'
             ]
         for row in row_ranges:
             for cells in self.summary[row]:
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
-            cell_to_unlock = ["A3", "B3", "B4", "B5",
-                              "B6", "B7", "B8", "B9", "C3", "C4", "C5", "C6",
-                              "C7", "C8", "C9", "D3", "D4", "D5", "D6", "D7",
-                              "D8", "D9", "B11", "C11", "D11", "E11", "B12",
-                              "C12", "D12", "E12", "B13", "C13", "D13", "E13",
-                              "B14", "C14", "D14", "E14", "B18", "C18", "D18",
-                              "E18", "F18", "G18", "H18", "I18", "B19", "C19",
-                              "D19", "E19", "F19", "G19", "H19", "I19", "B24",
-                              "C24", "D24", "E24", "F24", "G24", "H24", "B25",
-                              "C25", "D25", "E25", "F25", "G25", "H25", "B26",
-                              "C26", "D26", "E26", "F26", "G26", "H26"
+            cell_to_unlock = ["A3", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
+                              "B10", "B11", "C3", "C4", "C5", "C6", "C7", "C8",
+                              "C9", "C10", "C11", "D3", "D4", "D5", "D6", "D7",
+                              "D8", "D9", "D10", "D11", "B15", "C15", "D15",
+                              "E15", "B16", "C16", "D16", "E16", "B17", "C17",
+                              "D17", "E17", "B18", "C18", "D18", "E18", "B22",
+                              "C22", "D22", "E22", "F22", "G22", "H22", "I22",
+                              "B23", "C23", "D23", "E23", "F23", "G23", "H23",
+                              "I23", "B28", "C28", "D28", "E28", "F28", "G28",
+                              "H28", "B29", "C29", "D29", "E29", "F29", "G29",
+                              "H29", "B30", "C30", "D30", "E30", "F30", "G30",
+                              "H30"
                               ]
             self.lock_sheet(ws=self.summary,
                             cell_to_unlock=cell_to_unlock,
