@@ -33,7 +33,7 @@ DEFAULT_FONT.name = 'Calibri'
 # row and col counts that are to be unlocked next to
 # populated table in all sheets if it is dias pipeline
 # required for 'lock_sheet' function
-ROW_TO_UNLOCK = 200
+ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
 
@@ -394,7 +394,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(28, 1).value = "Total records:"
+        self.summary.cell(33, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -418,7 +418,7 @@ class excel():
                 json.dump(details_dict, details_json)
 
         # write total rows in each sheet
-        count = 28
+        count = 33
 
         # cells to make bold
         to_bold = []
@@ -480,26 +480,29 @@ class excel():
 
 
         # write center reporting section tables
-        self.summary.cell(4, 2).value = "Name"
-        self.summary.cell(5, 2).value = "Sample ID"
-        self.summary.cell(9, 2).value = "Phenotype:"
+        self.summary.cell(2, 1).value = "Lab no."
+        self.summary.cell(2, 3).value = "First name"
+        self.summary.cell(2, 4).value = "Last name"
+        self.summary.cell(4, 1).value = "Number checked"
+        self.summary.cell(5, 1).value = "Summary coverage"
+        self.summary.cell(14, 2).value = "Phenotype:"
 
-        self.summary.cell(16, 2).value = "Panels"
-        self.summary.cell(16, 3).value = "Excel file"
-        self.summary.cell(16, 4).value = "Comments"
-        self.summary.cell(16, 6).value = "Analysis by"
-        self.summary.cell(16, 7).value = "Date"
-        self.summary.cell(16, 8).value = "Checked by"
-        self.summary.cell(16, 9).value = "Date"
+        self.summary.cell(21, 2).value = "Panels"
+        self.summary.cell(21, 3).value = "Excel file"
+        self.summary.cell(21, 4).value = "Comments"
+        self.summary.cell(21, 6).value = "Analysis by"
+        self.summary.cell(21, 7).value = "Date"
+        self.summary.cell(21, 8).value = "Checked by"
+        self.summary.cell(21, 9).value = "Date"
 
-        self.summary.cell(21, 2).value = "Sanger sequencing confirmation"
-        self.summary.cell(22, 2).value = "Gene"
-        self.summary.cell(22, 3).value = "NM_#"
-        self.summary.cell(22, 4).value = "Coordinate"
-        self.summary.cell(22, 5).value = "cDNA"
-        self.summary.cell(22, 6).value = "Protein change"
-        self.summary.cell(22, 7).value = "WS#"
-        self.summary.cell(22, 8).value = "Confirmed (Y/N)"
+        self.summary.cell(26, 2).value = "Sanger sequencing confirmation"
+        self.summary.cell(27, 2).value = "Gene"
+        self.summary.cell(27, 3).value = "NM_#"
+        self.summary.cell(27, 4).value = "Coordinate"
+        self.summary.cell(27, 5).value = "cDNA"
+        self.summary.cell(27, 6).value = "Protein change"
+        self.summary.cell(27, 7).value = "WS#"
+        self.summary.cell(27, 8).value = "Confirmed (Y/N)"
 
         # merge some title columns that have longer text
         self.summary.merge_cells(
@@ -509,18 +512,24 @@ class excel():
         self.summary.merge_cells(
             start_row=2, end_row=2, start_column=6, end_column=20)
         self.summary.merge_cells(
-            start_row=9, end_row=9, start_column=2, end_column=5)
+            start_row=14, end_row=14, start_column=2, end_column=5)
         self.summary.merge_cells(
-            start_row=21, end_row=21, start_column=2, end_column=8)
+            start_row=26, end_row=26, start_column=2, end_column=8)
         self.summary.merge_cells(
-            start_row=16, end_row=16, start_column=4, end_column=5)
+            start_row=21, end_row=21, start_column=4, end_column=5)
+        self.summary.merge_cells(
+            start_row=5, end_row=11, start_column=1, end_column=1)
+        
+        # make the coverage tile centre of merged rows
+        self.summary["A5"].alignment = Alignment(
+                           wrapText=True, vertical="center")
 
         # titles to set to bold
         to_bold += [
-                "A1", "A28", "B1", "B4", "B5", "B9", "B16", "B21", "B22",
-                "B28", "B29", "C16", "C22", "D16", "D22",
-                "E1", "E2", "E22", "F16", "F22", "G16",
-                "G22", "H16", "H22", "I16"
+                "A1", "A2", "A4", "A5", "A33", "B1", "B14", "B21", "B26",
+                "B27", "B33", "B34", "C2", "C21", "C27", "D2", "D21", "D27",
+                "E1", "E2", "E27", "F21", "F27", "G21", "G27", "H21", "H27",
+                "I21"
                 ]
 
         for cell in to_bold:
@@ -540,32 +549,36 @@ class excel():
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "B4", "B5", "B9", "B16", "B21", "B22", "C16", "C22", "D16", "D22",
-            "E22", "F16", "F22", "G16", "G22", "H16", "H22", "I16"
+            "A2", "A4", "A5", "B2", "B14", "B21", "B26", "B27",
+            "C2", "C21", "C27", "D2", "D21", "D27", "E27", "F21",
+            "F27", "G21", "G27", "H21", "H27", "I21"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
 
         # set borders around table areas
         row_ranges = [
-            'B4:C4', 'B5:C5',
-            'B9:E9', 'B10:E10', 'B11:E11', 'B12:E12', 'B13:E13',
-            'B16:I16', 'B17:I17', 'B18:I18', 'B21:H21', 'B22:H22',
-            'B23:H23', 'B24:H24', 'B25:H25'
+            'A2:D2', 'A3:D3', 'A4:D4', 'A5:A5', 'B14:E14', 'B15:E15',
+            'B16:E16', 'B17:E17', 'B18:E18', 'B21:I21', 'B22:I22',
+            'B23:I23', 'B26:H26', 'B27:H27', 'B28:H28', 'B29:H29', 'B30:H30'
             ]
         for row in row_ranges:
             for cells in self.summary[row]:
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
-            cell_to_unlock = ["B10", "C4", "C5", "C10", "D10", "E10", "B11",
-                              "C11", "D11", "E11", "B12", "C12", "D12", "E12",
-                              "B13", "C13", "D13", "E13", "B17", "C17", "D17",
-                              "E17", "F17", "G17", "H17", "I17", "B18", "C18",
-                              "D18", "E18", "F18", "G18", "H18", "I18", "B23",
-                              "C23", "D23", "E23", "F23", "G23", "H23", "B24",
-                              "C24", "D24", "E24", "F24", "G24", "H24", "B25",
-                              "C25", "D25", "E25", "F25", "G25", "H25"
+            cell_to_unlock = ["A3", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
+                              "B10", "B11", "C3", "C4", "C5", "C6", "C7", "C8",
+                              "C9", "C10", "C11", "D3", "D4", "D5", "D6", "D7",
+                              "D8", "D9", "D10", "D11", "B15", "C15", "D15",
+                              "E15", "B16", "C16", "D16", "E16", "B17", "C17",
+                              "D17", "E17", "B18", "C18", "D18", "E18", "B22",
+                              "C22", "D22", "E22", "F22", "G22", "H22", "I22",
+                              "B23", "C23", "D23", "E23", "F23", "G23", "H23",
+                              "I23", "B28", "C28", "D28", "E28", "F28", "G28",
+                              "H28", "B29", "C29", "D29", "E29", "F29", "G29",
+                              "H29", "B30", "C30", "D30", "E30", "F30", "G30",
+                              "H30"
                               ]
             self.lock_sheet(ws=self.summary,
                             cell_to_unlock=cell_to_unlock,
@@ -595,7 +608,8 @@ class excel():
             "Associated disease": [4, 2],
             "Known inheritance": [5, 2],
             "Prevalence": [6, 2],
-            "Estimated allele frequency": [9, 2],
+            ("Allele frequency is >5% (or gene-specific cut off) in "
+             "population data e.g. gnomAD, UKB"): [9, 2],
             ("Null variant in a gene where LOF is known mechanism "
              "of disease\nand non-canonical splice variants where "
              "RNA analysis confirms\naberrant transcription"): [10, 2],
@@ -609,7 +623,8 @@ class excel():
             "Prevalence in affected > controls": [14, 2],
             ("In mutational hot spot and/or critical functional "
              "domain, without\nbenign variation"): [15, 2],
-            "Freq in controls eg gnomAD, low/absent or >5%": [16, 2],
+            ("Freq in controls eg gnomAD, low/absent (PM2) or allele "
+             "frequency is greater than expected for disorder (BS1)"): [16, 2],
             "Detected in trans/in cis with pathogenic variant": [17, 2],
             ("In frame protein length change/stop-loss variants, "
              "non repeat\nvs. repeat region"): [18, 2],
@@ -648,10 +663,10 @@ class excel():
             "PP2": [(22, 7)],
             "PP3": [(23, 7)],
             "PP4": [(24, 7)],
-            "BS1": [(9, 10)],
+            "BA1": [(9, 10)],
             "BS2": [(12, 10)],
             "BS3": [(13, 10)],
-            "BA1": [(16, 10)],
+            "BS1": [(16, 10)],
             "BP2": [(17, 10)],
             "BP3": [(18, 10)],
             "BS4": [(21, 10)],
@@ -724,9 +739,9 @@ class excel():
             'E46C0A': ['G11', 'G12', 'G13', 'G14'],
             'FFC000': ['G15', 'G16', 'G17', 'G18', 'G19', 'G20'],
             'FFFF00': ['G21', 'G22', 'G23', 'G24'],
-            '00B0F0': ['J9', 'J12', 'J13', 'J21'],
+            '00B0F0': ['J12', 'J13', 'J16', 'J21'],
             '92D050': ['J17', 'J18', 'J22', 'J23', 'J24', 'J25'],
-            '0070C0': ['J16'],
+            '0070C0': ['J9'],
             'FF0000': ['G10'],
             'D9D9D9': ['G9', 'G25', 'H9', 'H25', 'I9', 'I25',
                        'J10', 'J11', 'J14', 'J15', 'J19', 'J20',
@@ -1536,7 +1551,7 @@ class excel():
             report_sheet = wb[f"interpret_{sheet_num}"]
             cells_for_strength = ['H10', 'H11', 'H12', 'H13', 'H14', 'H15',
                                   'H16', 'H17', 'H18', 'H19', 'H20', 'H21',
-                                  'H22', 'H23', 'H24', 'K9', 'K12', 'K13',
+                                  'H22', 'H23', 'H24', 'K12', 'K13', 'K16',
                                   'K17', 'K18', 'K21', 'K22', 'K23', 'K24',
                                   'K25']
             strength_options = '"Very Strong, Strong, Moderate, \
@@ -1554,7 +1569,7 @@ class excel():
                                prompt='Select from the list',
                                title='Strength',
                                sheet=report_sheet,
-                               cells=['K16'])
+                               cells=['K9'])
 
             # adding final classification dropdown
             report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
