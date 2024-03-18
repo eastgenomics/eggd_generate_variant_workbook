@@ -76,7 +76,7 @@ class excel():
         self.write_additional_files()
         self.write_images()
         if self.args.report_text:
-            self.autoset_width_height()
+            self.set_width_height_report_text()
 
         self.workbook.save(self.args.output)
         print('Done!')
@@ -1101,10 +1101,9 @@ class excel():
 
         return width
 
-    def autoset_width_height(self):
+    def set_width_height_report_text(self):
         """_summary_
         """
-        from openpyxl.styles import Alignment
         sheet = "variants"
         curr_worksheet = self.writer.sheets[sheet]
 
@@ -1114,7 +1113,8 @@ class excel():
             if column_name == "Report text":
                 col = column_name
             for cell in row:
-                # the first row is the header and we dont want a header for that
+                # the first row is the header and we dont want
+                # to adjust the header
                 if cell.row != 1:
                     curr_worksheet.row_dimensions[cell.row].height = 80
 
