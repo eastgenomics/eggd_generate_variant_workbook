@@ -1109,7 +1109,7 @@ class excel():
         """
 
         # find the sheets and apply to all
-        sheets = (self.args.sheets)
+        sheets = self.args.sheets
         for sheet in sheets:
             curr_worksheet = self.writer.sheets[sheet]
 

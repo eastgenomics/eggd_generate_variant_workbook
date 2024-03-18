@@ -944,9 +944,6 @@ class vcf():
         """Makes a report text that follows the has the details per row
         gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
         allele frequency
-
-        Args:
-            vcf (_type_): _description_
         """
         for idx, vcf in enumerate(self.vcfs):
             vcf['Report_text'] = vcf.apply(
