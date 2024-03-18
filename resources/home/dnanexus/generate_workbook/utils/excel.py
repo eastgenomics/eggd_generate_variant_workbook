@@ -1102,7 +1102,10 @@ class excel():
         return width
 
     def set_width_height_report_text(self):
-        """_summary_
+        """
+        Sets the height and width for the column Report text
+        as it has a lot of text within it and will be unreadable
+        without adjusting for height and width.
         """
         sheet = "variants"
         curr_worksheet = self.writer.sheets[sheet]
