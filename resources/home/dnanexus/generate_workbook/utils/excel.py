@@ -5,6 +5,7 @@ import re
 from string import ascii_uppercase as uppercase
 from timeit import default_timer as timer
 from typing import Union
+from unittest import skip
 
 from colour import Color
 import Levenshtein as levenshtein
@@ -74,6 +75,8 @@ class excel():
         self.write_variants()
         self.write_additional_files()
         self.write_images()
+        if self.args.report_text:
+            self.autoset_width_height()
 
         self.workbook.save(self.args.output)
         print('Done!')
@@ -1038,7 +1041,8 @@ class excel():
             "clinvar clndn": 18,
             "clinvar clinsig": 18,
             "cosmic": 15,
-            "feature": 17
+            "feature": 17,
+            "report text" : 35
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
@@ -1096,3 +1100,24 @@ class excel():
                 width = 13
 
         return width
+
+    def autoset_width_height(self):
+        """_summary_
+        """
+        from openpyxl.styles import Alignment
+        sheet = "variants"
+        curr_worksheet = self.writer.sheets[sheet]
+
+        for row in curr_worksheet.iter_cols():
+            column_name = row[0].value
+            # Check if the row has"Report text" in first column
+            if column_name == "Report text":
+                col = column_name
+            for cell in row:
+                # the first row is the header and we dont want a header for that
+                if cell.row != 1:
+                    curr_worksheet.row_dimensions[cell.row].height = 80
+
+        # re-use the set_widths colum
+        self.set_widths(curr_worksheet, col)
+

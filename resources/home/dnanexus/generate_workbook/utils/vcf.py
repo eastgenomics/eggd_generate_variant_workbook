@@ -176,6 +176,10 @@ class vcf():
         if self.args.reorder:
             self.order_columns()
 
+        if self.args.report_text:
+            # make a report_text column and append to end of df
+            self.make_report_text()
+
         self.vcfs = self.format_strings(self.vcfs)
         self.vcfs = self.add_hyperlinks(self.vcfs)
         self.rename_columns()
@@ -935,3 +939,27 @@ class vcf():
         vcfs = [x for x in vcfs if not x.empty]
 
         return [pd.concat(vcfs).reset_index(drop=True)]
+
+    def make_report_text(self):
+        """Makes a report text that follows the has the details per row
+        gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
+        allele frequency
+
+        Args:
+            vcf (_type_): _description_
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            vcf['Report_text'] = vcf.apply(
+            lambda x: (
+                f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
+                f"{'in exon ' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] else ''} \n"
+                f"HGVSc: {x['CSQ_HGVSc'] if x['CSQ_HGVSc'] else 'None'} \n"
+                f"HGVSp: {x['CSQ_HGVSp'] if x['CSQ_HGVSp'] else 'None'} \n"
+                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x['CSQ_COSMICcMuts'] else 'None'} \n"
+                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x['CSQ_COSMICncMuts'] else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'}"
+                ),
+            axis=1
+        )
+
+        self.vcfs[idx] = vcf

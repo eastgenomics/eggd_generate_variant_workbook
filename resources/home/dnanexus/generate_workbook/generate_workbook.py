@@ -280,6 +280,11 @@ class arguments():
                 'colour is a valid hex value or colour name'
             )
         )
+        parser.add_argument(
+            '--report_text', action='store_true',
+            help=('Makes a report summary to be appened as the last column'
+            )
+        )
 
         return parser.parse_args()
 
