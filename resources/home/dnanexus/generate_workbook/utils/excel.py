@@ -1704,7 +1704,7 @@ class excel():
         val.showInputMessage = True
         val.showErrorMessage = True
 
-    def set_width_height_report_text(self):
+    def set_width_height_report_text(self) -> None:
         """
         Sets the height and width for the column Report text
         as it has a lot of text within it and will be unreadable
