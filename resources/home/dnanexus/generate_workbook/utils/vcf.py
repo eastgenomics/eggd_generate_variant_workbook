@@ -174,15 +174,14 @@ class vcf():
         if self.args.print_columns:
             self.print_columns()
 
-        if self.args.exclude or self.args.include:
-            self.drop_columns()
-
         if self.args.additional_columns:
             self.add_additional_columns()
 
         if self.args.report_text:
-            # make a report_text column and append to end of df
             self.make_report_text()
+
+        if self.args.exclude or self.args.include:
+            self.drop_columns()
 
         if self.args.reorder:
             self.order_columns()
@@ -879,7 +878,7 @@ class vcf():
             vcf['Report_text'] = vcf.apply(
             lambda x: (
                 f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else ''} \n"
+                f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
                 f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
                 f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
                 f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
