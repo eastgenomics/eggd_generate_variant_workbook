@@ -180,14 +180,15 @@ class vcf():
         if self.args.report_text:
             self.make_report_text()
 
+        self.format_strings()
+        self.add_hyperlinks()
+
         if self.args.exclude or self.args.include:
             self.drop_columns()
 
         if self.args.reorder:
             self.order_columns()
 
-        self.format_strings()
-        self.add_hyperlinks()
         self.rename_columns()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
@@ -658,6 +659,9 @@ class vcf():
                     # include has already selected valid columns
                     for col in invalid:
                         to_drop.remove(col)
+
+            if self.args.report_text:
+                to_drop.remove("Report_text")
 
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
