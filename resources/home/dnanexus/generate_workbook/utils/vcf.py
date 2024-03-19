@@ -180,12 +180,12 @@ class vcf():
         if self.args.additional_columns:
             self.add_additional_columns()
 
-        if self.args.reorder:
-            self.order_columns()
-
         if self.args.report_text:
             # make a report_text column and append to end of df
             self.make_report_text()
+
+        if self.args.reorder:
+            self.order_columns()
 
         self.format_strings()
         self.add_hyperlinks()
