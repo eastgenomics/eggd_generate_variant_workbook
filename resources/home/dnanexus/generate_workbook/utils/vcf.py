@@ -879,15 +879,15 @@ class vcf():
             vcf['Report_text'] = vcf.apply(
             lambda x: (
                 f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                f"{'in ' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] else ''} \n"
-                f"HGVSc: {x['CSQ_HGVSc'] if x['CSQ_HGVSc'] else 'None'} \n"
-                f"HGVSp: {x['CSQ_HGVSp'] if x['CSQ_HGVSp'] else 'None'} \n"
-                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x['CSQ_COSMICcMuts'] else 'None'} \n"
-                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x['CSQ_COSMICncMuts'] else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
+                f"{'in Exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else ''} \n"
+                f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
+                f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
+                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
+                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
                 f"""Allele Frequency (VAF): {
-                str(x['AF']) if x['AF'] else 'None'
+                str(x['AF']) if x.get('AF') else 'None'
             }"""),
             axis=1
         )
