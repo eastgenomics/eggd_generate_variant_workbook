@@ -1715,17 +1715,9 @@ class excel():
         sheets = self.args.sheets
         for sheet in sheets:
             curr_worksheet = self.writer.sheets[sheet]
-
             for row in curr_worksheet.iter_cols():
-                column_name = row[0].value
-                # Check if the row has"Report text" in first column
-                if column_name == "Report text":
-                    col = column_name
                 for cell in row:
                     # the first row is the header and we dont want
                     # to adjust the header
                     if cell.row != 1:
                         curr_worksheet.row_dimensions[cell.row].height = 80
-
-            # re-use the set_widths colum
-            # self.set_widths(curr_worksheet, col)
