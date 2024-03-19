@@ -282,7 +282,7 @@
       "label": "report_text",
       "class": "boolean",
       "optional" : true,
-      "help": "If true, a report text column will be added that contains the keyvariant annotation in once cell"
+      "help": "If true, a report text column will be added that contains the key variant annotation in once cell"
     }
   ],
   "outputSpec": [
