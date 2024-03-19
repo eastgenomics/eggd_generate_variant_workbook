@@ -37,7 +37,8 @@ VCF_ARGS = argparse.Namespace(
     add_raw_change=False,
     add_classification_column=None,
     additional_columns=[],
-    summary=None
+    summary=None,
+    report_text=False
 )
 
 class TestHeader():
