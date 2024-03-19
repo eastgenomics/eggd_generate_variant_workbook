@@ -870,7 +870,8 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
     def make_report_text(self):
-        """Makes a report text that follows the has the details per row
+        """
+        Makes a report text that follows the has the details per row
         gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
         allele frequency
         """
@@ -878,14 +879,18 @@ class vcf():
             vcf['Report_text'] = vcf.apply(
             lambda x: (
                 f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                f"{'in exon ' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] else ''} \n"
+                f"{'in ' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] else ''} \n"
                 f"HGVSc: {x['CSQ_HGVSc'] if x['CSQ_HGVSc'] else 'None'} \n"
                 f"HGVSp: {x['CSQ_HGVSp'] if x['CSQ_HGVSp'] else 'None'} \n"
                 f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x['CSQ_COSMICcMuts'] else 'None'} \n"
                 f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x['CSQ_COSMICncMuts'] else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'}"
-                ),
+                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
+                f"""Allele Frequency (VAF): {
+                str(x['AF']) + '%' if x['AF'] else 'None'
+            }"""),
             axis=1
         )
+
 
         self.vcfs[idx] = vcf
