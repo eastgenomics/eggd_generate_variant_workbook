@@ -188,7 +188,7 @@ class excel():
             to write on
             """
             # copy the headers from the variants sheet
-            #print(self.vcfs.headers)
+            print(self.vcfs[0].columns)
 
             # track what cells to make bold
             to_bold = []
