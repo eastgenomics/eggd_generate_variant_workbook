@@ -1720,4 +1720,4 @@ class excel():
                     # the first row is the header and we dont want
                     # to adjust the header
                     if cell.row != 1:
-                        curr_worksheet.row_dimensions[cell.row].height = 80
+                        curr_worksheet.row_dimensions[cell.row].height = 90
