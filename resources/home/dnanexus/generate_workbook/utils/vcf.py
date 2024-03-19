@@ -887,10 +887,9 @@ class vcf():
                 f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
                 f"dbSNP: {x['CSQ_Existing_variation'] if x['CSQ_Existing_variation'] else 'None'} \n"
                 f"""Allele Frequency (VAF): {
-                str(x['AF']) + '%' if x['AF'] else 'None'
+                str(x['AF']) if x['AF'] else 'None'
             }"""),
             axis=1
         )
-
 
         self.vcfs[idx] = vcf
