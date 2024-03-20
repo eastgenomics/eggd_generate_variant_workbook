@@ -930,19 +930,19 @@ class vcf():
         """
         for idx, vcf in enumerate(self.vcfs):
             vcf['Report_text'] = vcf.apply(
-            lambda x: (
-                f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
-                f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
-                f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
-                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
-                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                f"""Allele Frequency (VAF): {
-                str(x['AF']) if x.get('AF') else 'None'
-            }"""),
-            axis=1
-        )
+                lambda x: (
+                    f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
+                    f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
+                    f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
+                    f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
+                    f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
+                    f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
+                    f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
+                    f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
+                    f"""Allele Frequency (VAF): {
+                    str(x['AF']) if x.get('AF') else 'None'
+                }"""),
+                axis=1
+            )
 
-        self.vcfs[idx] = vcf
+            self.vcfs[idx] = vcf
