@@ -949,31 +949,38 @@ class vcf():
         str
             Report text formatted as a single string
         """
+        def add_none(value):
+            """
+            Replaces absent VCF values ('.') as 'None'
+            """
+            return value if value != '.' else 'None'
+
+
         text = ""
 
         text += f"{row.get('CSQ_SYMBOL', '')} {row.get('CSQ_Consequence')} "
 
         if row.get('CSQ_EXON', '').replace('.', ''):
-            text += f"in exon {str(row.get('CSQ_EXON')).split('/')[0]}\n"
+            text += f"in exon {str(row.get('CSQ_EXON', '')).split('/')[0]}\n"
 
         if row.get('CSQ_INTRON', '').replace('.', ''):
-            text += f"in intron {str(row.get('CSQ_INTRON')).split('/')[0]}\n"
+            text += f"in intron {str(row.get('CSQ_INTRON', '')).split('/')[0]}\n"
 
-        text += f"HGVSc: {row.get('CSQ_HGVSc', 'None')}\n"
-        text += f"HGVSp: {row.get('CSQ_HGVSp', 'None')}\n"
+        text += f"HGVSc: {add_none(row.get('CSQ_HGVSc', ''))}\n"
+        text += f"HGVSp: {add_none(row.get('CSQ_HGVSp', ''))}\n"
 
-        if row.get('CSQ_COSMICcMuts'):
+        if row.get('CSQ_COSMICcMuts', '').replace('.', ''):
             text += f"COSMIC coding ID: {row.get('CSQ_COSMICcMuts')}\n"
 
-        if row.get('CSQ_COSMICncMuts'):
+        if row.get('CSQ_COSMICncMuts', '').replace('.', ''):
             text += f"COSMIC non-coding ID: {row.get('CSQ_COSMICncMuts')}\n"
 
-        if row.get('CSQ_COSMIC'):
+        if row.get('CSQ_COSMIC', '').replace('.', ''):
             text += f"COSMIC ID: {row.get('CSQ_COSMIC')}\n"
 
-        if row.get('CSQ_Existing_variation'):
-            text += f"dbSNP: {row.get('CSQ_Existing_variation')}\n"
+        if row.get('CSQ_Existing_variation', '').replace('.', ''):
+            text += f"dbSNP: {row.get('CSQ_Existing_variation', '')}\n"
 
-        text += f"Allele Frequency (VAF): {str(row.get('AF', 'None'))}"
+        text += f"Allele Frequency (VAF): {add_none(str(row.get('AF', '')))}"
 
         return text
