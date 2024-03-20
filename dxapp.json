@@ -276,6 +276,13 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, all sheets in the variant workbook are locked for dias pipeline except specific cells"
+    },
+    {
+      "name": "report_text",
+      "label": "report_text",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, a report text column will be added that contains the key variant annotation in one cell"
     }
   ],
   "outputSpec": [

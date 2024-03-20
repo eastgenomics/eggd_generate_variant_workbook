@@ -102,6 +102,8 @@ This app may be executed as a standalone app.
 
 `--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
 
+`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variants are gene name, consequence, exon number, HGVSc, HGVSp, cosmic annotation, exisiting variation and allele frequency.
+
 **Example**:
 
 ```bash

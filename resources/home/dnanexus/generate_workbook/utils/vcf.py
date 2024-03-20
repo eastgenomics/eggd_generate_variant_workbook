@@ -174,17 +174,21 @@ class vcf():
         if self.args.print_columns:
             self.print_columns()
 
-        if self.args.exclude or self.args.include:
-            self.drop_columns()
-
         if self.args.additional_columns:
             self.add_additional_columns()
+
+        if self.args.report_text:
+            self.make_report_text()
+
+        self.format_strings()
+        self.add_hyperlinks()
+
+        if self.args.exclude or self.args.include:
+            self.drop_columns()
 
         if self.args.reorder:
             self.order_columns()
 
-        self.format_strings()
-        self.add_hyperlinks()
         self.rename_columns()
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
@@ -656,6 +660,9 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
+            if self.args.report_text:
+                to_drop.remove("Report_text")
+
             self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
@@ -864,3 +871,28 @@ class vcf():
 
             self.vcfs[idx]['rawChange'] = vcf.agg(
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
+
+    def make_report_text(self):
+        """
+        Makes a report text that follows the has the details per row
+        gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
+        allele frequency
+        """
+        for idx, vcf in enumerate(self.vcfs):
+            vcf['Report_text'] = vcf.apply(
+            lambda x: (
+                f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
+                f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
+                f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
+                f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
+                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
+                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
+                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
+                f"""Allele Frequency (VAF): {
+                str(x['AF']) if x.get('AF') else 'None'
+            }"""),
+            axis=1
+        )
+
+        self.vcfs[idx] = vcf
