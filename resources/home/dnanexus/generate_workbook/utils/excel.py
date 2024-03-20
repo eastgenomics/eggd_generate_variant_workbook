@@ -1640,6 +1640,10 @@ class excel():
                 row_num = row
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
+        prot = ws.protection
+        prot.formatColumns = False
+        prot.formatRows = False
+        prot.formatCells = False
 
     def get_col_letter(self, worksheet, col_name) -> str:
         """
