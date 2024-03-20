@@ -180,8 +180,8 @@ class vcf():
         if self.args.report_text:
             self.make_report_text()
 
-        self.format_strings()
-        self.add_hyperlinks()
+        self.vcfs = self.format_strings(self.vcfs)
+        self.vcfs = self.add_hyperlinks(self.vcfs)
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
@@ -392,6 +392,7 @@ class vcf():
         Updates self.additional_files dictionary with file_prefix : dataframe
         """
         for idx, file in enumerate(self.args.additional_files):
+            print(file)
             # get prefix from filename for naming sheet if not specified
             if self.args.additional_sheets:
                 prefix = self.args.additional_sheets[idx]
@@ -419,15 +420,41 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimiter the data uses
-            # check end of file to avoid potential headers causing issues
-            delimiter = determine_delimiter(
-                '\n'.join(file_contents[-5:]), PurePath(file).suffixes
-            )
+            if file.endswith('vcf') or file.endswith('vcf.gz'):
+                # vcf passed => process and format nicer for displaying
+                split_additional_vcf=file.replace('.vcf', '_split.vcf')
 
-            file_df = pd.DataFrame(
-                [line.split(delimiter) for line in file_contents]
-            )
+                if self.check_vep_vcf(file, split_additional_vcf):
+                    self.bcftools_pre_process(
+                        vcf=file,
+                        output_vcf=split_additional_vcf
+                    )
+                    file_df = self.read(split_additional_vcf)
+                else:
+                    file_df = self.read(file)
+
+                # call some of the formatting methods for regular vcfs
+                # to get things like split INFO columns and hyperlinks
+
+                file_df = splitColumns().split(file_df)
+                file_df = self.format_strings([file_df])[0]
+                file_df = self.add_hyperlinks([file_df])[0]
+                file_df.columns = self.strip_csq_prefix(file_df)
+
+                # force header to also be first line of df so it is written
+                # to the Excel sheet
+                file_df = pd.DataFrame(
+                    [file_df.columns], columns=file_df.columns).append(file_df)
+            else:
+                # check what delimiter the data uses
+                # check end of file to avoid potential headers causing issues
+                delimiter = determine_delimiter(
+                    '\n'.join(file_contents[-5:]), PurePath(file).suffixes
+                )
+
+                file_df = pd.DataFrame(
+                    [line.split(delimiter) for line in file_contents]
+                )
 
             if file.endswith('_CombinedVariantOutput.tsv'):
                 # file passed is a CombinedVariantOutput file from Illumina
@@ -539,9 +566,18 @@ class vcf():
                 )
 
 
-    def add_hyperlinks(self) -> None:
+    def add_hyperlinks(self, vcfs) -> list:
         """
         Format column value as an Excel hyperlink if URL for column specified
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to add hyperlinks to
+        Returns
+        -------
+        list
+            list of dataframes with added hyperlinks
         """
         # some URLs are build specific, infer which to use from build in header
         build = None
@@ -554,12 +590,12 @@ class vcf():
             elif '38' in reference:
                 build = 38
 
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             if vcf.empty:
                 # empty dataframe => nothing to add links to
                 continue
             for column in vcf.columns:
-                self.vcfs[idx][column] = self.vcfs[idx].apply(
+                vcfs[idx][column] = vcfs[idx].apply(
                     lambda x: buildHyperlink().build(
                         column=column,
                         value=x,
@@ -567,12 +603,23 @@ class vcf():
                     ), axis=1
                 )
 
+        return vcfs
 
-    def format_strings(self) -> None:
+
+    def format_strings(self, vcfs) -> list:
         """
         Fix formatting of string values with different encoding and nans
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to fix strings for
+        Returns
+        -------
+        list
+            list of dataframes with fixed strings
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
                 lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
@@ -585,7 +632,9 @@ class vcf():
                 if x == 'nan' and type(x) == str else x
             )
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     def print_columns(self) -> None:
@@ -871,6 +920,7 @@ class vcf():
 
             self.vcfs[idx]['rawChange'] = vcf.agg(
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
+
 
     def make_report_text(self):
         """
