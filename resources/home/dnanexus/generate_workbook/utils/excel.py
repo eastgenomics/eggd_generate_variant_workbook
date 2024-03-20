@@ -87,13 +87,10 @@ class excel():
         self.write_variants()
         self.write_additional_files()
         self.write_images()
-<<<<<<< HEAD
         if self.args.AF == "percent":
                 self.percent_af()
-=======
         if self.args.report_text:
             self.set_width_height_report_text()
->>>>>>> b783b6fe8445db8245f287b8a80c86f0b5474b6c
 
         self.workbook.save(self.args.output)
         if self.args.acmg and self.args.lock_sheet:
