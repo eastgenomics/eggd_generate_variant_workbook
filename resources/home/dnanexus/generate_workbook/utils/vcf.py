@@ -883,7 +883,7 @@ class vcf():
         """
         # find the sheets and apply to all sheets
         for vcf in self.vcfs:
-            if not 'AF' in vcf.columns:
+            if 'AF' not in vcf.columns:
                 continue
             vcf['AF'] = vcf['AF'].astype(np.float16)
             vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
