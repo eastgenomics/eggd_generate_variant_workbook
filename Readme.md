@@ -104,6 +104,7 @@ This app may be executed as a standalone app.
 
 `--AF` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
 
+`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variants are gene name, consequence, exon number, HGVSc, HGVSp, cosmic annotation, exisiting variation and allele frequency.
 
 **Example**:
 

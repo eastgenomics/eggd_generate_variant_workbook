@@ -218,7 +218,7 @@ class arguments():
         )
         parser.add_argument(
             '--summary', required=False,
-            help='summary sheet to include, must be one of: dias'
+            help='summary sheet to include, must be one of: dias, helios or uranus'
         )
         parser.add_argument(
             '--human_filter', nargs='+', action=self.joinList,
@@ -320,6 +320,10 @@ class arguments():
             )
         )
 
+            '--report_text', action='store_true',
+            help=('Makes a report summary to be appened as the last column'
+            )
+        )
         return parser.parse_args()
 
 
