@@ -87,8 +87,7 @@ class excel():
         self.write_variants()
         self.write_additional_files()
         self.write_images()
-        if self.args.AF == "percent":
-                self.percent_af()
+
         if self.args.report_text:
             self.set_width_height_report_text()
 
@@ -1813,29 +1812,6 @@ class excel():
             val.add(sheet[cell])
         val.showInputMessage = True
         val.showErrorMessage = True
-
-    def percent_af(self):
-        """
-        Finds the column with "AF" and will convert the number format
-        to percent
-        """
-        # find the sheets and apply to all sheets
-        sheets = self.args.sheets
-        for sheet in sheets:
-            curr_worksheet = self.writer.sheets[sheet]
-            # find the column with "AF" column
-            for idx, row in enumerate(curr_worksheet.iter_cols()):
-                name = row[0].value
-                if name == "AF":
-                    column = idx
-            # now that we know the position, lets amend the column to 
-            # be covnerted from generic to percent
-            for idx, row in enumerate(curr_worksheet):
-                # skip first row as its the header
-                if idx == 0:
-                    continue
-                cell = row[column]
-                cell.number_format = '0.00%'
 
     def set_width_height_report_text(self) -> None:
         """
