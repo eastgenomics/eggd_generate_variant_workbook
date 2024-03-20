@@ -1837,9 +1837,13 @@ class excel():
             if 'Report text' not in [x.value for x in curr_worksheet[1]]:
                 continue
 
-            for row in curr_worksheet.iter_cols():
+            report_column = self.get_col_letter(curr_worksheet, 'Report text')
+
+            for row in curr_worksheet.iter_rows():
                 for cell in row:
-                    # the first row is the header and we dont want
-                    # to adjust the header
-                    if cell.row != 1:
-                        curr_worksheet.row_dimensions[cell.row].height = 110
+                    if cell.column_letter == report_column and cell.row != 1:
+                        # find the cell containing the report text and set
+                        # the row height proportional to no. of lines
+                        height = (cell.value.count('\n') * 13) + 25
+
+                        curr_worksheet.row_dimensions[cell.row].height = height
