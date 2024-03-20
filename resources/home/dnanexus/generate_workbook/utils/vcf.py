@@ -179,7 +179,7 @@ class vcf():
             self.add_additional_columns()
 
         if self.args.AF == "percent":
-                self.percent_af()
+            self.percent_af()
 
         if self.args.report_text:
             self.make_report_text()
