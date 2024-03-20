@@ -340,7 +340,7 @@ class TestDataFrameActions():
         }
 
         vcf_handler.args.rename = rename_dict
-        vcf_handler.rename_columns()
+        vcf_handler.vcfs = vcf_handler.rename_columns(vcf_handler.vcfs)
 
         # get column list after renaming, replacing ' ' in each name with '_'
         # to undo what is done in .rename_columns() for comparing against
