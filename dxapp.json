@@ -278,6 +278,13 @@
       "help": "If true, all sheets in the variant workbook are locked for dias pipeline except specific cells"
     },
     {
+      "name": "af_format",
+      "label": "af_format",
+      "class": "string",
+      "optional" : true,
+      "help": "Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are 'decimal' or 'percent'."
+    },
+    {
       "name": "report_text",
       "label": "report_text",
       "class": "boolean",

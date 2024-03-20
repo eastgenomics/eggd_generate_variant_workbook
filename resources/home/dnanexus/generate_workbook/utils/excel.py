@@ -87,6 +87,7 @@ class excel():
         self.write_variants()
         self.write_additional_files()
         self.write_images()
+
         if self.args.report_text:
             self.set_width_height_report_text()
 
