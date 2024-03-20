@@ -204,6 +204,7 @@ class excel():
             for idx, row in enumerate(header, 2):
                 self.summary.cell(1, idx).value = row
                 to_bold.append(self.summary.cell(1, idx).coordinate)
+            self.set_widths(self.summary, header)
 
             # write QC summary template
             self.summary.cell(14, 1).value = "Run QC"
