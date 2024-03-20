@@ -929,20 +929,51 @@ class vcf():
         allele frequency
         """
         for idx, vcf in enumerate(self.vcfs):
-            vcf['Report_text'] = vcf.apply(
-                lambda x: (
-                    f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                    f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
-                    f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
-                    f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
-                    f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
-                    f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
-                    f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                    f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                    f"""Allele Frequency (VAF): {
-                    str(x['AF']) if x.get('AF') else 'None'
-                }"""),
-                axis=1
-            )
+            vcf['Report_text'] = vcf.apply(self.format_report_text, axis=1)
 
             self.vcfs[idx] = vcf
+
+
+    @staticmethod
+    def format_report_text(row) -> str:
+        """
+        Format the report text for a given row
+
+        Parameters
+        ----------
+        row : pd.Series
+            Series of variant row
+
+        Returns
+        -------
+        str
+            Report text formatted as a single string
+        """
+        text = ""
+
+        text += f"{row.get('CSQ_SYMBOL', '')} {row.get('CSQ_Consequence')} "
+
+        if row.get('CSQ_EXON', '').replace('.', ''):
+            text += f"in exon {str(row.get('CSQ_EXON')).split('/')[0]}\n"
+
+        if row.get('CSQ_INTRON', '').replace('.', ''):
+            text += f"in intron {str(row.get('CSQ_INTRON')).split('/')[0]}\n"
+
+        text += f"HGVSc: {row.get('CSQ_HGVSc', 'None')}\n"
+        text += f"HGVSp: {row.get('CSQ_HGVSp', 'None')}\n"
+
+        if row.get('CSQ_COSMICcMuts'):
+            text += f"COSMIC coding ID: {row.get('CSQ_COSMICcMuts')}\n"
+
+        if row.get('CSQ_COSMICncMuts'):
+            text += f"COSMIC non-coding ID: {row.get('CSQ_COSMICncMuts')}\n"
+
+        if row.get('CSQ_COSMIC'):
+            text += f"COSMIC ID: {row.get('CSQ_COSMIC')}\n"
+
+        if row.get('CSQ_Existing_variation'):
+            text += f"dbSNP: {row.get('CSQ_Existing_variation')}\n"
+
+        text += f"Allele Frequency (VAF): {str(row.get('AF', 'None'))}"
+
+        return text
