@@ -313,7 +313,7 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--AF', default='decimal', required=False,
+            '--af_format', default='decimal', required=False,
             choices=['decimal', 'percent'],
             help=('Presents the allele frequency (AF) as a decimal (0-1) '
             'or as a percent (0-100). Default is decimal.'

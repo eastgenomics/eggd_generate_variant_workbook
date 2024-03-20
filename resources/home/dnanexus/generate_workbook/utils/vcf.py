@@ -178,7 +178,7 @@ class vcf():
         if self.args.additional_columns:
             self.add_additional_columns()
 
-        if self.args.AF == "percent":
+        if self.args.af_format == "percent":
             self.percent_af()
 
         if self.args.report_text:
