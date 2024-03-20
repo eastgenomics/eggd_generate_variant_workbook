@@ -981,15 +981,10 @@ class vcf():
         # force the field names to be lower case to handle differences
         # in case and remove CSQ prefix
         row.index = [
-            re.sub(r'^CSQ_', '', x.lower()) for x in row.index.tolist()
+            re.sub(r'^csq_', '', x.lower()) for x in row.index.tolist()
         ]
 
-        if 'nu' in row.index:
-            print(row.index)
-
-        text = ""
-
-        text += f"{row.get('symbol', '')} {row.get('consequence')} "
+        text = f"{row.get('symbol', '')} {row.get('consequence')} "
 
         if row.get('exon', '').replace('.', ''):
             text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
