@@ -178,7 +178,7 @@ class vcf():
             self.add_additional_columns()
 
         if self.args.report_text:
-            self.make_report_text()
+            self.vcfs = self.make_report_text(self.vcfs)
 
         self.vcfs = self.format_strings(self.vcfs)
         self.vcfs = self.add_hyperlinks(self.vcfs)
@@ -189,7 +189,7 @@ class vcf():
         if self.args.reorder:
             self.order_columns()
 
-        self.rename_columns()
+        self.vcfs = self.rename_columns(self.vcfs)
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
@@ -392,7 +392,6 @@ class vcf():
         Updates self.additional_files dictionary with file_prefix : dataframe
         """
         for idx, file in enumerate(self.args.additional_files):
-            print(file)
             # get prefix from filename for naming sheet if not specified
             if self.args.additional_sheets:
                 prefix = self.args.additional_sheets[idx]
@@ -435,10 +434,11 @@ class vcf():
 
                 # call some of the formatting methods for regular vcfs
                 # to get things like split INFO columns and hyperlinks
-
                 file_df = splitColumns().split(file_df)
+                file_df = self.make_report_text([file_df])[0]
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
+                file_df = self.rename_columns([file_df])[0]
                 file_df.columns = self.strip_csq_prefix(file_df)
 
                 # force header to also be first line of df so it is written
@@ -777,10 +777,19 @@ class vcf():
                 self.vcfs[idx] = vcf
 
 
-    def rename_columns(self) -> None:
+    def rename_columns(self, vcfs) -> list:
         """
         Rename columns from key value pairs passed from --rename argument,
         also remove underscores from all names for nicer reading
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to rename columns from
+        Returns
+        -------
+        list
+            list of dataframes with renamed columns
 
         Raises
         ------
@@ -792,7 +801,7 @@ class vcf():
             Raised when new column names specified are already present in the
             vcf
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             if self.args.rename:
                 # check the given new name(s) not already a column name
                 assert all(
@@ -820,17 +829,19 @@ class vcf():
                     for key in invalid:
                         new_names_dict.pop(key)
 
-                self.vcfs[idx].rename(
+                vcfs[idx].rename(
                     columns=dict(new_names_dict.items()), inplace=True
                 )
 
             # strip prefix from column name if present and not already a column
-            self.vcfs[idx].columns = self.strip_csq_prefix(self.vcfs[idx])
+            vcfs[idx].columns = self.strip_csq_prefix(vcfs[idx])
 
             # remove underscores from all column names
-            self.vcfs[idx].columns = [
-                x.replace('_', ' ') for x in self.vcfs[idx].columns
+            vcfs[idx].columns = [
+                x.replace('_', ' ') for x in vcfs[idx].columns
             ]
+
+        return vcfs
 
 
     def strip_csq_prefix(self, vcf) -> list:
@@ -922,16 +933,28 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
 
-    def make_report_text(self):
+    def make_report_text(self, vcfs):
         """
         Makes a report text that follows the has the details per row
         gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
         allele frequency
+
+        Parameters
+        ----------
+        vcfs : list
+            list of vcf dataframes to which to add report text column to
+
+        Returns
+        -------
+        list
+            list of vcf dataframes with added column
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             vcf['Report_text'] = vcf.apply(self.format_report_text, axis=1)
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     @staticmethod
@@ -955,31 +978,40 @@ class vcf():
             """
             return value if value != '.' else 'None'
 
+        # force the field names to be lower case to handle differences
+        # in case and remove CSQ prefix
+        row.index = [
+            re.sub(r'^CSQ_', '', x.lower()) for x in row.index.tolist()
+        ]
+
+        if 'nu' in row.index:
+            print(row.index)
+
         text = ""
 
-        text += f"{row.get('CSQ_SYMBOL', '')} {row.get('CSQ_Consequence')} "
+        text += f"{row.get('symbol', '')} {row.get('consequence')} "
 
-        if row.get('CSQ_EXON', '').replace('.', ''):
-            text += f"in exon {str(row.get('CSQ_EXON', '')).split('/')[0]}\n"
+        if row.get('exon', '').replace('.', ''):
+            text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
 
-        if row.get('CSQ_INTRON', '').replace('.', ''):
-            text += f"in intron {str(row.get('CSQ_INTRON', '')).split('/')[0]}\n"
+        if row.get('intron', '').replace('.', ''):
+            text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
-        text += f"HGVSc: {add_none(row.get('CSQ_HGVSc', ''))}\n"
-        text += f"HGVSp: {add_none(row.get('CSQ_HGVSp', ''))}\n"
+        text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
+        text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
 
-        if row.get('CSQ_COSMICcMuts', '').replace('.', ''):
-            text += f"COSMIC coding ID: {row.get('CSQ_COSMICcMuts')}\n"
+        if row.get('cosmiccmuts', '').replace('.', ''):
+            text += f"COSMIC coding ID: {row.get('cosmiccmuts')}\n"
 
-        if row.get('CSQ_COSMICncMuts', '').replace('.', ''):
-            text += f"COSMIC non-coding ID: {row.get('CSQ_COSMICncMuts')}\n"
+        if row.get('cosmicncmuts', '').replace('.', ''):
+            text += f"COSMIC non-coding ID: {row.get('cosmicncmuts')}\n"
 
-        if row.get('CSQ_COSMIC', '').replace('.', ''):
-            text += f"COSMIC ID: {row.get('CSQ_COSMIC')}\n"
+        if row.get('cosmic', '').replace('.', ''):
+            text += f"COSMIC ID: {row.get('cosmic')}\n"
 
-        if row.get('CSQ_Existing_variation', '').replace('.', ''):
-            text += f"dbSNP: {row.get('CSQ_Existing_variation', '')}\n"
+        if row.get('existing_variation', '').replace('.', ''):
+            text += f"dbSNP: {row.get('existing_variation', '')}\n"
 
-        text += f"Allele Frequency (VAF): {add_none(str(row.get('AF', '')))}"
+        text += f"Allele Frequency (VAF): {add_none(str(row.get('af', '')))}"
 
         return text
