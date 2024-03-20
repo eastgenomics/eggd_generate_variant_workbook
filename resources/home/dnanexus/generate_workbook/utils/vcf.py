@@ -955,7 +955,6 @@ class vcf():
             """
             return value if value != '.' else 'None'
 
-
         text = ""
 
         text += f"{row.get('CSQ_SYMBOL', '')} {row.get('CSQ_Consequence')} "
