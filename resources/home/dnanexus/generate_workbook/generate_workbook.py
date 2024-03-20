@@ -312,7 +312,11 @@ class arguments():
                 'of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}'
             )
         )
-
+        parser.add_argument(
+            '--report_text', action='store_true',
+            help=('Makes a report summary to be appened as the last column'
+            )
+        )
         return parser.parse_args()
 
 

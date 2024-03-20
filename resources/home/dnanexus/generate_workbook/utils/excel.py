@@ -87,12 +87,15 @@ class excel():
         self.write_variants()
         self.write_additional_files()
         self.write_images()
+        if self.args.report_text:
+            self.set_width_height_report_text()
 
         self.workbook.save(self.args.output)
         if self.args.acmg and self.args.lock_sheet:
             self.protect_rename_sheets()
         if self.args.acmg:
             self.drop_down()
+
         print('Done!')
 
 
@@ -1463,7 +1466,8 @@ class excel():
             "vf":6,
             "comment": 10,
             "classification": 12,
-            "spliceai pred ": 18
+            "spliceai pred ": 18,
+            "report text" : 35
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
@@ -1806,3 +1810,21 @@ class excel():
             val.add(sheet[cell])
         val.showInputMessage = True
         val.showErrorMessage = True
+
+    def set_width_height_report_text(self) -> None:
+        """
+        Sets the height and width for the column Report text
+        as it has a lot of text within it and will be unreadable
+        without adjusting for height and width.
+        """
+
+        # find the sheets and apply to all
+        sheets = self.args.sheets
+        for sheet in sheets:
+            curr_worksheet = self.writer.sheets[sheet]
+            for row in curr_worksheet.iter_cols():
+                for cell in row:
+                    # the first row is the header and we dont want
+                    # to adjust the header
+                    if cell.row != 1:
+                        curr_worksheet.row_dimensions[cell.row].height = 110

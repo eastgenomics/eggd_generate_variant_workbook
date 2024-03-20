@@ -37,7 +37,8 @@ VCF_ARGS = argparse.Namespace(
     add_raw_change=False,
     add_classification_column=None,
     additional_columns=[],
-    summary=None
+    summary=None,
+    report_text=False
 )
 
 class TestHeader():
@@ -206,7 +207,8 @@ class TestDataFrameActions():
             panel='', print_columns=False, print_header=False, reads='',
             rename=None, sample='', sheets=['variants'], summary=None,
             vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
-            add_classification_column=None, additional_columns=[]
+            add_classification_column=None, additional_columns=[],
+            report_text=False
         ))
 
         # first split multiple transcript annotation to separate VCF
