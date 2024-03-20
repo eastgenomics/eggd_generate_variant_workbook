@@ -9,6 +9,7 @@ from typing import Union
 import urllib.parse
 
 import pandas as pd
+import numpy as np
 
 from .columns import splitColumns
 from .filters import filter
@@ -176,6 +177,9 @@ class vcf():
 
         if self.args.additional_columns:
             self.add_additional_columns()
+
+        if self.args.af_format == "percent":
+            self.percent_af()
 
         if self.args.report_text:
             self.vcfs = self.make_report_text(self.vcfs)
@@ -931,6 +935,19 @@ class vcf():
 
             self.vcfs[idx]['rawChange'] = vcf.agg(
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
+
+
+    def percent_af(self):
+        """
+        Finds the column with "AF" and will convert the number format
+        to percent
+        """
+        # find the sheets and apply to all sheets
+        for vcf in self.vcfs:
+            if 'AF' not in vcf.columns:
+                continue
+            vcf['AF'] = vcf['AF'].astype(np.float16)
+            vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
 
 
     def make_report_text(self, vcfs):
