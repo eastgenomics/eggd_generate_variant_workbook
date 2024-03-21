@@ -182,10 +182,10 @@ class vcf():
             self.percent_af()
 
         if self.args.report_text:
-            self.make_report_text()
+            self.vcfs = self.make_report_text(self.vcfs)
 
-        self.format_strings()
-        self.add_hyperlinks()
+        self.vcfs = self.format_strings(self.vcfs)
+        self.vcfs = self.add_hyperlinks(self.vcfs)
 
         if self.args.exclude or self.args.include:
             self.drop_columns()
@@ -193,7 +193,7 @@ class vcf():
         if self.args.reorder:
             self.order_columns()
 
-        self.rename_columns()
+        self.vcfs = self.rename_columns(self.vcfs)
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
 
@@ -423,15 +423,42 @@ class vcf():
                 with open(file) as fh:
                     file_contents = fh.read().splitlines()
 
-            # check what delimiter the data uses
-            # check end of file to avoid potential headers causing issues
-            delimiter = determine_delimiter(
-                '\n'.join(file_contents[-5:]), PurePath(file).suffixes
-            )
+            if file.endswith('vcf') or file.endswith('vcf.gz'):
+                # vcf passed => process and format nicer for displaying
+                split_additional_vcf=file.replace('.vcf', '_split.vcf')
 
-            file_df = pd.DataFrame(
-                [line.split(delimiter) for line in file_contents]
-            )
+                if self.check_vep_vcf(file, split_additional_vcf):
+                    self.bcftools_pre_process(
+                        vcf=file,
+                        output_vcf=split_additional_vcf
+                    )
+                    file_df = self.read(split_additional_vcf)
+                else:
+                    file_df = self.read(file)
+
+                # call some of the formatting methods for regular vcfs
+                # to get things like split INFO columns and hyperlinks
+                file_df = splitColumns().split(file_df)
+                file_df = self.make_report_text([file_df])[0]
+                file_df = self.format_strings([file_df])[0]
+                file_df = self.add_hyperlinks([file_df])[0]
+                file_df = self.rename_columns([file_df])[0]
+                file_df.columns = self.strip_csq_prefix(file_df)
+
+                # force header to also be first line of df so it is written
+                # to the Excel sheet
+                file_df = pd.DataFrame(
+                    [file_df.columns], columns=file_df.columns).append(file_df)
+            else:
+                # check what delimiter the data uses
+                # check end of file to avoid potential headers causing issues
+                delimiter = determine_delimiter(
+                    '\n'.join(file_contents[-5:]), PurePath(file).suffixes
+                )
+
+                file_df = pd.DataFrame(
+                    [line.split(delimiter) for line in file_contents]
+                )
 
             if file.endswith('_CombinedVariantOutput.tsv'):
                 # file passed is a CombinedVariantOutput file from Illumina
@@ -543,9 +570,18 @@ class vcf():
                 )
 
 
-    def add_hyperlinks(self) -> None:
+    def add_hyperlinks(self, vcfs) -> list:
         """
         Format column value as an Excel hyperlink if URL for column specified
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to add hyperlinks to
+        Returns
+        -------
+        list
+            list of dataframes with added hyperlinks
         """
         # some URLs are build specific, infer which to use from build in header
         build = None
@@ -558,12 +594,12 @@ class vcf():
             elif '38' in reference:
                 build = 38
 
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             if vcf.empty:
                 # empty dataframe => nothing to add links to
                 continue
             for column in vcf.columns:
-                self.vcfs[idx][column] = self.vcfs[idx].apply(
+                vcfs[idx][column] = vcfs[idx].apply(
                     lambda x: buildHyperlink().build(
                         column=column,
                         value=x,
@@ -571,12 +607,23 @@ class vcf():
                     ), axis=1
                 )
 
+        return vcfs
 
-    def format_strings(self) -> None:
+
+    def format_strings(self, vcfs) -> list:
         """
         Fix formatting of string values with different encoding and nans
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to fix strings for
+        Returns
+        -------
+        list
+            list of dataframes with fixed strings
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             # pass through urllib unqoute and UTF-8 to fix any weird symbols
             vcf = vcf.applymap(
                 lambda x: urllib.parse.unquote(x).encode('UTF-8').decode()
@@ -589,7 +636,9 @@ class vcf():
                 if x == 'nan' and type(x) == str else x
             )
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     def print_columns(self) -> None:
@@ -732,10 +781,19 @@ class vcf():
                 self.vcfs[idx] = vcf
 
 
-    def rename_columns(self) -> None:
+    def rename_columns(self, vcfs) -> list:
         """
         Rename columns from key value pairs passed from --rename argument,
         also remove underscores from all names for nicer reading
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to rename columns from
+        Returns
+        -------
+        list
+            list of dataframes with renamed columns
 
         Raises
         ------
@@ -747,7 +805,7 @@ class vcf():
             Raised when new column names specified are already present in the
             vcf
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             if self.args.rename:
                 # check the given new name(s) not already a column name
                 assert all(
@@ -775,17 +833,19 @@ class vcf():
                     for key in invalid:
                         new_names_dict.pop(key)
 
-                self.vcfs[idx].rename(
+                vcfs[idx].rename(
                     columns=dict(new_names_dict.items()), inplace=True
                 )
 
             # strip prefix from column name if present and not already a column
-            self.vcfs[idx].columns = self.strip_csq_prefix(self.vcfs[idx])
+            vcfs[idx].columns = self.strip_csq_prefix(vcfs[idx])
 
             # remove underscores from all column names
-            self.vcfs[idx].columns = [
-                x.replace('_', ' ') for x in self.vcfs[idx].columns
+            vcfs[idx].columns = [
+                x.replace('_', ' ') for x in vcfs[idx].columns
             ]
+
+        return vcfs
 
 
     def strip_csq_prefix(self, vcf) -> list:
@@ -876,6 +936,7 @@ class vcf():
             self.vcfs[idx]['rawChange'] = vcf.agg(
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
+
     def percent_af(self):
         """
         Finds the column with "AF" and will convert the number format
@@ -888,27 +949,81 @@ class vcf():
             vcf['AF'] = vcf['AF'].astype(np.float16)
             vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
 
-    def make_report_text(self):
+
+    def make_report_text(self, vcfs):
         """
         Makes a report text that follows the has the details per row
         gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
         allele frequency
-        """
-        for idx, vcf in enumerate(self.vcfs):
-            vcf['Report_text'] = vcf.apply(
-            lambda x: (
-                f"{x['CSQ_SYMBOL']} {x['CSQ_Consequence']} "
-                f"{'in exon' + x['CSQ_EXON'].split('/')[0] if x['CSQ_EXON'] != '.' else 'in intron {}'.format(str(x['CSQ_INTRON']).split('/')[0]) if x.get('CSQ_INTRON') else ''} \n"
-                f"HGVSc: {x['CSQ_HGVSc']  if x.get('CSQ_HGVSc') else 'None'} \n"
-                f"HGVSp: {x['CSQ_HGVSp'] if x.get('CSQ_HGVSp') else 'None'} \n"
-                f"COSMIC coding ID: {x['CSQ_COSMICcMuts'] if x.get('CSQ_COSMICcMuts') else 'None'} \n"
-                f"COSMIC noncoding ID: {x['CSQ_COSMICncMuts'] if x.get('CSQ_COSMICncMuts') else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                f"dbSNP: {x['CSQ_Existing_variation'] if x.get('CSQ_Existing_variation') else 'None'} \n"
-                f"""Allele Frequency (VAF): {
-                str(x['AF']) if x.get('AF') else 'None'
-            }"""),
-            axis=1
-        )
 
-        self.vcfs[idx] = vcf
+        Parameters
+        ----------
+        vcfs : list
+            list of vcf dataframes to which to add report text column to
+
+        Returns
+        -------
+        list
+            list of vcf dataframes with added column
+        """
+        for idx, vcf in enumerate(vcfs):
+            vcf['Report_text'] = vcf.apply(self.format_report_text, axis=1)
+
+            vcfs[idx] = vcf
+
+        return vcfs
+
+
+    @staticmethod
+    def format_report_text(row) -> str:
+        """
+        Format the report text for a given row
+
+        Parameters
+        ----------
+        row : pd.Series
+            Series of variant row
+
+        Returns
+        -------
+        str
+            Report text formatted as a single string
+        """
+        def add_none(value):
+            """
+            Replaces absent VCF values ('.') as 'None'
+            """
+            return value if value != '.' else 'None'
+
+        # force the field names to be lower case to handle differences
+        # in case and remove CSQ prefix
+        row.index = [
+            re.sub(r'^csq_', '', x.lower()) for x in row.index.tolist()
+        ]
+
+        text = f"{row.get('symbol', '')} {row.get('consequence')} "
+
+        if row.get('exon', '').replace('.', ''):
+            text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
+
+        if row.get('intron', '').replace('.', ''):
+            text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
+
+        text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
+        text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
+
+        if row.get('cosmiccmuts', '').replace('.', ''):
+            text += f"COSMIC coding ID: {row.get('cosmiccmuts')}\n"
+
+        if row.get('cosmicncmuts', '').replace('.', ''):
+            text += f"COSMIC non-coding ID: {row.get('cosmicncmuts')}\n"
+
+        if row.get('cosmic', '').replace('.', ''):
+            text += f"COSMIC ID: {row.get('cosmic')}\n"
+
+        if row.get('existing_variation', '').replace('.', ''):
+            text += f"dbSNP: {row.get('existing_variation', '')}\n"
+
+        text += f"Allele Frequency (VAF): {add_none(str(row.get('af', '')))}"
+
+        return text

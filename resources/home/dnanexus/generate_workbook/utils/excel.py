@@ -118,6 +118,7 @@ class excel():
             # generate summary sheet in format for HaemOnc/Uranus
             self.uranus_summary()
 
+
     def summary_sheet_cell_colour_key(self, row_count, to_bold) -> Union[int, list]:
         """
         Write conditions and colours of colouring applied to cells to
@@ -184,6 +185,7 @@ class excel():
                 max_colour_rows_written = colour_row
 
         return max_colour_rows_written, to_bold
+
 
     def uranus_summary(self) -> None:
             """
@@ -289,7 +291,6 @@ class excel():
 
             for cell in to_bold:
                 self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
-
 
 
     def helios_summary(self) -> None:
@@ -699,6 +700,7 @@ class excel():
                             unlock_row_num=ROW_TO_UNLOCK,
                             unlock_col_num=COL_TO_UNLOCK)
 
+
     def write_reporting_template(self, report_sheet_num) -> None:
         """
         Writes sheet(s) to Excel file with formatting for reporting against
@@ -925,6 +927,7 @@ class excel():
                             unlock_row_num=ROW_TO_UNLOCK,
                             unlock_col_num=COL_TO_UNLOCK)
 
+
     def write_variants(self) -> None:
         """
         Writes all variants from dataframe(s) to sheet(s) specified in
@@ -1034,6 +1037,7 @@ class excel():
             curr_worksheet = self.writer.sheets[file_name]
             self.set_font(curr_worksheet)
             self.set_types(curr_worksheet)
+            self.colour_hyperlinks(curr_worksheet)
 
             # set appropriate column widths based on cell contents
             for idx, column in enumerate(curr_worksheet.columns, start=1):
@@ -1649,6 +1653,7 @@ class excel():
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
 
+
     def drop_down(self) -> None:
         """
         Function to add drop-downs in the report tab for entering
@@ -1712,6 +1717,7 @@ class excel():
                                cells=cells_for_variant)
         wb.save(self.args.output)
 
+
     def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
                    unlock_row_num, unlock_col_num) -> None:
         """
@@ -1754,6 +1760,7 @@ class excel():
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
 
+
     def get_col_letter(self, worksheet, col_name) -> str:
         """
         Getting the column letter with specific col name
@@ -1776,6 +1783,7 @@ class excel():
 
         return col_letter
 
+
     def protect_rename_sheets(self) -> None:
         """
         prevent renaming sheets in the workbook
@@ -1784,6 +1792,7 @@ class excel():
         wb.security.lockStructure = True
         wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
+
 
     def get_drop_down(self, dropdown_options, prompt, title, sheet, cells) -> None:
         """
@@ -1813,6 +1822,7 @@ class excel():
         val.showInputMessage = True
         val.showErrorMessage = True
 
+
     def set_width_height_report_text(self) -> None:
         """
         Sets the height and width for the column Report text
@@ -1820,13 +1830,20 @@ class excel():
         without adjusting for height and width.
         """
 
-        # find the sheets and apply to all
-        sheets = self.args.sheets
-        for sheet in sheets:
+        for sheet in self.args.sheets + self.args.additional_sheets:
             curr_worksheet = self.writer.sheets[sheet]
-            for row in curr_worksheet.iter_cols():
+
+            # first test if the Report text column is in the sheet
+            if 'Report text' not in [x.value for x in curr_worksheet[1]]:
+                continue
+
+            report_column = self.get_col_letter(curr_worksheet, 'Report text')
+
+            for row in curr_worksheet.iter_rows():
                 for cell in row:
-                    # the first row is the header and we dont want
-                    # to adjust the header
-                    if cell.row != 1:
-                        curr_worksheet.row_dimensions[cell.row].height = 110
+                    if cell.column_letter == report_column and cell.row != 1:
+                        # find the cell containing the report text and set
+                        # the row height proportional to no. of lines
+                        height = (cell.value.count('\n') * 13) + 25
+
+                        curr_worksheet.row_dimensions[cell.row].height = height

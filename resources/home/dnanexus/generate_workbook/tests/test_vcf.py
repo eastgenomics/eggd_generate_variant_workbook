@@ -223,7 +223,7 @@ class TestDataFrameActions():
         vcf_df = splitColumns().split(vcf_df)
         vcf_handler.vcfs.append(vcf_df)
 
-        vcf_handler.add_hyperlinks()
+        vcf_handler.vcfs = vcf_handler.add_hyperlinks(vcf_handler.vcfs)
 
         return vcf_handler
 
@@ -341,7 +341,7 @@ class TestDataFrameActions():
         }
 
         vcf_handler.args.rename = rename_dict
-        vcf_handler.rename_columns()
+        vcf_handler.vcfs = vcf_handler.rename_columns(vcf_handler.vcfs)
 
         # get column list after renaming, replacing ' ' in each name with '_'
         # to undo what is done in .rename_columns() for comparing against
@@ -520,7 +520,7 @@ class TestHyperlinks():
         test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
         # Define expected string output
         valid_string = (
             '=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-6'
@@ -550,7 +550,7 @@ class TestHyperlinks():
         test_vcf.refs = ['37']  # Set reference = build 37
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-1271940-C'
@@ -578,7 +578,7 @@ class TestHyperlinks():
         test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-64883298'
@@ -606,7 +606,7 @@ class TestHyperlinks():
         test_vcf.refs = ['37']  # Set reference = build 37
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://cancer.sanger.ac.uk/cosmic/search?'
