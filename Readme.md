@@ -27,7 +27,7 @@ This app may be executed as a standalone app.
 
 **Other Inputs (optional):**
 
-`--additional_files` (`array:files)`: Additional files to be read in and written to additional sheets, expected to be some form of delimited file (i.e. tsv / csv)
+`--additional_files` (`array:files)`: Additional files to be read in and written to additional sheets, expected to be some form of delimited file (i.e. tsv / csv). This will also accept vcfs, which will have a minimal set of formatting applied for readability (i.e splitting of INFO fields).
 
 `--exclude_columns` (`string`): Columns of VCF to exclude from output workbook.
 
