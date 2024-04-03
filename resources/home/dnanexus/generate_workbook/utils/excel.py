@@ -603,7 +603,7 @@ class excel():
             self.lock_sheet(ws=self.summary,
                             cell_to_unlock=cell_to_unlock,
                             start_row=self.summary.max_row+1,
-                            start_col=10,
+                            start_col=9,
                             unlock_row_num=ROW_TO_UNLOCK,
                             unlock_col_num=COL_TO_UNLOCK)
 
