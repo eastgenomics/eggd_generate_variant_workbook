@@ -394,7 +394,7 @@ class excel():
         self.summary.cell(1, 1).value = "Sample ID:"
         self.summary.cell(1, 5).value = "Clinical Indication(s):"
         self.summary.cell(2, 5).value = "Panel(s):"
-        self.summary.cell(33, 1).value = "Total records:"
+        self.summary.cell(38, 1).value = "Total records:"
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -418,7 +418,7 @@ class excel():
                 json.dump(details_dict, details_json)
 
         # write total rows in each sheet
-        count = 33
+        count = 38
 
         # cells to make bold
         to_bold = []
@@ -480,29 +480,36 @@ class excel():
 
 
         # write center reporting section tables
-        self.summary.cell(2, 1).value = "Lab no."
+        self.summary.cell(2, 1).value = "Lab number"
         self.summary.cell(2, 3).value = "First name"
         self.summary.cell(2, 4).value = "Last name"
         self.summary.cell(4, 1).value = "Number checked"
         self.summary.cell(5, 1).value = "Summary coverage"
         self.summary.cell(14, 2).value = "Phenotype:"
 
-        self.summary.cell(21, 2).value = "Panels"
-        self.summary.cell(21, 3).value = "Excel file"
-        self.summary.cell(21, 4).value = "Comments"
-        self.summary.cell(21, 6).value = "Analysis by"
+        self.summary.cell(21, 2).value = "Result"
+        self.summary.cell(21, 4).value = "Analysis by"
+        self.summary.cell(21, 5).value = "Date"
+        self.summary.cell(21, 6).value = "Checked by"
         self.summary.cell(21, 7).value = "Date"
-        self.summary.cell(21, 8).value = "Checked by"
-        self.summary.cell(21, 9).value = "Date"
 
         self.summary.cell(26, 2).value = "Sanger sequencing confirmation"
-        self.summary.cell(27, 2).value = "Gene"
-        self.summary.cell(27, 3).value = "NM_#"
-        self.summary.cell(27, 4).value = "Coordinate"
-        self.summary.cell(27, 5).value = "cDNA"
-        self.summary.cell(27, 6).value = "Protein change"
-        self.summary.cell(27, 7).value = "WS#"
-        self.summary.cell(27, 8).value = "Confirmed (Y/N)"
+        self.summary.cell(27, 2).value = "CHROM"
+        self.summary.cell(27, 3).value = "POS"
+        self.summary.cell(27, 4).value = "SYMBOL"
+        self.summary.cell(27, 5).value = "HGVSc"
+        self.summary.cell(27, 6).value = "HGVSp"
+        self.summary.cell(27, 7).value = "Worksheet"
+        self.summary.cell(27, 8).value = "Confirmed Y/N"
+
+        self.summary.cell(31, 2).value = "MLPA confirmation"
+        self.summary.cell(32, 2).value = "CHROM"
+        self.summary.cell(32, 3).value = "POS"
+        self.summary.cell(32, 4).value = "END"
+        self.summary.cell(32, 5).value = "SYMBOL"
+        self.summary.cell(32, 6).value = "VARIANT CLASS"
+        self.summary.cell(32, 7).value = "Worksheet"
+        self.summary.cell(32, 8).value = "Confirmed Y/N"
 
         # merge some title columns that have longer text
         self.summary.merge_cells(
@@ -512,24 +519,34 @@ class excel():
         self.summary.merge_cells(
             start_row=2, end_row=2, start_column=6, end_column=20)
         self.summary.merge_cells(
-            start_row=14, end_row=14, start_column=2, end_column=5)
+            start_row=14, end_row=14, start_column=2, end_column=3)
+        self.summary.merge_cells(
+            start_row=15, end_row=18, start_column=2, end_column=3)
         self.summary.merge_cells(
             start_row=26, end_row=26, start_column=2, end_column=8)
         self.summary.merge_cells(
-            start_row=21, end_row=21, start_column=4, end_column=5)
+            start_row=21, end_row=21, start_column=2, end_column=3)
+        self.summary.merge_cells(
+            start_row=22, end_row=22, start_column=2, end_column=3)
+        self.summary.merge_cells(
+            start_row=23, end_row=23, start_column=2, end_column=3)
         self.summary.merge_cells(
             start_row=5, end_row=11, start_column=1, end_column=1)
-        
+        self.summary.merge_cells(
+            start_row=31, end_row=31, start_column=2, end_column=8)
+
         # make the coverage tile centre of merged rows
         self.summary["A5"].alignment = Alignment(
+                           wrapText=True, vertical="center")
+        self.summary["B15"].alignment = Alignment(
                            wrapText=True, vertical="center")
 
         # titles to set to bold
         to_bold += [
-                "A1", "A2", "A4", "A5", "A33", "B1", "B14", "B21", "B26",
-                "B27", "B33", "B34", "C2", "C21", "C27", "D2", "D21", "D27",
-                "E1", "E2", "E27", "F21", "F27", "G21", "G27", "H21", "H27",
-                "I21"
+                "A1", "A2", "A4", "A5", "A38", "B1", "B14", "B21", "B26",
+                "B27", "B31", "B32", "B38", "B39", "C2", "C27", "C32",
+                "D2", "D21", "D27", "D32", "E1", "E2", "E21", "E27",
+                "E32", "F21", "F27", "F32", "G21", "G27", "G32", "H27", "H32"
                 ]
 
         for cell in to_bold:
@@ -538,29 +555,32 @@ class excel():
         # set column widths for readability
         self.summary.column_dimensions['A'].width = 22 if self.args.colour else 18
         self.summary.column_dimensions['B'].width = 13
-        self.summary.column_dimensions['C'].width = 13
-        self.summary.column_dimensions['D'].width = 13
+        self.summary.column_dimensions['C'].width = 22
+        self.summary.column_dimensions['D'].width = 22
         self.summary.column_dimensions['E'].width = 22
-        self.summary.column_dimensions['F'].width = 16
-        self.summary.column_dimensions['G'].width = 16
-        self.summary.column_dimensions['H'].width = 16
+        self.summary.column_dimensions['F'].width = 22
+        self.summary.column_dimensions['G'].width = 22
+        self.summary.column_dimensions['H'].width = 22
 
         # colour title cells
         blueFill = PatternFill(patternType="solid", start_color="0CABA8")
 
         colour_cells = [
-            "A2", "A4", "A5", "B2", "B14", "B21", "B26", "B27",
-            "C2", "C21", "C27", "D2", "D21", "D27", "E27", "F21",
-            "F27", "G21", "G27", "H21", "H27", "I21"
+            "A2", "A4", "A5", "B14", "B21", "B26", "B27", "B31",
+            "B32", "C2", "C21", "C27", "C32", "D2", "D21", "D27", "D32",
+            "E21", "E27", "E32", "F21", "F27", "F32", "G21", "G27", "G32",
+            "H27", "H32"
         ]
         for cell in colour_cells:
             self.summary[cell].fill = blueFill
 
         # set borders around table areas
         row_ranges = [
-            'A2:D2', 'A3:D3', 'A4:D4', 'A5:A5', 'B14:E14', 'B15:E15',
-            'B16:E16', 'B17:E17', 'B18:E18', 'B21:I21', 'B22:I22',
-            'B23:I23', 'B26:H26', 'B27:H27', 'B28:H28', 'B29:H29', 'B30:H30'
+            'A2:A2', 'A4:A4', 'C2:D2', 'C3:D3', 'A5:A5', 'B14:C14',
+            'B15:C15', 'B16:C16', 'B17:C17', 'B18:C18', 'B21:G21',
+            'B22:G22', 'B23:G23', 'B26:H26', 'B27:H27', 'B28:H28',
+            'B29:H29', 'B31:H31', 'B32:H32', 'B33:H33', 'B34:H34',
+            'B35:H35'
             ]
         for row in row_ranges:
             for cells in self.summary[row]:
@@ -570,20 +590,20 @@ class excel():
             cell_to_unlock = ["A3", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
                               "B10", "B11", "C3", "C4", "C5", "C6", "C7", "C8",
                               "C9", "C10", "C11", "D3", "D4", "D5", "D6", "D7",
-                              "D8", "D9", "D10", "D11", "B15", "C15", "D15",
-                              "E15", "B16", "C16", "D16", "E16", "B17", "C17",
-                              "D17", "E17", "B18", "C18", "D18", "E18", "B22",
-                              "C22", "D22", "E22", "F22", "G22", "H22", "I22",
-                              "B23", "C23", "D23", "E23", "F23", "G23", "H23",
-                              "I23", "B28", "C28", "D28", "E28", "F28", "G28",
-                              "H28", "B29", "C29", "D29", "E29", "F29", "G29",
-                              "H29", "B30", "C30", "D30", "E30", "F30", "G30",
-                              "H30"
+                              "D8", "D9", "D10", "D11", "B15", "C15", "B16",
+                              "C16", "B17", "C17", "B18", "C18", "B22",
+                              "C22", "D22", "E22", "F22", "G22", "B23", "C23",
+                              "D23", "E23", "F23", "G23", "B28", "C28", "D28",
+                              "E28", "F28", "G28", "H28", "B29", "C29", "D29",
+                              "E29", "F29", "G29", "H29", "B33", "C33", "D33",
+                              "E33", "F33", "G33", "H33", "B34", "C34", "D34",
+                              "E34", "F34", "G34", "H34", "B35", "C35", "D35",
+                              "E35", "F35", "G35", "H35"
                               ]
             self.lock_sheet(ws=self.summary,
                             cell_to_unlock=cell_to_unlock,
                             start_row=self.summary.max_row+1,
-                            start_col=10,
+                            start_col=9,
                             unlock_row_num=ROW_TO_UNLOCK,
                             unlock_col_num=COL_TO_UNLOCK)
 
@@ -1640,6 +1660,10 @@ class excel():
                 row_num = row
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
+        prot = ws.protection
+        prot.formatColumns = False
+        prot.formatRows = False
+        prot.formatCells = False
 
     def get_col_letter(self, worksheet, col_name) -> str:
         """
