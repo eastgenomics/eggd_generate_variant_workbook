@@ -191,7 +191,7 @@ URLs used for generating of columns specified from `-iadditional_columns`:
 | ---  | --- |
 | decipher | https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT |
 | oncoKB | https://www.oncokb.org/gene/ |
-| PeCan | https://pecan.stjude.cloud/variants/protein-paint/?gene=SYMBOL |
+| PeCan | https://pecan.stjude.cloud/variants/proteinpaint/?gene=SYMBOL |
 | cBioPortal | https://www.cbioportal.org/results/mutations?case_set_id=all&gene_list=SYMBOL&cancer_study_list=5c8a7d55e4b046111fee2296 |
 
 n.b. the above link to cBioPortal defaults to the 'TCGA PanCancer Atlas Studies' dataset.
