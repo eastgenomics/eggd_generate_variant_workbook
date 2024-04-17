@@ -39,7 +39,7 @@ VCF_ARGS = argparse.Namespace(
     additional_columns=[],
     summary=None,
     report_text=False,
-    af_format=False
+    af_format=None
 )
 
 class TestHeader():
@@ -209,7 +209,7 @@ class TestDataFrameActions():
             rename=None, sample='', sheets=['variants'], summary=None,
             vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
             add_classification_column=None, additional_columns=[],
-            report_text=False
+            report_text=False, af_format = ''
         ))
 
         # first split multiple transcript annotation to separate VCF
@@ -388,6 +388,33 @@ class TestDataFrameActions():
             "column list"
         )
 
+    def test_percent_af(self):
+        """
+        Tests that the allele frequency (AF) is converted to percent 
+        and within 
+        """
+        vcf_handler = self.read_vcf()
+
+        # update the af_format namespace to be percent
+        vcf_handler.args.af_format = "percent"
+        vcf_handler.percent_af()
+
+        # check all values contains %
+        AF_column_percent = list(vcf_handler.vcfs[0].AF)
+        # get all strings in AF_column_percent that contain %
+        contains_percent =  [s for s in AF_column_percent if "%" in s]
+        assert len(AF_column_percent) == len(contains_percent) , (
+            "Not all AFs are percent"
+        )
+        # check that they are all above 0
+        # 1. strip off %
+        # 2. check all greater than 0
+        res =  [s.replace('%','') for s in AF_column_percent]
+        res = [float(s) for s in res]
+        print(res)
+        assert all(0 <= s <= 100 for s in res) , (
+            "Not all AFs range are > 0 (which should be for percent)"
+        )
 
 class TestHyperlinks():
     '''
@@ -634,7 +661,7 @@ class TestAddRawChange():
         panel='', print_columns=False, print_header=False, reads='',
         rename=None, sample='', sheets=['variants'], summary=None,
         vcfs=[], workflow=('', ''), split_hgvs=None,
-        add_classification_column=None, additional_columns=[]
+        add_classification_column=None, additional_columns=[], af_format = ''
     ))
 
     def test_normal_df(self):
