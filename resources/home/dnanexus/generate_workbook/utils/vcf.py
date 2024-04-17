@@ -1000,8 +1000,9 @@ class vcf():
         row.index = [
             re.sub(r'^csq_', '', x.lower()) for x in row.index.tolist()
         ]
-
-        text = f"{row.get('symbol', '')} {row.get('consequence')} "
+        text = ""
+        if row.get('symbol') and row.get('consequence'):
+            text += f"{row.get('symbol', '')} {row.get('consequence')} "
 
         if row.get('exon', '').replace('.', ''):
             text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
@@ -1009,8 +1010,11 @@ class vcf():
         if row.get('intron', '').replace('.', ''):
             text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
-        text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
-        text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
+        if row.get('hgvsc'):
+            text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
+
+        if row.get('hgvsp'):
+            text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
 
         if row.get('cosmiccmuts', '').replace('.', ''):
             text += f"COSMIC coding ID: {row.get('cosmiccmuts')}\n"
