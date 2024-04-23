@@ -413,7 +413,6 @@ class TestDataFrameActions():
         # 2. check all greater than 0
         res =  [s.replace('%','') for s in AF_column_percent]
         res = [float(s) for s in res]
-        print(res)
         assert all(0 <= s <= 100 for s in res) , (
             "Not all AFs range are > 0 (which should be for percent)"
         )
@@ -736,6 +735,70 @@ class TestAddRawChange():
         ], (
             'Columns incorrect after calling add_raw_change() on df with missing columns'
         )
+
+class TestReportText():
+    """
+    Tests for report text done for uranus workbooks normally
+    """
+    def test_report_text(self):
+        # reuse read_vcf from class TestDataFrameActions
+        tda_object = TestDataFrameActions()
+        # but reset the columns_vcf input VCF file
+        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
+        # read_vcf of oncospan and clean intermediate files
+        vcf_handler = tda_object.read_vcf()
+        tda_object.clean_up()
+
+        # make report text
+        vcf_handler.make_report_text(vcf_handler.vcfs)
+
+        # check elements are correctly presented
+        for text in list(vcf_handler.vcfs[0].Report_text):
+            # check that the three HGVSc, HGVSp and VAF are listed
+            assert text.split(":")[0] == "Allele Frequency (VAF)", (
+                "Does not contain Allele Frequency (VAF) in report text"
+            )
+
+    def test_percent_af(self):
+        """
+        Test that the allele frequency (AF) is:
+            - converted to percent
+            - within 0-100 range
+        """
+        # reuse read_vcf from class TestDataFrameActions
+        tda_object = TestDataFrameActions()
+        # but reset the columns_vcf input VCF file
+        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
+        # read_vcf of oncospan and clean intermediate files
+        vcf_handler = tda_object.read_vcf()
+        tda_object.clean_up()
+
+        # update the af_format namespace to be percent
+        vcf_handler.args.af_format = "percent"
+        vcf_handler.percent_af()
+
+        # check all values contains %
+        AF_column_percent = list(vcf_handler.vcfs[0].AF)
+
+        # get all strings in AF_column_percent that contain %
+        contains_percent =  [s for s in AF_column_percent if "%" in s]
+        assert len(AF_column_percent) == len(contains_percent) , (
+            "Not all AFs are percent"
+        )
+        #with self.subTest(msg="Not all AFs are percent"):
+        #    self.assertEqual(len(AF_column_percent), len(contains_percent))
+
+        # check that they are all above 0
+        # 1. strip off %
+        # 2. check all greater than 0
+        res = [float(s.replace('%','')) for s in AF_column_percent]
+        assert all(0 <= s <= 100 for s in res) , (
+            "Not all AFs range are > 0 (which should be for percent)"
+        )
+
+
+
+
 
 
 if __name__ == "__main__":
