@@ -1830,7 +1830,7 @@ class excel():
         without adjusting for height and width.
         """
 
-        for sheet in self.args.sheets + self.args.additional_sheets:
+        for sheet in list(self.writer.sheets.keys()):
             curr_worksheet = self.writer.sheets[sheet]
 
             # first test if the Report text column is in the sheet
