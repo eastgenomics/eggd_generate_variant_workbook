@@ -4,6 +4,7 @@ from multiprocessing.dummy import Namespace
 import os
 from pathlib import Path
 import sys
+from typing_extensions import _SpecialForm
 import unittest
 import pandas as pd
 
@@ -688,7 +689,7 @@ class TestAddRawChange():
             'Columns incorrect after calling add_raw_change() on df with missing columns'
         )
 
-class TestReportText():
+class TestReportText(unittest.TestCase):
     """
     Tests for report text done for uranus workbooks normally
     """
@@ -734,18 +735,16 @@ class TestReportText():
 
         # get all strings in AF_column_percent that contain %
         contains_percent =  [s for s in AF_column_percent if "%" in s]
-        #assert len(AF_column_percent) == len(contains_percent) , (
-        #    "Not all AFs are percent"
-        #)
-        with self.subTest(msg="Not all AFs are percent"):
+        with self.subTest("Not all AFs are percent"):
             self.assertEqual(len(AF_column_percent), len(contains_percent))
 
         # check that they are all above 0
         # 1. strip off %
         # 2. check all greater than 0
         res = [float(s.replace('%','')) for s in AF_column_percent]
-        with self.subTest(msg="Not all AFs range are > 0 (which should be for percent)"):
-            self.assertRaises(0 <= s <= 100 for s in res)
+        for s in res:
+            with self.subTest(msg="Not all AFs range are within 0-100 (which should be for percent)"):
+                self.assertTrue(0 <= s <= 100)
 
 if __name__ == "__main__":
     TestAddRawChange().test_normal_df()
