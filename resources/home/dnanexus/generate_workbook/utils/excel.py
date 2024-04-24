@@ -196,15 +196,11 @@ class excel():
             # track what cells to make bold
             to_bold = []
 
-            # first row header is sample name
-            self.summary.cell(1, 1).value = "samplename"
-            to_bold.append('A1')
-
             # copy the headers from the variants sheet
             header = self.vcfs[0].columns.to_list()
             # start from B1 (second row) as we want do not want to
             # iterate over A1 (samplename header)
-            for idx, row in enumerate(header, 2):
+            for idx, row in enumerate(header, 1):
                 self.summary.cell(1, idx).value = row
                 to_bold.append(self.summary.cell(1, idx).coordinate)
             self.set_widths(self.summary, header)

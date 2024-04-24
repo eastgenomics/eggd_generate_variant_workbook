@@ -432,12 +432,13 @@ class vcf():
                         vcf=file,
                         output_vcf=split_additional_vcf
                     )
-                    file_df = self.read(split_additional_vcf)
+                    file_df = self.read(split_additional_vcf, prefix)
                 else:
                     file_df = self.read(file)
 
                 # call some of the formatting methods for regular vcfs
                 # to get things like split INFO columns and hyperlinks
+
                 file_df = splitColumns().split(file_df)
                 file_df = self.make_report_text([file_df])[0]
                 file_df = self.format_strings([file_df])[0]
