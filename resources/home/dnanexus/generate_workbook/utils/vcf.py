@@ -438,6 +438,10 @@ class vcf():
 
                 # call some of the formatting methods for regular vcfs
                 # to get things like split INFO columns and hyperlinks
+                if self.args.add_name:
+                    # add sample name from filename as 1st column
+                    file_df['sampleName'] = prefix
+                
                 file_df = splitColumns().split(file_df)
                 file_df = self.make_report_text([file_df])[0]
                 file_df = self.format_strings([file_df])[0]
