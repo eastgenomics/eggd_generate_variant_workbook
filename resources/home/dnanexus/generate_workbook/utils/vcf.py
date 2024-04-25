@@ -684,6 +684,11 @@ class vcf():
         If `--exclude` passed will take the given list of columns and drop
         from all dataframes
 
+        Parameters
+        ------
+        vcfs : pandas.DataFrame
+            pandas dataframe containing all rows and column from VCF
+
         Raises
         ------
         AssertionError
