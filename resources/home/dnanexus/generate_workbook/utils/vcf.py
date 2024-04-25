@@ -182,7 +182,7 @@ class vcf():
             self.percent_af()
 
         if self.args.report_text:
-            self.vcfs = self.make_report_text(self.vcfs)
+            self.make_report_text(self.vcfs)
 
         self.vcfs = self.format_strings(self.vcfs)
         self.vcfs = self.add_hyperlinks(self.vcfs)
@@ -443,9 +443,12 @@ class vcf():
                 file_df = self.make_report_text([file_df])[0]
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
-                file_df = self.rename_columns([file_df])[0]
-                file_df.columns = self.strip_csq_prefix(file_df)
 
+                if self.args.exclude or self.args.include:
+                    self.drop_columns([file_df])
+
+                file_df.columns = self.strip_csq_prefix(file_df)
+                file_df = self.rename_columns([file_df])[0]
                 # force header to also be first line of df so it is written
                 # to the Excel sheet
                 file_df = pd.DataFrame(
@@ -670,7 +673,7 @@ class vcf():
         sys.exit(0)
 
 
-    def drop_columns(self) -> None:
+    def drop_columns(self, vcfs=None) -> None:
         """
         If `--exclude` or `--include` passed, drop given columns
         (or inverse of) from vcf data if they exist.
@@ -681,13 +684,22 @@ class vcf():
         If `--exclude` passed will take the given list of columns and drop
         from all dataframes
 
+        Parameters
+        ----------
+        vcfs : pandas.DataFrame
+            pandas dataframe containing all rows and column from VCF
+
         Raises
         ------
         AssertionError
             Raised when columns specified with --include / --exclude are not
             present in one or more of the dataframes
         """
-        for idx, vcf in enumerate(self.vcfs):
+
+        if vcfs is None:
+            vcfs = self.vcfs
+
+        for idx, vcf in enumerate(vcfs):
             if self.args.include:
                 # include passed => select all columns not specified to drop
                 columns = self.args.include
@@ -717,7 +729,7 @@ class vcf():
             if self.args.report_text:
                 to_drop.remove("Report_text")
 
-            self.vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
+            vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
     def order_columns(self) -> None:
