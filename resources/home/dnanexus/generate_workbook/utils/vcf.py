@@ -685,7 +685,7 @@ class vcf():
         from all dataframes
 
         Parameters
-        ------
+        ----------
         vcfs : pandas.DataFrame
             pandas dataframe containing all rows and column from VCF
 
