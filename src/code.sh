@@ -109,8 +109,8 @@ main() {
     if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
     if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
     if [ "$lock_sheet" == true ]; then args+="--lock_sheet "; fi
-    if [ "$report_text" == true ]; then args+="--report_text" fi
-    if [ "$af_format"]; then args+="--af_format ${af_format} " fi
+    if [ "$report_text" == true ]; then args+="--report_text "; fi
+    if [ "$af_format"]; then args+="--af_format ${af_format} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 
