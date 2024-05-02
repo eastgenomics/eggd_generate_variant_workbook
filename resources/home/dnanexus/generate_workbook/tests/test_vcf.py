@@ -699,7 +699,7 @@ class TestReportText(unittest.TestCase):
         tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
         # read_vcf of oncospan and clean intermediate files
         vcf_handler = tda_object.read_vcf()
-        # tda_object.clean_up()
+        tda_object.clean_up()
 
         # make report text
         vcf_handler.make_report_text(vcf_handler.vcfs)
@@ -723,7 +723,7 @@ class TestReportText(unittest.TestCase):
         tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
         # read_vcf of oncospan and clean intermediate files
         vcf_handler = tda_object.read_vcf()
-        # tda_object.clean_up()
+        tda_object.clean_up()
 
         # update the af_format namespace to be percent
         vcf_handler.args.af_format = "percent"
