@@ -27,7 +27,7 @@ This app may be executed as a standalone app.
 
 **Other Inputs (optional):**
 
-`--additional_files` (`array:files)`: Additional files to be read in and written to additional sheets, expected to be some form of delimited file (i.e. tsv / csv)
+`--additional_files` (`array:files)`: Additional files to be read in and written to additional sheets, expected to be some form of delimited file (i.e. tsv / csv). This will also accept vcfs, which will have a minimal set of formatting applied for readability (i.e splitting of INFO fields).
 
 `--exclude_columns` (`string`): Columns of VCF to exclude from output workbook.
 
@@ -101,6 +101,10 @@ This app may be executed as a standalone app.
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
 `--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
+
+`--af_format` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
+
+`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variants are gene name, consequence, exon number, HGVSc, HGVSp, cosmic annotation, exisiting variation and allele frequency.
 
 **Example**:
 
@@ -187,7 +191,7 @@ URLs used for generating of columns specified from `-iadditional_columns`:
 | ---  | --- |
 | decipher | https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT |
 | oncoKB | https://www.oncokb.org/gene/ |
-| PeCan | https://pecan.stjude.cloud/variants/protein-paint/?gene=SYMBOL |
+| PeCan | https://pecan.stjude.cloud/variants/proteinpaint/?gene=SYMBOL |
 | cBioPortal | https://www.cbioportal.org/results/mutations?case_set_id=all&gene_list=SYMBOL&cancer_study_list=5c8a7d55e4b046111fee2296 |
 
 n.b. the above link to cBioPortal defaults to the 'TCGA PanCancer Atlas Studies' dataset.

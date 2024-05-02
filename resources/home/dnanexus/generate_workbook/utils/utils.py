@@ -143,7 +143,7 @@ class buildHyperlink():
             "decipher": "https://www.deciphergenomics.org/sequence-variant/CHROM-POS-REF-ALT",
             "oncokb": "https://www.oncokb.org/gene/",
             "cbioportal": "https://www.cbioportal.org/results/mutations?case_set_id=all&gene_list=SYMBOL&cancer_study_list=5c8a7d55e4b046111fee2296",
-            "pecan": "https://pecan.stjude.cloud/variants/protein-paint/?gene=SYMBOL"
+            "pecan": "https://pecan.stjude.cloud/variants/proteinpaint/?gene=SYMBOL"
         }
 
     def build(self, column, value, build) -> str:
