@@ -443,9 +443,12 @@ class vcf():
                 file_df = self.make_report_text([file_df])[0]
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
+                file_df = self.percent_af([file_df])[0]
 
                 if self.args.exclude or self.args.include:
                     self.drop_columns([file_df])
+
+                self.order_columns([file_df])
 
                 file_df.columns = self.strip_csq_prefix(file_df)
                 file_df = self.rename_columns([file_df])[0]
