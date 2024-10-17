@@ -1024,7 +1024,7 @@ class vcf():
             text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
         if row.get('dna'):
-            text += f"HGVSp: {add_none(row.get('dna', ''))}\n"
+            text += f"HGVSc: {add_none(row.get('dna', ''))}\n"
         elif row.get('hgvsc'):
             text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
 
