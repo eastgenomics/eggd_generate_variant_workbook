@@ -1023,10 +1023,14 @@ class vcf():
         if row.get('intron', '').replace('.', ''):
             text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
-        if row.get('hgvsc'):
+        if row.get('dna'):
+            text += f"HGVSp: {add_none(row.get('dna', ''))}\n"
+        elif row.get('hgvsc'):
             text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
 
-        if row.get('hgvsp'):
+        if row.get('protein'):
+            text += f"HGVSp: {add_none(row.get('protein', ''))}\n"
+        elif row.get('hgvsp'):
             text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
 
         if row.get('cosmiccmuts', '').replace('.', ''):
