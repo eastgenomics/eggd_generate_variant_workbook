@@ -294,7 +294,7 @@ class TestDataFrameActions():
         order_cols = ["ALT", "REF", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
 
-        vcf_handler.order_columns()
+        vcf_handler.order_columns(vcf_handler.vcfs)
 
         self.clean_up()
 
@@ -316,7 +316,7 @@ class TestDataFrameActions():
         original_cols = vcf_handler.vcfs[0].columns.tolist()
         original_cols = [x for x in original_cols if x not in order_cols]
 
-        vcf_handler.order_columns()
+        vcf_handler.order_columns(vcf_handler.vcfs)
 
         self.clean_up()
 
@@ -727,7 +727,7 @@ class TestReportText(unittest.TestCase):
 
         # update the af_format namespace to be percent
         vcf_handler.args.af_format = "percent"
-        vcf_handler.percent_af()
+        vcf_handler.percent_af(vcf_handler.vcfs)
 
         # check all values contains %
         AF_column_percent = list(vcf_handler.vcfs[0].AF)
