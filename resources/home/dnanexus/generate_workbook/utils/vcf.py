@@ -167,7 +167,7 @@ class vcf():
             self.vcfs[0]['Interpreted'] = ''
 
         if self.args.split_hgvs:
-            self.split_hgvs()
+            self.split_hgvs(self.vcfs)
 
         if self.args.add_raw_change:
             self.add_raw_change()
@@ -179,7 +179,7 @@ class vcf():
             self.add_additional_columns()
 
         if self.args.af_format == "percent":
-            self.percent_af()
+            self.percent_af(self.vcfs)
 
         if self.args.report_text:
             self.make_report_text(self.vcfs)
@@ -191,7 +191,7 @@ class vcf():
             self.drop_columns()
 
         if self.args.reorder:
-            self.order_columns()
+            self.order_columns(self.vcfs)
 
         self.vcfs = self.rename_columns(self.vcfs)
 
@@ -440,12 +440,23 @@ class vcf():
                 # to get things like split INFO columns and hyperlinks
 
                 file_df = splitColumns().split(file_df)
-                file_df = self.make_report_text([file_df])[0]
+
+                if self.args.split_hgvs:
+                    file_df = self.split_hgvs([file_df])[0]
+
+                if self.args.af_format == "percent":
+                    file_df = self.percent_af([file_df])[0]
+                if self.args.report_text:
+                    file_df = self.make_report_text([file_df])[0]
+
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
 
                 if self.args.exclude or self.args.include:
                     self.drop_columns([file_df])
+
+                if self.args.reorder:
+                    file_df = self.order_columns([file_df])[0]
 
                 file_df.columns = self.strip_csq_prefix(file_df)
                 file_df = self.rename_columns([file_df])[0]
@@ -732,10 +743,19 @@ class vcf():
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
-    def order_columns(self) -> None:
+    def order_columns(self, vcfs) -> list:
         """
         Reorder columns by specified order from `--reorder` argument, any not
         specified will retain original order after reorder columns
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to order columns from
+        Returns
+        -------
+        list
+            list of dataframes with ordered columns
 
         Raises
         ------
@@ -743,7 +763,7 @@ class vcf():
             Raised when columns specified with --reorder are not
             present in one or more of the dataframes
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             vcf_columns = list(vcf.columns)
 
             # check columns given are present in vcf
@@ -762,7 +782,9 @@ class vcf():
             [vcf_columns.remove(x) for x in self.args.reorder]
             column_order = self.args.reorder + vcf_columns
 
-            self.vcfs[idx] = vcf[column_order]
+            vcfs[idx] = vcf[column_order]
+
+        return vcfs
 
 
     def add_additional_columns(self) -> None:
@@ -896,12 +918,12 @@ class vcf():
         return [pd.concat(vcfs).reset_index(drop=True)]
 
 
-    def split_hgvs(self) -> pd.DataFrame:
+    def split_hgvs(self, vcfs) -> pd.DataFrame:
         """
         If --split_hgvs specified, attempt to split HGVSc and HGVSp columns
         into 2 separate ones: c. change (DNA) and p. change (Protein).
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             # check required columns are in the dataframe
             if not all(col in vcf.columns for col in ['CSQ_HGVSc', 'CSQ_HGVSp']):
                 print(
@@ -922,7 +944,9 @@ class vcf():
             vcf['DNA'] = vcf['CSQ_HGVSc'].str.split(':').str[1]
             vcf['Protein'] = vcf['CSQ_HGVSp'].str.split(':').str[1]
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     def add_raw_change(self) -> None:
@@ -950,17 +974,29 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
 
-    def percent_af(self):
+    def percent_af(self, vcfs) -> list:
         """
         Finds the column with "AF" and will convert the number format
         to percent
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to change the AF columns type
+        Returns
+        -------
+        list
+            list of dataframes with AF changed to percent type
         """
         # find the sheets and apply to all sheets
-        for vcf in self.vcfs:
+        for idx, vcf in enumerate(vcfs):
             if 'AF' not in vcf.columns:
                 continue
             vcf['AF'] = vcf['AF'].astype(np.float16)
             vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
+
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     def make_report_text(self, vcfs):
