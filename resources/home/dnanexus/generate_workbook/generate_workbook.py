@@ -218,7 +218,7 @@ class arguments():
         )
         parser.add_argument(
             '--summary', required=False,
-            help='summary sheet to include, must be one of: dias'
+            help='summary sheet to include, must be one of: dias, helios or uranus'
         )
         parser.add_argument(
             '--human_filter', nargs='+', action=self.joinList,
@@ -312,7 +312,18 @@ class arguments():
                 'of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}'
             )
         )
-
+        parser.add_argument(
+            '--af_format', default='decimal', required=False,
+            choices=['decimal', 'percent'],
+            help=('Presents the allele frequency (AF) as a decimal (0-1) '
+            'or as a percent (0-100). Default is decimal.'
+            )
+        )
+        parser.add_argument(
+            '--report_text', action='store_true',
+            help=('Makes a report summary to be appened as the last column'
+            )
+        )
         return parser.parse_args()
 
 

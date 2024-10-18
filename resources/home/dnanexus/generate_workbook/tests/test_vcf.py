@@ -37,7 +37,9 @@ VCF_ARGS = argparse.Namespace(
     add_raw_change=False,
     add_classification_column=None,
     additional_columns=[],
-    summary=None
+    summary=None,
+    report_text=False,
+    af_format=None
 )
 
 class TestHeader():
@@ -206,7 +208,8 @@ class TestDataFrameActions():
             panel='', print_columns=False, print_header=False, reads='',
             rename=None, sample='', sheets=['variants'], summary=None,
             vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
-            add_classification_column=None, additional_columns=[]
+            add_classification_column=None, additional_columns=[],
+            report_text=False, af_format = ''
         ))
 
         # first split multiple transcript annotation to separate VCF
@@ -220,7 +223,7 @@ class TestDataFrameActions():
         vcf_df = splitColumns().split(vcf_df)
         vcf_handler.vcfs.append(vcf_df)
 
-        vcf_handler.add_hyperlinks()
+        vcf_handler.vcfs = vcf_handler.add_hyperlinks(vcf_handler.vcfs)
 
         return vcf_handler
 
@@ -291,7 +294,7 @@ class TestDataFrameActions():
         order_cols = ["ALT", "REF", "ID", "CHROM", "POS"]
         vcf_handler.args.reorder = order_cols
 
-        vcf_handler.order_columns()
+        vcf_handler.order_columns(vcf_handler.vcfs)
 
         self.clean_up()
 
@@ -313,7 +316,7 @@ class TestDataFrameActions():
         original_cols = vcf_handler.vcfs[0].columns.tolist()
         original_cols = [x for x in original_cols if x not in order_cols]
 
-        vcf_handler.order_columns()
+        vcf_handler.order_columns(vcf_handler.vcfs)
 
         self.clean_up()
 
@@ -338,7 +341,7 @@ class TestDataFrameActions():
         }
 
         vcf_handler.args.rename = rename_dict
-        vcf_handler.rename_columns()
+        vcf_handler.vcfs = vcf_handler.rename_columns(vcf_handler.vcfs)
 
         # get column list after renaming, replacing ' ' in each name with '_'
         # to undo what is done in .rename_columns() for comparing against
@@ -384,7 +387,6 @@ class TestDataFrameActions():
             "Column names specified in args.rename not present in renamed "
             "column list"
         )
-
 
 class TestHyperlinks():
     '''
@@ -517,7 +519,7 @@ class TestHyperlinks():
         test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
         # Define expected string output
         valid_string = (
             '=HYPERLINK("https://www.deciphergenomics.org/sequence-variant/1-6'
@@ -547,7 +549,7 @@ class TestHyperlinks():
         test_vcf.refs = ['37']  # Set reference = build 37
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-1271940-C'
@@ -575,7 +577,7 @@ class TestHyperlinks():
         test_vcf.refs = ['38']  # Set reference = build 38
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-64883298'
@@ -603,7 +605,7 @@ class TestHyperlinks():
         test_vcf.refs = ['37']  # Set reference = build 37
 
         # Call function to add hyperlinks
-        vcf.add_hyperlinks(test_vcf)
+        test_vcf.vcfs = test_vcf.add_hyperlinks(test_vcf.vcfs)
 
         valid_string = (
             '=HYPERLINK("https://cancer.sanger.ac.uk/cosmic/search?'
@@ -631,7 +633,7 @@ class TestAddRawChange():
         panel='', print_columns=False, print_header=False, reads='',
         rename=None, sample='', sheets=['variants'], summary=None,
         vcfs=[], workflow=('', ''), split_hgvs=None,
-        add_classification_column=None, additional_columns=[]
+        add_classification_column=None, additional_columns=[], af_format = ''
     ))
 
     def test_normal_df(self):
@@ -686,6 +688,62 @@ class TestAddRawChange():
             'Columns incorrect after calling add_raw_change() on df with missing columns'
         )
 
+class TestReportText(unittest.TestCase):
+    """
+    Tests for report text done for uranus workbooks normally
+    """
+    def test_report_text(self):
+        # reuse read_vcf from class TestDataFrameActions
+        tda_object = TestDataFrameActions()
+        # but reset the columns_vcf input VCF file
+        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
+        # read_vcf of oncospan and clean intermediate files
+        vcf_handler = tda_object.read_vcf()
+        tda_object.clean_up()
+
+        # make report text
+        vcf_handler.make_report_text(vcf_handler.vcfs)
+
+        # check elements are correctly presented
+        for text in list(vcf_handler.vcfs[0].Report_text):
+            # check that the three HGVSc, HGVSp and VAF are listed
+            assert text.split(":")[0] == "Allele Frequency (VAF)", (
+                "Does not contain Allele Frequency (VAF) in report text"
+            )
+
+    def test_percent_af(self):
+        """
+        Test that the allele frequency (AF) is:
+            - converted to percent
+            - within 0-100 range
+        """
+        # reuse read_vcf from class TestDataFrameActions
+        tda_object = TestDataFrameActions()
+        # but reset the columns_vcf input VCF file
+        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
+        # read_vcf of oncospan and clean intermediate files
+        vcf_handler = tda_object.read_vcf()
+        tda_object.clean_up()
+
+        # update the af_format namespace to be percent
+        vcf_handler.args.af_format = "percent"
+        vcf_handler.percent_af(vcf_handler.vcfs)
+
+        # check all values contains %
+        AF_column_percent = list(vcf_handler.vcfs[0].AF)
+
+        # get all strings in AF_column_percent that contain %
+        contains_percent =  [s for s in AF_column_percent if "%" in s]
+        with self.subTest("Not all AFs are percent"):
+            self.assertEqual(len(AF_column_percent), len(contains_percent))
+
+        # check that they are all above 0
+        # 1. strip off %
+        # 2. check all greater than 0
+        res = [float(s.replace('%','')) for s in AF_column_percent]
+        for s in res:
+            with self.subTest(msg="Not all AFs range are within 0-100 (which should be for percent)"):
+                self.assertTrue(0 <= s <= 100)
 
 if __name__ == "__main__":
     TestAddRawChange().test_normal_df()
