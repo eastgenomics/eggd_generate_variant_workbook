@@ -743,10 +743,19 @@ class vcf():
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
-    def order_columns(self, vcfs) -> None:
+    def order_columns(self, vcfs) -> list:
         """
         Reorder columns by specified order from `--reorder` argument, any not
         specified will retain original order after reorder columns
+
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to order columns from
+        Returns
+        -------
+        list
+            list of dataframes with ordered columns
 
         Raises
         ------
@@ -965,10 +974,18 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
 
-    def percent_af(self, vcfs):
+    def percent_af(self, vcfs) -> list:
         """
         Finds the column with "AF" and will convert the number format
         to percent
+        Parameters
+        ----------
+        vcfs : list
+            list of pd.DataFrames of vcfs to change the AF columns type
+        Returns
+        -------
+        list
+            list of dataframes with AF changed to percent type
         """
         # find the sheets and apply to all sheets
         for idx, vcf in enumerate(vcfs):
@@ -978,7 +995,7 @@ class vcf():
             vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
 
             vcfs[idx] = vcf
-        
+
         return vcfs
 
 
