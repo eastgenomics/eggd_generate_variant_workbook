@@ -167,7 +167,7 @@ class vcf():
             self.vcfs[0]['Interpreted'] = ''
 
         if self.args.split_hgvs:
-            self.split_hgvs()
+            self.split_hgvs(self.vcfs)
 
         if self.args.add_raw_change:
             self.add_raw_change()
@@ -440,6 +440,10 @@ class vcf():
                 # to get things like split INFO columns and hyperlinks
 
                 file_df = splitColumns().split(file_df)
+
+                if self.args.split_hgvs:
+                    file_df = self.split_hgvs([file_df])[0]
+
                 if self.args.af_format == "percent":
                     file_df = self.percent_af([file_df])[0]
                 if self.args.report_text:
@@ -905,12 +909,12 @@ class vcf():
         return [pd.concat(vcfs).reset_index(drop=True)]
 
 
-    def split_hgvs(self) -> pd.DataFrame:
+    def split_hgvs(self, vcfs) -> pd.DataFrame:
         """
         If --split_hgvs specified, attempt to split HGVSc and HGVSp columns
         into 2 separate ones: c. change (DNA) and p. change (Protein).
         """
-        for idx, vcf in enumerate(self.vcfs):
+        for idx, vcf in enumerate(vcfs):
             # check required columns are in the dataframe
             if not all(col in vcf.columns for col in ['CSQ_HGVSc', 'CSQ_HGVSp']):
                 print(
@@ -931,7 +935,9 @@ class vcf():
             vcf['DNA'] = vcf['CSQ_HGVSc'].str.split(':').str[1]
             vcf['Protein'] = vcf['CSQ_HGVSp'].str.split(':').str[1]
 
-            self.vcfs[idx] = vcf
+            vcfs[idx] = vcf
+
+        return vcfs
 
 
     def add_raw_change(self) -> None:
