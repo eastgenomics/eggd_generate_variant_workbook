@@ -432,7 +432,7 @@ class vcf():
                         vcf=file,
                         output_vcf=split_additional_vcf
                     )
-                    file_df = self.read(split_additional_vcf, prefix)
+                    file_df = self.read(split_additional_vcf, Path(split_additional_vcf).stem)
                 else:
                     file_df = self.read(file)
 
