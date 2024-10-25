@@ -1113,27 +1113,39 @@ class vcf():
         list_join_dicts = []
         for join in list_of_joins:
             joins_dict={}
-            print("----")
-            print(join)
             # assumption is user provides header with "=" as seperator, so there
             # should be one equal sign
             assert join.count('=') == 1, (
                     'WARNING: --join_columns requires the header to be stated '
-                    'with an equal symbol(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC;/;CSQ_Prev_Count_NS"'
+                    'with an equal symbol(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"'
                 )
 
             joins_dict["header"] = join.split("=")[0]
             column_to_join=join.split("=")[1]
-            # assumption is user provides ";" as seperator, so there
-            # should be two semi colons
-            assert join.count(';') == 2, (
+            # assumption is user provides "," as seperator, so there
+            # should be two or three semi colons (three due to column seperator being chosen as comma)
+            assert join.count(',') == 2 | join.count(',') == 3, (
                      'WARNING: --join_columns requires the seperator of columns '
-                    'to be semi columns (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC;/;CSQ_Prev_Count_NS"'
+                    'to be comma (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
+                    'Expects either two or three minimum commas in string.'
                 )
-
-            joins_dict["join_1"] = column_to_join.split(';')[0]
-            joins_dict["seperator"] = column_to_join.split(';')[1]
-            joins_dict["join_2"] = column_to_join.split(';')[2]
+            if len(column_to_join.split(',')) == 3 :
+                # user has not provided comma as the column seperator
+                # e.g Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS
+                # so the split becomes
+                # ['CSQ_Prev_Count_AC', '/', 'CSQ_Prev_Count_NS']
+                joins_dict["join_1"] = column_to_join.split(',')[0]
+                joins_dict["seperator"] = column_to_join.split(',')[1]
+                joins_dict["join_2"] = column_to_join.split(',')[2]
+            else:
+                # if user provides a comma as the seperator for the
+                # column the split wont work cleanly
+                # e.g Prev_Count=CSQ_Prev_Count_AC,,,CSQ_Prev_Count_NS
+                # so the split becomes
+                # ['CSQ_Prev_Count_AC', '', '', 'CSQ_Prev_Count_NS']
+                joins_dict["join_1"] = column_to_join.split(',')[0]
+                joins_dict["seperator"] = ","
+                joins_dict["join_2"] = column_to_join.split(',')[3]
             list_join_dicts.append(joins_dict)
 
 
