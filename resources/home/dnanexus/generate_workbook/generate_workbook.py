@@ -324,6 +324,13 @@ class arguments():
             help=('Makes a report summary to be appened as the last column'
             )
         )
+        parser.add_argument(
+            '--join_columns', nargs='+',
+            help=(
+                'Joins columns together with a seperator or attaches string '
+                'before or after a column'
+            )
+        )
         return parser.parse_args()
 
 

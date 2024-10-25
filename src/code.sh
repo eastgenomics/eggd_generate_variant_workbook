@@ -111,6 +111,7 @@ main() {
     if [ "$lock_sheet" == true ]; then args+="--lock_sheet "; fi
     if [ "$report_text" == true ]; then args+="--report_text "; fi
     if [ "$af_format" ]; then args+="--af_format ${af_format} "; fi
+    if [ "$join_columns" ]; then args+="--join_columns ${join_columns} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

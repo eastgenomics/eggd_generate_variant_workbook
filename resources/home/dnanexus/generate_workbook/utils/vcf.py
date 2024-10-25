@@ -1,3 +1,4 @@
+from cmath import nan
 import gzip
 import os
 from pathlib import Path, PurePath
@@ -180,6 +181,9 @@ class vcf():
 
         if self.args.af_format == "percent":
             self.percent_af(self.vcfs)
+
+        if self.args.join_columns:
+            self.joining_columns(self.vcfs)
 
         if self.args.report_text:
             self.make_report_text(self.vcfs)
@@ -1084,3 +1088,62 @@ class vcf():
         text += f"Allele Frequency (VAF): {add_none(str(row.get('af', '')))}"
 
         return text
+
+
+    def joining_columns(self, vcfs) -> list:
+        """
+        Joins two exisiting columns into a new column. The user will provide the
+        columns with a choice of seperator
+
+        Parameters
+        ----------
+        vcfs : list
+            list of vcf dataframes to which to add report text column to
+
+        Returns
+        -------
+        list
+            list of vcf dataframes with new column containing info of two columns
+        """
+        list_of_joins=self.args.join_columns
+
+        # if the list has multiple joins, seperate the string by space
+        list_of_joins = list_of_joins[0].split(" ")
+
+        list_join_dicts = []
+        for join in list_of_joins:
+            joins_dict={}
+            print("----")
+            print(join)
+            # assumption is user provides header with "=" as seperator, so there
+            # should be one equal sign
+            assert join.count('=') == 1, (
+                    'WARNING: --join_columns requires the header to be stated '
+                    'with an equal symbol(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC;/;CSQ_Prev_Count_NS"'
+                )
+
+            joins_dict["header"] = join.split("=")[0]
+            column_to_join=join.split("=")[1]
+            # assumption is user provides ";" as seperator, so there
+            # should be two semi colons
+            assert join.count(';') == 2, (
+                     'WARNING: --join_columns requires the seperator of columns '
+                    'to be semi columns (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC;/;CSQ_Prev_Count_NS"'
+                )
+
+            joins_dict["join_1"] = column_to_join.split(';')[0]
+            joins_dict["seperator"] = column_to_join.split(';')[1]
+            joins_dict["join_2"] = column_to_join.split(';')[2]
+            list_join_dicts.append(joins_dict)
+
+
+        for idx, vcf in enumerate(vcfs):
+            for join_dicts in list_join_dicts:
+                print(join_dicts)
+                # sometimes we may want to combine two int columns (e.g chrom,pos)
+                # consider that it will need to be sring type for ease
+                vcf[join_dicts['header']] = vcf[join_dicts['join_1']].astype(str) + join_dicts['seperator']  + vcf[join_dicts['join_2']].astype(str)
+                vcfs[idx] = vcf
+
+        return vcfs
+
