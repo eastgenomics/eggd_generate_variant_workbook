@@ -4,7 +4,7 @@ import operator
 import os
 from pathlib import Path
 import re
-from ssl import VERIFY_CRL_CHECK_LEAF
+
 from string import ascii_uppercase as uppercase
 from timeit import default_timer as timer
 from typing import Union
