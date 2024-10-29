@@ -407,7 +407,7 @@ class TestDataFrameActions():
 
         assert vcf_handler.vcfs[0]['Site'].tolist() == expected_sites, (
             "Columns do not join as expected when columns are presented, using"
-            "deault seperators"
+            "default seperators"
         )
 
     def test_join_columns_right_comma(self):
@@ -427,7 +427,7 @@ class TestDataFrameActions():
 
         assert vcf_handler.vcfs[0]['Site'].tolist() == expected_sites, (
             "Columns do not join as expected when columns are presented, using"
-            "deault seperators"
+            "default seperators"
         )
 
     def test_join_columns_right_with_other_characters(self):
