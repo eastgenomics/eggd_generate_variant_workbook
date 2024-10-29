@@ -1125,7 +1125,7 @@ class vcf():
             joins_dict["header"], column_to_join = join.split("=")
 
             # assumption is user provides "," as seperator, so there
-            # should be two or three semi colons (three due to column seperator being chosen as comma)
+            # should be two or three commas (three due to column seperator being chosen as comma)
             if join.count(',') != 2 |  join.count(',') != 3:
                 raise TypeError (
                      'WARNING: --join_columns requires the seperator of columns '
