@@ -1126,7 +1126,7 @@ class vcf():
 
             # assumption is user provides "," as seperator, so there
             # should be two or three commas (three due to column seperator being chosen as comma)
-            if join.count(',') != 2 |  join.count(',') != 3:
+            if join.count(',') not in (2, 3):
                 raise TypeError (
                      'WARNING: --join_columns requires the seperator of columns '
                     'to be comma (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
