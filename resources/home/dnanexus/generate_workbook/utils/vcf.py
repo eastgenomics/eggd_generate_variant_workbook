@@ -1137,18 +1137,15 @@ class vcf():
                 # e.g Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS
                 # so the split becomes
                 # ['CSQ_Prev_Count_AC', '/', 'CSQ_Prev_Count_NS']
-                joins_dict["join_1"] = column_to_join.split(',')[0]
-                joins_dict["seperator"] = column_to_join.split(',')[1]
-                joins_dict["join_2"] = column_to_join.split(',')[2]
+                joins_dict['join_1'], joins_dict['seperator'], joins_dict['join_2'] = column_to_join.split(',')
             else:
                 # if user provides a comma as the seperator for the
                 # column the split wont work cleanly
                 # e.g Prev_Count=CSQ_Prev_Count_AC,,,CSQ_Prev_Count_NS
                 # so the split becomes
                 # ['CSQ_Prev_Count_AC', '', '', 'CSQ_Prev_Count_NS']
-                joins_dict["join_1"] = column_to_join.split(',')[0]
-                joins_dict["seperator"] = ","
-                joins_dict["join_2"] = column_to_join.split(',')[3]
+                joins_dict['join_1'], joins_dict['join_2'] = column_to_join.split(',')[0::3]
+                joins_dict['seperator'] = ','
             list_join_dicts.append(joins_dict)
 
 
