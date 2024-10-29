@@ -420,18 +420,13 @@ class TestDataFrameActions():
                         'chr11:108254034', 'chr11:108326230', 'chr17:7674227']
 
         punctuation = "!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
-        list_of_join_columns_diff_punctiuations = []
-        list_of_expected_sites = []
-
-        for p in punctuation:
-            list_of_join_columns_diff_punctiuations.append("Site=CHROM," + p + ",POS")
-            list_of_expected_sites.append([x.replace(':', p) for x in expected_sites])
 
         for i in range(len(punctuation)):
             vcf_handler = self.read_vcf()
-            vcf_handler.args.join_columns = [list_of_join_columns_diff_punctiuations[i]]
+            p = punctuation[i]
+            vcf_handler.args.join_columns = ["Site=CHROM," + p + ",POS"]
             vcf_handler.joining_columns(vcf_handler.vcfs)
-            assert vcf_handler.vcfs[0]['Site'].tolist() == list_of_expected_sites[i], (
+            assert vcf_handler.vcfs[0]['Site'].tolist() == [x.replace(':', p) for x in expected_sites], (
             "Columns do not join as expected when columns are presented, using"
             "deault seperators"
         )
