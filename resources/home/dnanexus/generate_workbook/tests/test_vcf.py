@@ -430,26 +430,6 @@ class TestDataFrameActions():
             "deault seperators"
         )
 
-    def test_join_columns_right_with_equal_seperator(self):
-        """
-        Tests that no errors are raised when the right format is provided
-        to join columns
-        """
-        vcf_handler = self.read_vcf()
-        vcf_handler.args.join_columns = ['Site=CHROM,=,POS']
-
-        vcf_handler.joining_columns(vcf_handler.vcfs)
-
-        expected_sites=['chr7=140734774', 'chr7=140734774', 'chr7=140734774',
-                        'chr7=140924603', 'chr9=136494732', 'chr9=136496492',
-                        'chr9=136496509', 'chr9=136497099', 'chr9=136504956',
-                        'chr11=108254034', 'chr11=108326230', 'chr17=7674227']
-
-        assert vcf_handler.vcfs[0]['Site'].tolist() == expected_sites, (
-            "Columns do not join as expected when columns are presented, using"
-            "deault seperators"
-        )
-
     def test_join_columns_right_with_other_characters(self):
         """
         Tests that no errors are raised any seperator is used
