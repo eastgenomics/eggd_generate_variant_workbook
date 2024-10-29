@@ -1132,11 +1132,20 @@ class vcf():
                     'to be comma (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
                     'Expects either two or three minimum commas in string.'
                 )
+            # split differs depending on column seperator, so check this
+            # first and last element should be strings and no
             if len(column_to_join.split(',')) == 3 :
                 # user has not provided comma as the column seperator
                 # e.g Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS
                 # so the split becomes
                 # ['CSQ_Prev_Count_AC', '/', 'CSQ_Prev_Count_NS']
+
+                # check that a blank space was not provided
+                if column_to_join.split(',')[1] == '':
+                    raise TypeError (
+                        'WARNING: --join_columns requires the seperator of columns '
+                        'to be provided.'
+                    )
                 joins_dict['join_1'], joins_dict['seperator'], joins_dict['join_2'] = column_to_join.split(',')
             else:
                 # if user provides a comma as the seperator for the
