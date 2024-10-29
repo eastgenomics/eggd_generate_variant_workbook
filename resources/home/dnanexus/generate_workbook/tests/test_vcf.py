@@ -414,19 +414,17 @@ class TestDataFrameActions():
         """
         Tests that no errors are raised any seperator is used
         """
-
-        punctuation = "!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
-        list_of_join_columns_diff_punctiuations = []
-        for p in punctuation:
-            list_of_join_columns_diff_punctiuations.append("Site=CHROM," + p + ",POS")
-
         expected_sites=['chr7:140734774', 'chr7:140734774', 'chr7:140734774',
                         'chr7:140924603', 'chr9:136494732', 'chr9:136496492',
                         'chr9:136496509', 'chr9:136497099', 'chr9:136504956',
                         'chr11:108254034', 'chr11:108326230', 'chr17:7674227']
 
+        punctuation = "!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
+        list_of_join_columns_diff_punctiuations = []
         list_of_expected_sites = []
+
         for p in punctuation:
+            list_of_join_columns_diff_punctiuations.append("Site=CHROM," + p + ",POS")
             list_of_expected_sites.append([x.replace(':', p) for x in expected_sites])
 
         for i in range(len(punctuation)):
