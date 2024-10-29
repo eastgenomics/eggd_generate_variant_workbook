@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import unittest
 import pandas as pd
+import re
 
 import pytest
 
@@ -410,7 +411,7 @@ class TestDataFrameActions():
         )
 
 
-    def test_join_columns_many_column_seperators(self):
+    def test_type_error_raised_when_too_many_separators_provided(self):
         """
         Check that error is raised when the too many seperators are
         provided
@@ -418,15 +419,18 @@ class TestDataFrameActions():
         vcf_handler = self.read_vcf()
         vcf_handler.args.join_columns = ['Site=CHROM,,,,POS']
 
-        with pytest.raises(TypeError) as excinfo:
-            vcf_handler.joining_columns(vcf_handler.vcfs)
-        assert str(excinfo.value) == ('WARNING: --join_columns '
+        expected_error_msg =  re.escape(
+        'WARNING: --join_columns '
         'requires the seperator of columns to be comma '
         '(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
-        'Expects either two or three minimum commas in string.')
+        'Expects either two or three minimum commas in string.'
+        )
+
+        with pytest.raises(TypeError, match=expected_error_msg):
+            vcf_handler.joining_columns(vcf_handler.vcfs)
 
 
-    def test_join_columns_wrong_column_seperators(self):
+    def test_type_error_raised_when_new_header_equal_not_provided(self):
         """
         Tests that the renamed columns have the specified names
         from args.rename
@@ -434,11 +438,15 @@ class TestDataFrameActions():
         vcf_handler = self.read_vcf()
         vcf_handler.args.join_columns = ['Site,CHROM,,,POS']
 
-        with pytest.raises(TypeError) as excinfo:
-            vcf_handler.joining_columns(vcf_handler.vcfs)
-        assert str(excinfo.value) == ('WARNING: --join_columns requires the header to '
+        expected_error_msg =  re.escape(
+        'WARNING: --join_columns requires the header to '
         'be stated with an equal symbol'
-        '(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"')
+        '(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"'
+        )
+
+        with pytest.raises(TypeError, match=expected_error_msg):
+            vcf_handler.joining_columns(vcf_handler.vcfs)
+
 
 class TestHyperlinks():
     '''
