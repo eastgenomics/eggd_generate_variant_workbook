@@ -1122,8 +1122,8 @@ class vcf():
                     'with an equal symbol(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"'
                 )
 
-            joins_dict["header"] = join.split("=")[0]
-            column_to_join=join.split("=")[1]
+            joins_dict["header"], column_to_join = join.split("=")
+
             # assumption is user provides "," as seperator, so there
             # should be two or three semi colons (three due to column seperator being chosen as comma)
             if join.count(',') != 2 |  join.count(',') != 3:
