@@ -531,8 +531,8 @@ class TestDataFrameActions():
 
     def test_type_error_raised_when_new_header_equal_not_provided(self):
         """
-        Tests that the renamed columns have the specified names
-        from args.rename
+        Check that error is raised when equal is not provided to assign
+        a new header
         """
         vcf_handler = self.read_vcf()
         vcf_handler.args.join_columns = ['Site,CHROM,,,POS']
