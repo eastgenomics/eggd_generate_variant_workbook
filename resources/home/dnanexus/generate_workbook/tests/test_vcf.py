@@ -421,9 +421,8 @@ class TestDataFrameActions():
 
         punctuation = "!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
 
-        for i in range(len(punctuation)):
+        for p in punctuation:
             vcf_handler = self.read_vcf()
-            p = punctuation[i]
             vcf_handler.args.join_columns = ["Site=CHROM," + p + ",POS"]
             vcf_handler.joining_columns(vcf_handler.vcfs)
             assert vcf_handler.vcfs[0]['Site'].tolist() == [x.replace(':', p) for x in expected_sites], (
