@@ -39,7 +39,8 @@ VCF_ARGS = argparse.Namespace(
     additional_columns=[],
     summary=None,
     report_text=False,
-    af_format=None
+    af_format=None,
+    join_columns=False
 )
 
 class TestHeader():
@@ -209,7 +210,7 @@ class TestDataFrameActions():
             rename=None, sample='', sheets=['variants'], summary=None,
             vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
             add_classification_column=None, additional_columns=[],
-            report_text=False, af_format = ''
+            report_text=False, af_format = '',join_columns=''
         ))
 
         # first split multiple transcript annotation to separate VCF
@@ -387,6 +388,57 @@ class TestDataFrameActions():
             "Column names specified in args.rename not present in renamed "
             "column list"
         )
+
+    def test_join_columns_right(self):
+        """
+        Tests that no errors are raised when the right format is provided
+        to join columns
+        """
+        vcf_handler = self.read_vcf()
+        vcf_handler.args.join_columns = ['Site=CHROM,;,POS']
+
+        vcf_handler.joining_columns(vcf_handler.vcfs)
+
+        expected_sites=['chr7;140734774', 'chr7;140734774', 'chr7;140734774',
+                        'chr7;140924603', 'chr9;136494732', 'chr9;136496492',
+                        'chr9;136496509', 'chr9;136497099', 'chr9;136504956',
+                        'chr11;108254034', 'chr11;108326230', 'chr17;7674227']
+
+        assert vcf_handler.vcfs[0]['Site'].tolist() == expected_sites, (
+            "Columns do not join as expected when columns are presented, using"
+            "deault seperators"
+        )
+
+
+    def test_join_columns_many_column_seperators(self):
+        """
+        Check that error is raised when the too many seperators are
+        provided
+        """
+        vcf_handler = self.read_vcf()
+        vcf_handler.args.join_columns = ['Site=CHROM,,,,POS']
+
+        with pytest.raises(TypeError) as excinfo:
+            vcf_handler.joining_columns(vcf_handler.vcfs)
+        assert str(excinfo.value) == ('WARNING: --join_columns '
+        'requires the seperator of columns to be comma '
+        '(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
+        'Expects either two or three minimum commas in string.')
+
+
+    def test_join_columns_wrong_column_seperators(self):
+        """
+        Tests that the renamed columns have the specified names
+        from args.rename
+        """
+        vcf_handler = self.read_vcf()
+        vcf_handler.args.join_columns = ['Site,CHROM,,,POS']
+
+        with pytest.raises(TypeError) as excinfo:
+            vcf_handler.joining_columns(vcf_handler.vcfs)
+        assert str(excinfo.value) == ('WARNING: --join_columns requires the header to '
+        'be stated with an equal symbol'
+        '(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"')
 
 class TestHyperlinks():
     '''

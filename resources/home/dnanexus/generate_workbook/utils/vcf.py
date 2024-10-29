@@ -1108,6 +1108,7 @@ class vcf():
         list_of_joins=self.args.join_columns
 
         # if the list has multiple joins, seperate the string by space
+        #### check that the lists are seperated by columns
         list_of_joins = list_of_joins[0].split(" ")
 
         list_join_dicts = []
@@ -1115,7 +1116,8 @@ class vcf():
             joins_dict={}
             # assumption is user provides header with "=" as seperator, so there
             # should be one equal sign
-            assert join.count('=') == 1, (
+            if join.count('=') != 1:
+                raise TypeError (
                     'WARNING: --join_columns requires the header to be stated '
                     'with an equal symbol(e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"'
                 )
@@ -1124,7 +1126,8 @@ class vcf():
             column_to_join=join.split("=")[1]
             # assumption is user provides "," as seperator, so there
             # should be two or three semi colons (three due to column seperator being chosen as comma)
-            assert join.count(',') == 2 | join.count(',') == 3, (
+            if join.count(',') != 2 |  join.count(',') != 3:
+                raise TypeError (
                      'WARNING: --join_columns requires the seperator of columns '
                     'to be comma (e.g --join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"). '
                     'Expects either two or three minimum commas in string.'
@@ -1151,7 +1154,6 @@ class vcf():
 
         for idx, vcf in enumerate(vcfs):
             for join_dicts in list_join_dicts:
-                print(join_dicts)
                 # sometimes we may want to combine two int columns (e.g chrom,pos)
                 # consider that it will need to be sring type for ease
                 vcf[join_dicts['header']] = vcf[join_dicts['join_1']].astype(str) + join_dicts['seperator']  + vcf[join_dicts['join_2']].astype(str)
