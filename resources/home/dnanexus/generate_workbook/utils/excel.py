@@ -4,6 +4,7 @@ import operator
 import os
 from pathlib import Path
 import re
+from ssl import VERIFY_CRL_CHECK_LEAF
 from string import ascii_uppercase as uppercase
 from timeit import default_timer as timer
 from typing import Union
@@ -985,7 +986,7 @@ class excel():
                 start = timer()
                 vcf.to_excel(
                     self.writer, sheet_name=sheet,
-                    index=False, float_format="%.3f"
+                    index=False
                 )
 
                 curr_worksheet = self.writer.sheets[sheet]
