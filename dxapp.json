@@ -296,7 +296,7 @@
       "label": "Join columns",
       "class": "string",
       "optional" : true,
-      "help": "= separated near header using two columns form VCF with a seperator"
+      "help": "User to join two columns from VCF into a new column with a seperator of choice"
     }
   ],
   "outputSpec": [
