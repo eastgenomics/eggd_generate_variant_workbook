@@ -455,7 +455,8 @@ class vcf():
 
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
-                file_df = self.joining_columns([file_df])[0]
+                if self.args.join_columns:
+                    file_df = self.joining_columns([file_df])[0]
 
                 if self.args.exclude or self.args.include:
                     self.drop_columns([file_df])
