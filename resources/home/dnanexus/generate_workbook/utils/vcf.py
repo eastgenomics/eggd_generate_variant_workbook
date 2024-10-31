@@ -464,7 +464,6 @@ class vcf():
                 if self.args.reorder:
                     file_df = self.order_columns([file_df])[0]
 
-                file_df.columns = self.strip_csq_prefix(file_df)
                 file_df = self.rename_columns([file_df])[0]
                 # force header to also be first line of df so it is written
                 # to the Excel sheet
