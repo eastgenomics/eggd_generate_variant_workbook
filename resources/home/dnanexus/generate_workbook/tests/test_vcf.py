@@ -498,6 +498,21 @@ class TestDataFrameActions():
         with pytest.raises(TypeError, match=expected_error_msg):
             vcf_handler.joining_columns(vcf_handler.vcfs)
 
+    def test_no_fail_when_vcf_doesnt_have_column_in_vcf(self):
+        """
+        Check that the output VCF doesnt contain the joined VCF after
+        a non exisiting column is given
+        """
+        vcf_handler = self.read_vcf()
+
+        vcf_handler.args.join_columns = ['Site=CHROM,:,notrealcolumn']
+
+        vcf_handler.joining_columns(vcf_handler.vcfs)
+
+        assert 'Site' not in vcf_handler.vcfs[0].columns.tolist(), (
+            "Column Site should not created due POS column not in VCF"
+        )
+
 
 class TestHyperlinks():
     '''

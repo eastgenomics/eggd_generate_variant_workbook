@@ -290,6 +290,13 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, a report text column will be added that contains the key variant annotation in one cell"
+    },
+    {
+      "name": "join_columns",
+      "label": "Join columns",
+      "class": "string",
+      "optional" : true,
+      "help": "User to join two columns from VCF into a new column with a seperator of choice. The header needs to be added to the include or rename if this is used"
     }
   ],
   "outputSpec": [

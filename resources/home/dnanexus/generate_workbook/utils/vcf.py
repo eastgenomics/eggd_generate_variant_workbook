@@ -455,7 +455,8 @@ class vcf():
 
                 file_df = self.format_strings([file_df])[0]
                 file_df = self.add_hyperlinks([file_df])[0]
-                file_df = self.joining_columns([file_df])[0]
+                if self.args.join_columns:
+                    file_df = self.joining_columns([file_df])[0]
 
                 if self.args.exclude or self.args.include:
                     self.drop_columns([file_df])
@@ -1161,10 +1162,19 @@ class vcf():
 
         for idx, vcf in enumerate(vcfs):
             for join_dicts in list_join_dicts:
-                # sometimes we may want to combine two int columns (e.g chrom,pos)
-                # consider that it will need to be sring type for ease
-                vcf[join_dicts['header']] = vcf[join_dicts['join_1']].astype(str) + join_dicts['seperator']  + vcf[join_dicts['join_2']].astype(str)
-                vcfs[idx] = vcf
+                columns_requested = [joins_dict['join_1'], joins_dict['join_2']]
+                # check that the headers exist in VCF, if not raise warning
+                if not all(x in vcf.columns for x in columns_requested):
+                    print (
+                    f"WARNING: Column {columns_requested} requested "
+                    f"to join do not exist in VCF."
+                )
+                else:
+                    # sometimes we may want to combine two int columns (e.g chrom,pos)
+                    # consider that it will need to be sring type for ease
+                    vcf[join_dicts['header']] = vcf[join_dicts['join_1']].astype(str) + join_dicts['seperator']  + vcf[join_dicts['join_2']].astype(str)
+                    vcfs[idx] = vcf
+
 
         return vcfs
 
