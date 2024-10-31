@@ -510,14 +510,11 @@ class TestDataFrameActions():
 
         vcf_handler.args.join_columns = ['Site=CHROM,:,POS']
 
-        expected_error_msg =  re.escape(
-            "Columns ['CHROM', 'POS'] requested "
-            "to join do not exist in VCF."
+        vcf_handler.joining_columns(vcf_handler.vcfs)
+
+        assert 'Site' not in vcf_handler.vcfs[0].columns.tolist(), (
+            "Column Site should not created due POS column not in VCF"
         )
-
-
-        with pytest.raises(AssertionError, match=expected_error_msg):
-            vcf_handler.joining_columns(vcf_handler.vcfs)
 
 
 class TestHyperlinks():
