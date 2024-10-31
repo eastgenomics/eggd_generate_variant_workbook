@@ -1162,6 +1162,11 @@ class vcf():
 
         for idx, vcf in enumerate(vcfs):
             for join_dicts in list_join_dicts:
+                # check that the headers exist in VCF, if not raise warning
+                assert (x not in vcf.columns for x in [joins_dict['join_1'], joins_dict['join_2']]), (
+                    f"Columns {[joins_dict['join_1'], joins_dict['join_2']]} requested "
+                    f"to join do not exist in VCF."
+                )
                 # sometimes we may want to combine two int columns (e.g chrom,pos)
                 # consider that it will need to be sring type for ease
                 vcf[join_dicts['header']] = vcf[join_dicts['join_1']].astype(str) + join_dicts['seperator']  + vcf[join_dicts['join_2']].astype(str)
