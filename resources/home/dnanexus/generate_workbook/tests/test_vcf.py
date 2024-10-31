@@ -498,6 +498,27 @@ class TestDataFrameActions():
         with pytest.raises(TypeError, match=expected_error_msg):
             vcf_handler.joining_columns(vcf_handler.vcfs)
 
+    def test_assertion_raised_when_vcf_doesnt_have_column_in_vcf(self):
+        """
+        Check that assertion is raised when a column not in VCF is requested
+        to join columns
+        """
+        vcf_handler = self.read_vcf()
+        # force drop the POS column
+        vcf_handler.args.exclude = ['POS']
+        vcf_handler.drop_columns()
+
+        vcf_handler.args.join_columns = ['Site=CHROM,:,POS']
+
+        expected_error_msg =  re.escape(
+            "Columns ['CHROM', 'POS'] requested "
+            "to join do not exist in VCF."
+        )
+
+
+        with pytest.raises(AssertionError, match=expected_error_msg):
+            vcf_handler.joining_columns(vcf_handler.vcfs)
+
 
 class TestHyperlinks():
     '''
