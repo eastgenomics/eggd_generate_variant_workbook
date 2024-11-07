@@ -442,6 +442,9 @@ class vcf():
 
                 # call some of the formatting methods for regular vcfs
                 # to get things like split INFO columns and hyperlinks
+                if not file_df.empty:
+                    file_df = splitColumns().split(file_df)
+
                 if self.args.split_hgvs:
                     file_df = self.split_hgvs([file_df])[0]
 
