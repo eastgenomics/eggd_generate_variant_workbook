@@ -1007,8 +1007,7 @@ class vcf():
     def make_report_text(self, vcfs):
         """
         Makes a report text that follows the has the details per row
-        gene_symbol consequence, hgvsc, hgvsp, cosmic, dbsnp and
-        allele frequency
+        gene_symbol consequence, hgvsc, hgvsp, dbsnp and allele frequency
 
         Parameters
         ----------
@@ -1073,15 +1072,6 @@ class vcf():
             text += f"HGVSp: {add_none(row.get('protein', ''))}\n"
         elif row.get('hgvsp'):
             text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
-
-        if row.get('cosmiccmuts', '').replace('.', ''):
-            text += f"COSMIC coding ID: {row.get('cosmiccmuts')}\n"
-
-        if row.get('cosmicncmuts', '').replace('.', ''):
-            text += f"COSMIC non-coding ID: {row.get('cosmicncmuts')}\n"
-
-        if row.get('cosmic', '').replace('.', ''):
-            text += f"COSMIC ID: {row.get('cosmic')}\n"
 
         if row.get('existing_variation', '').replace('.', ''):
             text += f"dbSNP: {row.get('existing_variation', '')}\n"
