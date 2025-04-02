@@ -104,7 +104,7 @@ This app may be executed as a standalone app.
 
 `--af_format` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
 
-`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variants are gene name, consequence, exon number, HGVSc, HGVSp, cosmic annotation, exisiting variation and allele frequency.
+`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variant annotations are gene name, consequence, exon number, HGVSc, HGVSp, existing variation and allele frequency.
 
 `--join_columns` (`string`): Allows user to join two columns from VCF into a new column with a seperator of choice (i.e `--join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"` ). The header needs to be added to the include or rename if this is used
 

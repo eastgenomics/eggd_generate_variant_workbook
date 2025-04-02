@@ -321,13 +321,13 @@ class arguments():
         )
         parser.add_argument(
             '--report_text', action='store_true',
-            help=('Makes a report summary to be appened as the last column'
+            help=('Makes a report summary to be appended as the last column'
             )
         )
         parser.add_argument(
             '--join_columns', nargs='+',
             help=(
-                'Joins columns together with a seperator or attaches string '
+                'Joins columns together with a separator or attaches string '
                 'before or after a column'
             )
         )
