@@ -20,6 +20,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles.protection import Protection
 import pandas as pd
+from dxpy.bindings.dxfile_functions import open_dxfile
 
 from .utils import is_numeric
 
@@ -188,105 +189,121 @@ class excel():
 
 
     def uranus_summary(self) -> None:
-            """
-            Writes summary sheet for uranus pipeline same header as the
-            variant sheet, headers for the QC  and three cells for scientist
-            to write on
-            """
-            # track what cells to make bold
-            to_bold = []
+        """
+        Writes summary sheet for uranus pipeline same header as the
+        variant sheet, headers for the QC  and three cells for scientist
+        to write on
+        """
+        # track what cells to make bold
+        to_bold = []
 
-            # copy the headers from the variants sheet
-            header = self.vcfs[0].columns.to_list()
-            # start from B1 (second row) as we want do not want to
-            # iterate over A1 (samplename header)
-            for idx, row in enumerate(header, 1):
-                self.summary.cell(1, idx).value = row
-                to_bold.append(self.summary.cell(1, idx).coordinate)
-            self.set_widths(self.summary, header)
+        # write QC summary template
+        self.summary.cell(7, 1).value = "Run QC"
+        self.summary.cell(8, 1).value = "250x"
+        self.summary.cell(9, 1).value = "Contamination"
+        self.summary.cell(10, 1).value = "Total reads M"
+        self.summary.cell(11, 1).value = "Fold 80"
+        self.summary.cell(12, 1).value = "Insert Size"
 
-            # write QC summary template
-            self.summary.cell(14, 1).value = "Run QC"
-            self.summary.cell(15, 1).value = "250x"
-            self.summary.cell(16, 1).value = "Contamination"
-            self.summary.cell(17, 1).value = "Total reads M"
-            self.summary.cell(18, 1).value = "Fold 80"
-            self.summary.cell(19, 1).value = "Insert Size"
+        self.summary.cell(7, 4).value = "Sample QC"
+        self.summary.cell(3, 6).value = "Analysed by"
+        self.summary.cell(4, 6).value = "Date"
+        self.summary.cell(5, 6).value = "Subpanel analysed"
+        self.summary.cell(6, 6).value = "M-code"
+        self.summary.cell(1, 1).value = "Sample ID"
 
-            self.summary.cell(14, 4).value = "Sample QC"
-            self.summary.cell(10, 6).value = "Analysed by"
-            self.summary.cell(11, 6).value = "Date"
-            self.summary.cell(12, 6).value = "Subpanel analysed"
-            self.summary.cell(8, 1).value = "Sample ID"
+        to_bold.extend(["A7", "A1", "D7", "F3", "F4", "F5", "F6"])
 
-            to_bold.extend(["A14", "A8", "D14", "F10", "F11", "F12"])
+        test_codes = ",".join(
+            open_dxfile(self.args.m_codes, mode="r").read().splitlines()
+            )
 
-            # get sample name from vcf, should only be one but handle everything
-            # list-wise just in case
-            sample = [
-                Path(x).name.replace('.vcf', '').replace('.gz', '')
-                for x in self.args.vcfs
-            ]
-            sample = [x.split('_')[0] if '_' in x else x for x in sample]
-            sample = str(sample).strip('[]').strip("'")
-            self.summary.cell(8, 2).value = sample
+        self.get_drop_down(
+            # TODO: this will need to be updated to use a list of M-codes
+            # derived from a file
+            dropdown_options=f'"{test_codes}"',
+            prompt="M-code associated with sample",
+            title="M-code",
+            sheet=self.summary,
+            cells=["G6"]
+        )
 
-            # increase width
-            self.summary.column_dimensions['A'].width = 18
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+        self.summary.cell(1, 2).value = sample
 
-            # Not uranus centric but good for record keeping,
-            # include info on reference, filter command and workflow
-            # and report job IDs
-            row_count = 22
+        # Not uranus centric but good for record keeping,
+        # include info on reference, filter command and workflow
+        # and report job IDs
+        row_count = 15
 
-            # write genome reference(s) parsed from vcf header
-            if self.refs:
-                self.summary.cell(row_count, 1).value = "Reference:"
-                self.summary[f"A{row_count}"].font = Font(
-                    bold=True, name=DEFAULT_FONT.name
-                )
-                for ref in list(set(self.refs)):
-                    self.summary.cell(row_count, 2).value = ref
-                    row_count += 1
-
-                row_count += 2
-
-            if self.args.human_filter:
-                self.summary.cell(row_count, 1).value = "Filters applied:"
-                self.summary[f"A{row_count}"].font = Font(
-                    bold=True, name=DEFAULT_FONT.name)
-                self.summary.cell(row_count, 2).value = self.args.human_filter
-
-                row_count += 2
-
-            # write args passed to script to generate report
-            self.summary.cell(row_count, 1).value = "Filter command:"
-            self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-            if self.args.filter:
-                self.summary.cell(row_count, 2).value = self.args.filter
-            else:
-                self.summary.cell(row_count, 2).value = "None"
+        # write genome reference(s) parsed from vcf header
+        if self.refs:
+            self.summary.cell(row_count, 1).value = "Reference:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in list(set(self.refs)):
+                self.summary.cell(row_count, 2).value = ref
+                row_count += 1
 
             row_count += 2
 
-            # write in the colouring of any columns if done
-            if self.args.colour:
-                row_count, to_bold = self.summary_sheet_cell_colour_key(
-                    row_count, to_bold)
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
 
-            # write more text with DNAnexus IDs etc
             row_count += 2
-            self.summary.cell(row_count, 1).value = "Workflow:"
-            self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
-            self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
-            to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
 
-            self.summary.cell(row_count, 2).value = self.args.workflow[0]
-            self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
-            self.summary.cell(row_count + 2, 2).value = self.args.job_id
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
 
-            for cell in to_bold:
-                self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
+        row_count += 2
+
+        # write in the colouring of any columns if done
+        if self.args.colour:
+            row_count, to_bold = self.summary_sheet_cell_colour_key(
+                row_count, to_bold)
+
+        # write more text with DNAnexus IDs etc
+        row_count += 2
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
+
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
+
+        row_count += 4
+        # copy the headers from the variants sheet
+        header = self.vcfs[0].columns.to_list()
+        # start from B (second column) as we want do not want to
+        # iterate over A (samplename header)
+        for idx, row in enumerate(header, 1):
+            self.summary.cell(row_count, idx).value = row
+            to_bold.append(self.summary.cell(row_count, idx).coordinate)
+        self.set_widths(self.summary, header)
+
+        # increase width
+        self.summary.column_dimensions['A'].width = 18
+
+        for cell in to_bold:
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
 
     def helios_summary(self) -> None:

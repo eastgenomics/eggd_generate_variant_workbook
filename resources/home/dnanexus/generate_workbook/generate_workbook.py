@@ -331,6 +331,12 @@ class arguments():
                 'before or after a column'
             )
         )
+        parser.add_argument(
+            '--m_codes', required=False, type=str,
+            help=(
+                'DNAnexus file-ID for file containing all valid Uranus M-codes'
+            )
+        )
         return parser.parse_args()
 
 
