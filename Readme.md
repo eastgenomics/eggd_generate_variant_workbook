@@ -106,7 +106,7 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
-`--lock_sheet` (`bool`): If true, all sheets in the variant workbook are locked for dias pipeline except specific cells
+`--lock_sheet` (`bool`): If true, the additional file sheet(s), variant sheet(s), and the summary sheet for uranus and dias are locked, except specific cells
 
 `--af_format` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
 

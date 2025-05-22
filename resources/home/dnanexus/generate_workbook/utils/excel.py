@@ -97,10 +97,13 @@ class excel():
             self.set_width_height_report_text()
 
         self.workbook.save(self.args.output)
-        if self.args.acmg and self.args.lock_sheet:
+
+        if self.args.lock_sheet:
             self.protect_rename_sheets()
+
+        # Add drop-downs for acmg interept sheet(s)
         if self.args.acmg:
-            self.drop_down()
+            self.acmg_drop_down()
 
         print('Done!')
 
@@ -751,6 +754,7 @@ class excel():
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
+            self.lock_sheet(self.summary)
             cell_to_unlock = ["A3", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
                               "B10", "B11", "C3", "C4", "C5", "C6", "C7", "C8",
                               "C9", "C10", "C11", "D3", "D4", "D5", "D6", "D7",
@@ -764,12 +768,26 @@ class excel():
                               "E34", "F34", "G34", "H34", "B35", "C35", "D35",
                               "E35", "F35", "G35", "H35"
                               ]
-            self.lock_sheet(ws=self.summary,
-                            cell_to_unlock=cell_to_unlock,
-                            start_row=self.summary.max_row+1,
-                            start_col=9,
-                            unlock_row_num=ROW_TO_UNLOCK,
-                            unlock_col_num=COL_TO_UNLOCK)
+            self.unlock_specified_cells(self.summary, cell_to_unlock)
+
+            # unlock region to the right of the summary info (starting from
+            # col 9)
+            self.unlock_region(
+                self.summary,
+                start_row=1,
+                start_col=9,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # unlock region beneath the summary info (starting from max_row+1)
+            self.unlock_region(
+                self.summary,
+                start_row=self.summary.max_row+1,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
 
 
     def write_reporting_template(self, report_sheet_num) -> None:
@@ -979,6 +997,7 @@ class excel():
                             cell_border.left = MEDIUM
                         cell.border = cell_border
         if self.args.lock_sheet:
+            self.lock_sheet(report)
             cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
                               "C16", "C17", "C18", "C19", "C20", "C21", "C22",
@@ -991,12 +1010,25 @@ class excel():
                               "K22", "K23", "K24", "K25", "L9", "L12", "L13",
                               "L16", "L17", "L18", "L21", "L22", "L23", "L24",
                               "L25", "H26"]
-            self.lock_sheet(ws=report,
-                            cell_to_unlock=cell_to_unlock,
-                            start_row=report.max_row,
-                            start_col=report.max_column,
-                            unlock_row_num=ROW_TO_UNLOCK,
-                            unlock_col_num=COL_TO_UNLOCK)
+            self.unlock_specified_cells(report, cell_to_unlock)
+
+            # unlock region to the right of the table (starting from max_col)
+            self.unlock_region(
+                ws=report,
+                start_row=1,
+                start_col=report.max_column,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # unlock region beneath the table (starting from max_row)
+            self.unlock_region(
+                ws=report,
+                start_row=report.max_row,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
 
 
     def write_variants(self) -> None:
@@ -1065,24 +1097,53 @@ class excel():
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
-                if self.args.acmg and self.args.lock_sheet:
-                    num_variant = vcf.shape[0]
-                    cell_to_unlock = []
-                    comment_col = self.get_col_letter(curr_worksheet,
-                                                      "Comment")
-                    interpreted_col = self.get_col_letter(curr_worksheet,
-                                                          "Interpreted")
-                    for row in range(2, num_variant+2):
-                        if comment_col is not None:
-                            cell_to_unlock.append(f"{comment_col}{row}")
-                        if curr_worksheet.title == self.args.sheets[0]:
-                            cell_to_unlock.append(f"{interpreted_col}{row}")
-                    self.lock_sheet(ws=curr_worksheet,
-                                    cell_to_unlock=cell_to_unlock,
-                                    start_row=num_variant+2,
-                                    start_col=curr_worksheet.max_column+1,
-                                    unlock_row_num=ROW_TO_UNLOCK,
-                                    unlock_col_num=COL_TO_UNLOCK)
+
+                # check what optional columns are present
+                vcf_cols = set(vcf.columns.to_list())
+                optional_cols_in_sheet = vcf_cols.intersection(
+                    OPTIONAL_COLUMNS)
+                num_variant = len(vcf)
+
+                # Lock variant sheet and unlock cells in optional/additional
+                # columns if lock_sheet argument is True, and unlock set number
+                # of rows/cols beneath/to the right of the variant table
+                if self.args.lock_sheet:
+                    self.lock_sheet(curr_worksheet)
+
+                    if optional_cols_in_sheet:
+
+                        cells_to_unlock = self.get_cells_in_columns(
+                            sheet=curr_worksheet, cols=optional_cols_in_sheet,
+                            num_rows=num_variant
+                        )
+
+                        self.unlock_specified_cells(
+                            curr_worksheet, cells_to_unlock
+                        )
+
+                    # Unlock cells beneath variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=num_variant+2,
+                        start_col=1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=curr_worksheet.max_column+1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+                if optional_cols_in_sheet:
+                    self.variant_drop_down(
+                        curr_worksheet, optional_cols_in_sheet, num_variant
+                    )
+
                 self.workbook.save(self.args.output)
 
         # Write out dict to file
@@ -1142,6 +1203,56 @@ class excel():
                             "Warning: error in colouring MetricsOutput sheet:"
                             f"\n\t{err}\nContinuing without colouring."
                         )
+
+            sheet_cols = set(file_df.columns.tolist())
+            optional_cols_in_sheet = sheet_cols.intersection(OPTIONAL_COLUMNS)
+            # Column headers included as first row, therefore minus 1 to get
+            # number of actual rows
+            num_rows = len(file_df)-1
+
+            if self.args.lock_sheet:
+                self.lock_sheet(curr_worksheet)
+
+                if file_name == 'pindel':
+
+                    # freeze header so scrolling keeps it in view
+                    curr_worksheet.freeze_panes = self.args.freeze_column
+
+                    # Unlock cells in any optional columns and unlock set
+                    # regions beneath/to the right of data
+                    if optional_cols_in_sheet:
+
+                        cells_to_unlock = self.get_cells_in_columns(
+                            sheet=curr_worksheet, cols=optional_cols_in_sheet,
+                            num_rows=num_rows
+                        )
+
+                        self.unlock_specified_cells(
+                            curr_worksheet, cells_to_unlock
+                        )
+
+                    # Unlock cells beneath variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=num_rows+2,
+                        start_col=1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=curr_worksheet.max_column+1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+            if file_name == 'pindel' and optional_cols_in_sheet:
+                self.variant_drop_down(
+                        curr_worksheet, optional_cols_in_sheet, num_rows
+                    )
 
 
     def write_images(self) -> None:
@@ -1732,12 +1843,60 @@ class excel():
             start_row=7, end_row=7, start_column=6, end_column=10)
 
 
-    def drop_down(self) -> None:
+    def variant_drop_down(self, sheet, drop_down_cols, num_variant):
+        """
+        Function to add drop-downs to columns in the specified sheet.
+
+        Args:
+            sheet (openpyxl.Writer): sheet containing columns which are to have
+             drop-downs added
+            drop_down_cols (list | set): list or set of column names to have
+             drop-downs added to, if the column names are included in the
+             variant drop_down_spec.
+            num_variant (int): number of variants/rows to have drop-downs for
+        """
+
+        variant_drop_down_spec = {
+            "Allele Origin": {
+                "options": '"Somatic,Unknown"',
+                "prompt": 'Choose Somatic or Unknown',
+                "title": 'Variant allele origin?'
+            },
+            "Interpreted": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant interpreted or not?'
+            },
+            "Reported": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant reported or not?'
+            },
+            "Classification": {
+                "options": '"Oncogenic,Likely_oncogenic,Uncertain_significance,Likely_benign,Benign"',
+                "prompt": 'Choose variant classification',
+                "title": 'Variant classification?'
+            }
+        }
+
+        for col, drop_down_spec in variant_drop_down_spec.items():
+            if col in drop_down_cols:
+                cells_for_drop_down = self.get_cells_in_columns(
+                    sheet=sheet, cols=[col], num_rows=num_variant
+                )
+
+                self.get_drop_down(
+                    dropdown_options=drop_down_spec['options'],
+                    prompt=drop_down_spec['prompt'],
+                    title=drop_down_spec['title'],
+                    sheet=sheet,
+                    cells=cells_for_drop_down
+                )
+
+    def acmg_drop_down(self) -> None:
         """
         Function to add drop-downs in the report tab for entering
-        ACMG criteria for classification, as well as a boolean
-        drop down into the additional 'Interpreted' column of
-        the variant sheet(s).
+        ACMG criteria for classification
         """
         wb = load_workbook(filename=self.args.output)
 
@@ -1778,70 +1937,61 @@ class excel():
                                title='ACMG classification',
                                sheet=report_sheet,
                                cells=['C26'])
-
-        # adding Interpreted column dropdown in the first variant sheet tab
-        first_variant_sheet = wb[self.args.sheets[0]]
-        interpreted_options = '"YES,NO"'
-        col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
-        num_variant = self.vcfs[0].shape[0]
-        if num_variant > 0:
-            cells_for_variant = []
-            for i in range(num_variant):
-                cells_for_variant.append(f"{col_letter}{i+2}")
-            self.get_drop_down(dropdown_options=interpreted_options,
-                               prompt='Choose YES or NO',
-                               title='Variant interpreted or not?',
-                               sheet=first_variant_sheet,
-                               cells=cells_for_variant)
         wb.save(self.args.output)
 
-
-    def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
-                   unlock_row_num, unlock_col_num) -> None:
+    def lock_sheet(
+        self, ws, password: str = "sheet_is_protected", lock_formatting: str = False) -> None:
         """
-        locking the workbooksheet (password protected) and unlocking
-        specific cells inside the table and regions outside table
-
-        Parameters:
-        -----------
-        ws: str
-            current worksheet
-        cell_to_unlock: list
-            list containing cells to unlock
-        start_row: int
-            integer indicating row starting to unlock
-        start_col: int
-            integer indicating col starting to unlock
-        unlock_row_num: int
-            integer indication number of row(s) to unlock
-        unlock_col_num: int
-            integer indication number of col(s) to unlock
+        Locks all cells in worksheet using the specified password.
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be locked
+            password (str, optional): password used to lock cells. Defaults to
+             "sheet_is_protected".
+            prevent_formatting (bool, optional): Boolean whether cells, columns
+             and rows in locked sheet should be able to be formatted. If True,
+             cells, columns and rows cannot be formatted, if false the can.
         """
         ws.protection.sheet = True
-        ws.protection.password = "sheet_is_protected"
+        ws.protection.password = password
+        ws.protection.formatColumns = lock_formatting
+        ws.protection.formatRows = lock_formatting
+        ws.protection.formatCells = lock_formatting
 
-        # unlocking specific cells inside the table
+
+    def unlock_specified_cells(self, ws, cell_to_unlock) -> None:
+        """
+        Unlock specified cells in a locked worksheet.
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be unlocked
+            cell_to_unlock (list): list of cells to be unlocked provided via
+             their <column letter><row number> reference e.g. [A1, B2]
+        """
         for cell in cell_to_unlock:
             ws[cell].protection = Protection(locked=False)
 
-        # unlocking regions outside table
-        for col in range(1, start_col+unlock_col_num):
+    def unlock_region(self, ws, start_row: int, start_col: int,
+                      unlock_row_num: int, unlock_col_num: int) -> None:
+        """
+        Unlock specified region of cells in a worksheet.
+
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be unlocked
+            start_row (int): row number (1-based) specifying start row of
+             region to be unlocked (inclusive)
+            start_col (int): col number (1-based) specifying start col of
+             region to be unlocked (inclusive)
+            unlock_row_num (int): total number of rows to be unlocked
+            unlock_col_num (int): total number of cols to be unlocked
+        """
+        for col in range(start_col, start_col+unlock_col_num):
             col_letter = get_column_letter(col)
             for row in range(start_row, start_row+unlock_row_num):
                 row_num = row
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
-        for col in range(start_col, start_col+unlock_col_num):
-            col_letter = get_column_letter(col)
-            for row in range(1, start_row):
-                row_num = row
-                cell = f"{col_letter}{row_num}"
-                ws[cell].protection = Protection(locked=False)
-        prot = ws.protection
-        prot.formatColumns = False
-        prot.formatRows = False
-        prot.formatCells = False
-
 
     def get_col_letter(self, worksheet, col_name) -> str:
         """
@@ -1904,6 +2054,31 @@ class excel():
         val.showInputMessage = True
         val.showErrorMessage = True
 
+    def get_cells_in_columns(self, sheet, cols, num_rows):
+        """
+        Get list of cell references (e.g. [A1, A2, A3]) of cells in specified
+        columns for a specfied number of rows. If the column is not present,
+        then an empty list is returned. This function assumes the first row is
+        a header row therefore cells in the first row are skipped.
+
+        Args:
+            sheet (openpyxl.Writer): writer object for sheet
+            num_rows(int): number of rows to return.
+
+        Returns:
+            list:  list of cell references (e.g. A1) of cells in optional
+             columns
+        """
+        cells = []
+
+        for col in cols:
+            col_letter = self.get_col_letter(sheet, col)
+            if col_letter is not None:
+                # Start at row 2 to skip the header
+                for row in range(2, num_rows+2):
+                    cells.append(f"{col_letter}{row}")
+
+        return cells
 
     def set_width_height_report_text(self) -> None:
         """
