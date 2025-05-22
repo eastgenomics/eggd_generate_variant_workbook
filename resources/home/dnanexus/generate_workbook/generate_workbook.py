@@ -159,6 +159,18 @@ class arguments():
             help='Add empty classification column to end of sheet'
         )
         parser.add_argument(
+            '--add_allele_origin_column', action='store_true',
+            help='Add empty allele origin column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_interpreted_column', action='store_true',
+            help='Add empty interpreted column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_reported_column', action='store_true',
+            help='Add empty reported column to end of sheet'
+        )
+        parser.add_argument(
             '--images', nargs='+',
             help=(
                 'Images to write to separate sheets'

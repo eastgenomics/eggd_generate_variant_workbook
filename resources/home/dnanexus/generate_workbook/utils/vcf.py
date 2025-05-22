@@ -162,11 +162,6 @@ class vcf():
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
 
-        if self.args.summary == 'dias':
-            # if it is dias pipeline, add the empty col
-            # named Interpreted in the first variant sheet
-            self.vcfs[0]['Interpreted'] = ''
-
         if self.args.split_hgvs:
             self.split_hgvs(self.vcfs)
 
@@ -389,6 +384,18 @@ class vcf():
             # add empty 'Classification' column to end of df
             vcf_df['Classification'] = ''
 
+        if self.args.add_allele_origin_column:
+            # add empty 'Allele Origin' column to end of df
+            vcf_df['Allele_Origin'] = ''
+
+        if self.args.add_interpreted_column:
+            # add empty 'Classification' column to end of df
+            vcf_df['Interpreted'] = ''
+
+        if self.args.add_reported_column:
+            # add empty 'Reported' column to end of df
+            vcf_df['Reported'] = ''
+
         return vcf_df
 
 
@@ -429,7 +436,7 @@ class vcf():
 
             if file.endswith('vcf') or file.endswith('vcf.gz'):
                 # vcf passed => process and format nicer for displaying
-                split_additional_vcf=file.replace('.vcf', '_split.vcf')
+                split_additional_vcf = file.replace('.vcf', '_split.vcf')
 
                 if self.check_vep_vcf(file, split_additional_vcf):
                     self.bcftools_pre_process(
