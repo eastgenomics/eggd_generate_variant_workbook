@@ -108,6 +108,8 @@ This app may be executed as a standalone app.
 
 `--join_columns` (`string`): Allows user to join two columns from VCF into a new column with a seperator of choice (i.e `--join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"` ). The header needs to be added to the include or rename if this is used
 
+`--m_codes` (`string`): DNAnxeus file ID of file containing all valid M-codes
+
 **Example**:
 
 ```bash
