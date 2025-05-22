@@ -198,35 +198,21 @@ class excel():
         to_bold = []
 
         # write QC summary template
-        self.summary.cell(7, 1).value = "Run QC"
-        self.summary.cell(8, 1).value = "250x"
-        self.summary.cell(9, 1).value = "Contamination"
-        self.summary.cell(10, 1).value = "Total reads M"
-        self.summary.cell(11, 1).value = "Fold 80"
-        self.summary.cell(12, 1).value = "Insert Size"
+        self.summary.cell(8, 1).value = "Run QC"
+        self.summary.cell(9, 1).value = "250x"
+        self.summary.cell(10, 1).value = "Contamination"
+        self.summary.cell(11, 1).value = "Total reads M"
+        self.summary.cell(12, 1).value = "Fold 80"
+        self.summary.cell(13, 1).value = "Insert Size"
 
-        self.summary.cell(7, 4).value = "Sample QC"
-        self.summary.cell(3, 6).value = "Analysed by"
-        self.summary.cell(4, 6).value = "Date"
-        self.summary.cell(5, 6).value = "Subpanel analysed"
-        self.summary.cell(6, 6).value = "M-code"
+        self.summary.cell(8, 4).value = "Sample QC"
+        self.summary.cell(3, 1).value = "Analysed by"
+        self.summary.cell(4, 1).value = "Date"
+        self.summary.cell(5, 1).value = "Subpanel analysed"
+        self.summary.cell(6, 1).value = "M-code"
         self.summary.cell(1, 1).value = "Sample ID"
 
-        to_bold.extend(["A7", "A1", "D7", "F3", "F4", "F5", "F6"])
-
-        test_codes = ",".join(
-            open_dxfile(self.args.m_codes, mode="r").read().splitlines()
-            )
-
-        self.get_drop_down(
-            # TODO: this will need to be updated to use a list of M-codes
-            # derived from a file
-            dropdown_options=f'"{test_codes}"',
-            prompt="M-code associated with sample",
-            title="M-code",
-            sheet=self.summary,
-            cells=["G6"]
-        )
+        to_bold.extend(["A8", "A1", "D8", "A3", "A4", "A5", "A6"])
 
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
@@ -241,7 +227,7 @@ class excel():
         # Not uranus centric but good for record keeping,
         # include info on reference, filter command and workflow
         # and report job IDs
-        row_count = 15
+        row_count = 20
 
         # write genome reference(s) parsed from vcf header
         if self.refs:
@@ -290,17 +276,64 @@ class excel():
         self.summary.cell(row_count + 2, 2).value = self.args.job_id
 
         row_count += 4
+
         # copy the headers from the variants sheet
         header = self.vcfs[0].columns.to_list()
-        # start from B (second column) as we want do not want to
-        # iterate over A (samplename header)
         for idx, row in enumerate(header, 1):
             self.summary.cell(row_count, idx).value = row
             to_bold.append(self.summary.cell(row_count, idx).coordinate)
+
         self.set_widths(self.summary, header)
 
         # increase width
         self.summary.column_dimensions['A'].width = 18
+
+        # Make M-code dropdown
+        test_codes = open_dxfile(self.args.m_codes, mode="r").read().splitlines()
+
+        # Store M-codes in a hidden sheet as storing them in one cell exceeds
+        # excel character limit
+        m_codes = self.workbook.create_sheet('m_codes')
+        m_codes.sheet_state = 'hidden'
+
+        for test_code in test_codes:
+            m_codes.append({'A': test_code})
+
+        self.get_drop_down(
+            dropdown_options=f"='m_codes'!A1:A{len(test_codes)}",
+            prompt="M-code associated with sample",
+            title="M-code",
+            sheet=self.summary,
+            cells=["B6"]
+        )
+        self.lock_sheet(m_codes)
+
+        if self.args.lock_sheet:
+            self.lock_sheet(self.summary)
+
+            cell_to_unlock = ["B3", "B4", "B5", "B6"]
+            self.unlock_specified_cells(self.summary, cell_to_unlock)
+
+            # Unlock region above variant table to provide some free space for
+            # scientists
+            self.unlock_region(
+                ws=self.summary,
+                start_row=9,
+                start_col=2,
+                unlock_row_num=11,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # Unlock region beneath variant table to provide space for variants
+            # to be copied over into summary sheet
+            row_count += 1
+            self.unlock_region(
+                ws=self.summary,
+                start_row=row_count,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
