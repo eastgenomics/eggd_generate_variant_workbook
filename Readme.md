@@ -43,7 +43,7 @@ This app may be executed as a standalone app.
 
 `--images` (`array:files`): Image(s) to be written to separate additional sheets, sizes can be set with `--image_sizes` and sheet names with `--image_sheet_names`
 
-`--image_sizes` (`list`): Colon separated `width:height` sizes in pixels for writing images, if specified these MUST be the same number as the number of files passed and in the same order.
+`--image_sizes` (`string`): Colon separated `width:height` sizes in pixels for writing images, if specified these MUST be the same number as the number of files passed and in the same order. Image sizes should be separated by a space e.g. `-iimage_sizes=900:500 600:400`.
 
 `--image_sheet_names` (`list`): Names to use for image file sheets, if specified these MUST be the same number as the number of files passed and in the same order `-iimages=graph1.png -iimages=another_image.jpeg -iimage_sheet_names='myNiceGraph someImage'`). If not given, sheets will be named `image_1, image_2...`.
 
@@ -57,13 +57,13 @@ This app may be executed as a standalone app.
 
 `--add_classification_column` (`bool`): Determines if to append empty 'Classification' column to end of each sheet of variants.
 
-`--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, and if there is 1 vcf passed the sheet will be named `variants`, else if multiple vcfs are passed the name prefix of the vcf will be used.
 `--add_allele_origin_column` (`bool`): Determines if to append empty 'Allele Origin' column to end of each sheet of variants.
 
 `--add_interpreted_column` (`bool`): Determines if to append empty 'Interpreted' column to end of each sheet of variants.
 
 `--add_reported_column` (`bool`): Determines if to append empty 'Reported' column to end of each sheet of variants.
 
+`--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, not filtering and there is 1 vcf passed, the sheet will be named `variants`. Else, if not given but VCF filtering is applied, sheet will be named `included` containing variants which pass the filter, with the fitlered out variants being passed to a sheet named `excluded` (NB: The `excluded` sheet can retained or removed via the `keep_filtered` input). Else, if multiple vcfs are passed and `merge_vcfs` = `False`, the filename prefix of the vcfs will be used.
 
 `--additional_sheet_names` (`list`): Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order (`-iadditional_files=file1 -iadditional_files=file2 -iadditional_sheet_names='name_1 name_2'`). If not given, the first 31 characters of the filename will be used.
 

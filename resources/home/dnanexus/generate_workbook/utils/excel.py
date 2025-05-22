@@ -473,7 +473,7 @@ class excel():
                                 start_color='008100'
                             )
                         elif colour == 'amber':
-                             self.summary[f"D{idx}"].fill = PatternFill(
+                            self.summary[f"D{idx}"].fill = PatternFill(
                                 patternType="solid",
                                 start_color='ff9f00'
                             )
@@ -1614,7 +1614,7 @@ class excel():
             column names for sheet from DataFrame.columns
         """
         widths = {
-            "chrom": 7,
+            "chrom": 8,
             "pos": 12,
             "ref": 10,
             "alt": 10,
@@ -2015,7 +2015,6 @@ class excel():
 
         return col_letter
 
-
     def protect_rename_sheets(self) -> None:
         """
         prevent renaming sheets in the workbook
@@ -2024,7 +2023,6 @@ class excel():
         wb.security.lockStructure = True
         wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
-
 
     def get_drop_down(self, dropdown_options, prompt, title, sheet, cells) -> None:
         """
@@ -2101,6 +2099,6 @@ class excel():
                     if cell.column_letter == report_column and cell.row != 1:
                         # find the cell containing the report text and set
                         # the row height proportional to no. of lines
-                        height = (cell.value.count('\n') * 13) + 25
-
-                        curr_worksheet.row_dimensions[cell.row].height = height
+                        if cell.value is not None:
+                            height = (cell.value.count('\n') * 13) + 25
+                            curr_worksheet.row_dimensions[cell.row].height = height

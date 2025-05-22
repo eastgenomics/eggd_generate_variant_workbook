@@ -71,7 +71,7 @@ class vcf():
             # additional non VCF files given, try read these in to dataframe(s)
             self.read_additional_files()
 
-        # read in the each vcf, optionally filter, and then apply formatting
+        # read in each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
             vcf_stem = Path(vcf).stem.replace('.vcf', '')
