@@ -143,6 +143,33 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "add_allele_origin_column",
+      "label": "Add allele_origin column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty allele origin column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "add_interpreted_column",
+      "label": "Add interpreted column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty interpreted column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
+      "name": "add_reported_column",
+      "label": "Add reported column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty reported column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",

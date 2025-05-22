@@ -36,6 +36,10 @@ DEFAULT_FONT.name = 'Calibri'
 ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
+# List of optional columns which can be added
+OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
+                    'Interpreted', 'Reported'}
+
 
 class excel():
     """
