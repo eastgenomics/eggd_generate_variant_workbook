@@ -1557,9 +1557,16 @@ class excel():
             # close enough match to probably be correct
             width = widths[closest_match]
         else:
-            # no close matches to name, use title multipled by factor
+            # no close matches to name, use title (if present) multipled by
+            # factor, else use the length of the column name multiplied by
+            # factor
             title = worksheet[f"{col_letter}1"].value
-            width = len(title) * 1.15
+            if title:
+                width = len(title) * 1.15
+
+            else:
+                width = len(col) * 1.15
+
             if width < 13:
                 # make minimum of 13
                 width = 13
