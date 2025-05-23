@@ -295,30 +295,33 @@ class excel():
         # increase width
         self.summary.column_dimensions['A'].width = 18
 
-        # Make M-code dropdown
-        test_codes = open_dxfile(self.args.m_codes, mode="r").read().splitlines()
+        cell_to_unlock = []
+        if self.args.m_codes:
+            # Make M-code dropdown
+            test_codes = open_dxfile(self.args.m_codes, mode="r").read().splitlines()
 
-        # Store M-codes in a hidden sheet as storing them in one cell exceeds
-        # excel character limit
-        m_codes = self.workbook.create_sheet('m_codes')
-        m_codes.sheet_state = 'hidden'
+            # Store M-codes in a hidden sheet as storing them in one cell
+            # exceeds excel character limit
+            m_codes = self.workbook.create_sheet('m_codes')
+            m_codes.sheet_state = 'hidden'
 
-        for test_code in test_codes:
-            m_codes.append({'A': test_code})
+            for test_code in test_codes:
+                m_codes.append({'A': test_code})
 
-        self.get_drop_down(
-            dropdown_options=f"='m_codes'!A1:A{len(test_codes)}",
-            prompt="M-code associated with sample",
-            title="M-code",
-            sheet=self.summary,
-            cells=["B6"]
-        )
-        self.lock_sheet(m_codes)
+            self.get_drop_down(
+                dropdown_options=f"='m_codes'!A1:A{len(test_codes)}",
+                prompt="M-code associated with sample",
+                title="M-code",
+                sheet=self.summary,
+                cells=["B6"]
+            )
+            cell_to_unlock.append("B6")
+            self.lock_sheet(m_codes)
 
         if self.args.lock_sheet:
             self.lock_sheet(self.summary)
 
-            cell_to_unlock = ["B3", "B4", "B5", "B6"]
+            cell_to_unlock += ["B3", "B4", "B5"]
             self.unlock_specified_cells(self.summary, cell_to_unlock)
 
             # Unlock region above variant table to provide some free space for
