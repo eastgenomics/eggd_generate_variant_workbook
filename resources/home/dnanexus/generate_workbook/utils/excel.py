@@ -1001,6 +1001,11 @@ class excel():
                         cell.border = cell_border
         if self.args.lock_sheet:
             self.lock_sheet(report)
+
+            last_row = report.max_row
+            last_col = report.max_column
+
+
             cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
                               "C16", "C17", "C18", "C19", "C20", "C21", "C22",
@@ -1019,7 +1024,7 @@ class excel():
             self.unlock_region(
                 ws=report,
                 start_row=1,
-                start_col=report.max_column,
+                start_col=last_col,
                 unlock_row_num=ROW_TO_UNLOCK,
                 unlock_col_num=COL_TO_UNLOCK
             )
@@ -1027,7 +1032,7 @@ class excel():
             # unlock region beneath the table (starting from max_row)
             self.unlock_region(
                 ws=report,
-                start_row=report.max_row,
+                start_row=last_row,
                 start_col=1,
                 unlock_row_num=ROW_TO_UNLOCK,
                 unlock_col_num=COL_TO_UNLOCK
@@ -1107,6 +1112,9 @@ class excel():
                     OPTIONAL_COLUMNS)
                 num_variant = len(vcf)
 
+                last_row = num_variant+2
+                last_col = curr_worksheet.max_column
+
                 # Lock variant sheet and unlock cells in optional/additional
                 # columns if lock_sheet argument is True, and unlock set number
                 # of rows/cols beneath/to the right of the variant table
@@ -1127,7 +1135,7 @@ class excel():
                     # Unlock cells beneath variant table
                     self.unlock_region(
                         ws=curr_worksheet,
-                        start_row=num_variant+2,
+                        start_row=last_row,
                         start_col=1,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
@@ -1137,7 +1145,7 @@ class excel():
                     self.unlock_region(
                         ws=curr_worksheet,
                         start_row=1,
-                        start_col=curr_worksheet.max_column+1,
+                        start_col=last_col,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
                     )
@@ -1213,6 +1221,9 @@ class excel():
             # number of actual rows
             num_rows = len(file_df)-1
 
+            last_row = num_rows+2
+            last_col = curr_worksheet.max_column
+
             if self.args.lock_sheet:
                 self.lock_sheet(curr_worksheet)
 
@@ -1237,7 +1248,7 @@ class excel():
                     # Unlock cells beneath variant table
                     self.unlock_region(
                         ws=curr_worksheet,
-                        start_row=num_rows+2,
+                        start_row=last_row,
                         start_col=1,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
@@ -1247,7 +1258,7 @@ class excel():
                     self.unlock_region(
                         ws=curr_worksheet,
                         start_row=1,
-                        start_col=curr_worksheet.max_column+1,
+                        start_col=last_col,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
                     )
