@@ -1156,6 +1156,10 @@ class excel():
                         curr_worksheet, optional_cols_in_sheet, num_variant
                     )
 
+                if self.args.add_auto_filter:
+                    last_col_letter = get_column_letter(last_col)
+                    curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
+
                 self.workbook.save(self.args.output)
 
         # Write out dict to file
@@ -1263,6 +1267,10 @@ class excel():
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
                     )
+
+                    if self.args.add_auto_filter:
+                        last_col_letter = get_column_letter(last_col)
+                        curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
 
             if file_name == 'pindel' and optional_cols_in_sheet:
                 self.variant_drop_down(
@@ -1968,10 +1976,12 @@ class excel():
              cells, columns and rows cannot be formatted, if false the can.
         """
         ws.protection.sheet = True
+        ws.protection.autoFilter = False
         ws.protection.password = password
         ws.protection.formatColumns = lock_formatting
         ws.protection.formatRows = lock_formatting
         ws.protection.formatCells = lock_formatting
+
 
 
     def unlock_specified_cells(self, ws, cell_to_unlock) -> None:

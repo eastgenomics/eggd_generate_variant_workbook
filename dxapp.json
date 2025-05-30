@@ -331,6 +331,13 @@
       "class": "string",
       "optional" : true,
       "help": "File ID containing all valid M-codes"
+    },
+    {
+      "name": "add_auto_filter",
+      "label": "Add an excel auto filter to variant sheets",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, an auto-filter is added to variant sheets"
     }
   ],
   "outputSpec": [

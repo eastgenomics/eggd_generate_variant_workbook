@@ -116,6 +116,8 @@ This app may be executed as a standalone app.
 
 `--m_codes` (`string`): DNAnxeus file ID of file containing all valid M-codes
 
+`--add_auto_filter` (`bool`): If true, an excel auto-filter is added to variant sheets. This is useful if you are specifying `--lock_sheet`, as an auto-filter cannot be added manually to a locked excel sheet.
+
 **Example**:
 
 ```bash

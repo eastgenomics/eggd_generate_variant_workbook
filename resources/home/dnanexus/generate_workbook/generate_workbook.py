@@ -366,6 +366,10 @@ class arguments():
                 'DNAnexus file-ID for file containing all valid Uranus M-codes'
             )
         )
+        parser.add_argument(
+            '--add_auto_filter', action='store_true',
+            help='Add an excel auto filter to variant sheets'
+        )
         return parser.parse_args()
 
 
