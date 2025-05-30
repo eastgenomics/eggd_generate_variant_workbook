@@ -63,6 +63,8 @@ This app may be executed as a standalone app.
 
 `--add_reported_column` (`bool`): Determines if to append empty 'Reported' column to end of each sheet of variants.
 
+`--add_report_text_column` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variant annotations are gene name, consequence, exon number, HGVSc, HGVSp, existing variation and allele frequency.
+
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, not filtering and there is 1 vcf passed, the sheet will be named `variants`. Else, if not given but VCF filtering is applied, sheet will be named `included` containing variants which pass the filter, with the fitlered out variants being passed to a sheet named `excluded` (NB: The `excluded` sheet can retained or removed via the `keep_filtered` input). Else, if multiple vcfs are passed and `merge_vcfs` = `False`, the filename prefix of the vcfs will be used.
 
 `--additional_sheet_names` (`list`): Names to use for additional file sheets, if specified these MUST be the same number as the number of files passed and in the same order (`-iadditional_files=file1 -iadditional_files=file2 -iadditional_sheet_names='name_1 name_2'`). If not given, the first 31 characters of the filename will be used.
@@ -109,8 +111,6 @@ This app may be executed as a standalone app.
 `--lock_sheet` (`bool`): If true, the additional file sheet(s), variant sheet(s), and the summary sheet for uranus and dias are locked, except specific cells
 
 `--af_format` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
-
-`--report_text` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variant annotations are gene name, consequence, exon number, HGVSc, HGVSp, existing variation and allele frequency.
 
 `--join_columns` (`string`): Allows user to join two columns from VCF into a new column with a seperator of choice (i.e `--join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"` ). The header needs to be added to the include or rename if this is used
 

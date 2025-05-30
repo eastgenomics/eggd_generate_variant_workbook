@@ -180,7 +180,7 @@ class vcf():
         if self.args.join_columns:
             self.joining_columns(self.vcfs)
 
-        if self.args.report_text:
+        if self.args.add_report_text_column:
             self.make_report_text(self.vcfs)
 
         self.vcfs = self.format_strings(self.vcfs)
@@ -457,7 +457,7 @@ class vcf():
 
                 if self.args.af_format == "percent":
                     file_df = self.percent_af([file_df])[0]
-                if self.args.report_text:
+                if self.args.add_report_text_column:
                     file_df = self.make_report_text([file_df])[0]
 
                 file_df = self.format_strings([file_df])[0]
@@ -748,9 +748,6 @@ class vcf():
                     # include has already selected valid columns
                     for col in invalid:
                         to_drop.remove(col)
-
-            if self.args.report_text:
-                to_drop.remove("Report_text")
 
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 

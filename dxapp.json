@@ -170,6 +170,13 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "add_report_text_column",
+      "label": "Add report text column to variant sheets",
+      "class": "boolean",
+      "optional" : true,
+      "help": "If true, a report text column will be added that contains the key variant annotation in one cell"
+    },
+    {
       "name": "sheet_names",
       "label": "Sheet names",
       "class": "string",
@@ -310,13 +317,6 @@
       "class": "string",
       "optional" : true,
       "help": "Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are 'decimal' or 'percent'."
-    },
-    {
-      "name": "report_text",
-      "label": "report_text",
-      "class": "boolean",
-      "optional" : true,
-      "help": "If true, a report text column will be added that contains the key variant annotation in one cell"
     },
     {
       "name": "join_columns",

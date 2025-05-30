@@ -188,6 +188,11 @@ class arguments():
             help='Add empty reported column to end of sheet'
         )
         parser.add_argument(
+            '--add_report_text_column', action='store_true',
+            help=('Makes a report summary to be appended as the last column'
+            )
+        )
+        parser.add_argument(
             '--images', nargs='+',
             help=(
                 'Images to write to separate sheets'
@@ -346,11 +351,6 @@ class arguments():
             choices=['decimal', 'percent'],
             help=('Presents the allele frequency (AF) as a decimal (0-1) '
             'or as a percent (0-100). Default is decimal.'
-            )
-        )
-        parser.add_argument(
-            '--report_text', action='store_true',
-            help=('Makes a report summary to be appended as the last column'
             )
         )
         parser.add_argument(

@@ -93,7 +93,7 @@ class excel():
         self.write_additional_files()
         self.write_images()
 
-        if self.args.report_text:
+        if self.args.add_report_text_column:
             self.set_width_height_report_text()
 
         self.workbook.save(self.args.output)

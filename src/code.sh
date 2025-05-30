@@ -90,6 +90,7 @@ main() {
     if [ "$add_interpreted_column" == true ]; then args+="--add_interpreted_column "; fi
     if [ "$add_reported_column" == true ]; then args+="--add_reported_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
+    if [ "$add_report_text_column" == true ]; then args+="--add_report_text_column "; fi
     if [ "$additional_sheet_names" ]; then args+="--additional_sheets ${additional_sheet_names} "; fi
     if [ "$print_columns" == true ]; then args+="--print_columns "; fi
     if [ "$summary" ]; then args+="--summary ${summary} "; fi
@@ -112,7 +113,6 @@ main() {
     if [ "$split_hgvs" ]; then args+="--split_hgvs "; fi
     if [ "$add_raw_change" ]; then args+="--add_raw_change "; fi
     if [ "$lock_sheet" == true ]; then args+="--lock_sheet "; fi
-    if [ "$report_text" == true ]; then args+="--report_text "; fi
     if [ "$af_format" ]; then args+="--af_format ${af_format} "; fi
     if [ "$join_columns" ]; then args+="--join_columns ${join_columns} "; fi
     if [ "$m_codes" ]; then args+="--m_codes ${m_codes} "; fi
