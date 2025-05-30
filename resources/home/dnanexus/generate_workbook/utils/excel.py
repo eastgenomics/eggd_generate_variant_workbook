@@ -37,7 +37,8 @@ DEFAULT_FONT.name = 'Calibri'
 ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
-# List of optional columns which can be added
+# List of optional columns which can be added that need to be unlocked and/or
+# have drop-dwons added
 OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
                     'Interpreted', 'Reported'}
 
@@ -1263,7 +1264,7 @@ class excel():
                     self.unlock_region(
                         ws=curr_worksheet,
                         start_row=1,
-                        start_col=last_col,
+                        start_col=last_col+1,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK
                     )
@@ -1674,11 +1675,11 @@ class excel():
             "Metric (UOM)": 52,  # TSO500 MetricsOutput.tsv
             "[TMB]": 32,  # TSO500 CombinedVariantOutput.tsv
             "rawchange": 20,
-            "vf":6,
+            "vf": 6,
             "comment": 10,
             "classification": 12,
             "spliceai pred ": 18,
-            "report text" : 35
+            "report text": 35
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
