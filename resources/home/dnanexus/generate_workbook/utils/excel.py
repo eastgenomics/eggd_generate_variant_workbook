@@ -81,7 +81,6 @@ class excel():
         self.workbook = self.writer.book
         self.summary = None
 
-
     def generate(self) -> None:
         """
         Calls all methods in excel() to generate output file
@@ -108,7 +107,6 @@ class excel():
 
         print('Done!')
 
-
     def write_summary(self) -> None:
         """
         Write summary sheet to excel file
@@ -127,8 +125,9 @@ class excel():
             # generate summary sheet in format for HaemOnc/Uranus
             self.uranus_summary()
 
-
-    def summary_sheet_cell_colour_key(self, row_count, to_bold) -> Union[int, list]:
+    def summary_sheet_cell_colour_key(
+        self, row_count, to_bold
+    ) -> Union[int, list]:
         """
         Write conditions and colours of colouring applied to cells to
         the summary sheet if --colour specified
@@ -194,7 +193,6 @@ class excel():
                 max_colour_rows_written = colour_row
 
         return max_colour_rows_written, to_bold
-
 
     def uranus_summary(self) -> None:
         """
@@ -344,7 +342,6 @@ class excel():
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
-
 
     def helios_summary(self) -> None:
         """
@@ -548,7 +545,6 @@ class excel():
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
-
 
     def dias_summary(self) -> None:
         """
@@ -788,7 +784,6 @@ class excel():
                 unlock_row_num=ROW_TO_UNLOCK,
                 unlock_col_num=COL_TO_UNLOCK
             )
-
 
     def write_reporting_template(self, report_sheet_num) -> None:
         """
@@ -1035,7 +1030,6 @@ class excel():
                 unlock_col_num=COL_TO_UNLOCK
             )
 
-
     def write_variants(self) -> None:
         """
         Writes all variants from dataframe(s) to sheet(s) specified in
@@ -1160,7 +1154,6 @@ class excel():
         with open('details.json', 'w', encoding='utf8') as details_json:
             json.dump(details_dict, details_json)
 
-
     def write_additional_files(self) -> None:
         """
         Write each dataframe of additional files passed to separate sheets
@@ -1267,7 +1260,6 @@ class excel():
                         curr_worksheet, optional_cols_in_sheet, num_rows
                     )
 
-
     def write_images(self) -> None:
         """
         Writes each of the passed images to a separate sheet
@@ -1313,7 +1305,6 @@ class excel():
                 img.width = width
 
             sheet.add_image(img)
-
 
     def check_written_sheets(self, vcf, sheet) -> None:
         """"
@@ -1364,7 +1355,6 @@ class excel():
             "dataframe to be written"
         )
 
-
     def set_types(self, worksheet) -> None:
         """
         Iterate over all worksheet cells and test if cell value can be numeric,
@@ -1381,7 +1371,6 @@ class excel():
                 if is_numeric(cell.value):
                     cell.data_type = 'n'
 
-
     def set_font(self, worksheet) -> None:
         """
         Set font to all cells in variant sheet to Calibri
@@ -1396,7 +1385,6 @@ class excel():
         for cells in worksheet.rows:
             for cell in cells:
                 cell.font = Font(name=DEFAULT_FONT.name)
-
 
     def set_dp(self, worksheet) -> None:
         """
@@ -1427,7 +1415,6 @@ class excel():
                     for row in ws_column:
                         row.number_format = f'#,##0.{dp}'
 
-
     def convert_colour(self, colour) -> str:
         """
         Converts string of colour to aRGB value that openpyxl will accept.
@@ -1456,7 +1443,6 @@ class excel():
 
         return colour
 
-
     def colour_hyperlinks(self, worksheet) -> None:
         """
         Set text colour to blue if text contains hyperlink
@@ -1470,7 +1456,6 @@ class excel():
             for cell in cells:
                 if 'HYPERLINK' in str(cell.value):
                     cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
-
 
     def colour_cells(self, worksheet) -> None:
         """
@@ -1612,7 +1597,6 @@ class excel():
 
             raise RuntimeError(error_message)
 
-
     def set_widths(self, worksheet, sheet_columns) -> None:
         """
         Set widths for variant sheets off common names to be more readable,
@@ -1687,7 +1671,6 @@ class excel():
             )
             worksheet.column_dimensions[column_list[idx]].width = width
 
-
     def get_closest_match(self, worksheet, col_letter, col, widths) -> int:
         """
         Given a column name, find the closest match (if there is one) in the
@@ -1733,7 +1716,6 @@ class excel():
                 width = 13
 
         return width
-
 
     def colour_metrics_output(self, file_df, worksheet) -> None:
         """
@@ -1854,7 +1836,6 @@ class excel():
             start_row=6, end_row=6, start_column=6, end_column=10)
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
-
 
     def optional_cols_drop_down(self, sheet, drop_down_cols, num_rows):
         """
@@ -2049,7 +2030,10 @@ class excel():
         wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
 
-    def str_to_drop_down(self, dropdown_options: str, prompt, title, sheet, cells) -> None:
+    def str_to_drop_down(
+        self, dropdown_options: str, prompt: str, title: str, sheet,
+        cells: list
+    ) -> None:
         """
         Create drop-downs for specified cells, with the drop-down options
         provided as a string. The drop-down options string should be formatted
