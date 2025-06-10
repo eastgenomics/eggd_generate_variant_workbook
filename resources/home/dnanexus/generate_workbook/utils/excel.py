@@ -1120,6 +1120,15 @@ class excel():
 
                     if optional_cols_in_sheet:
 
+                        self.unlock_specified_cells(
+                            ws=curr_worksheet,
+                            cell_to_unlock=self.get_cells_in_columns(
+                                sheet=curr_worksheet,
+                                cols=optional_cols_in_sheet,
+                                num_rows=num_variant
+                            )
+                        )
+
                         self.unlock_cols(
                             sheet=curr_worksheet,
                             cols=optional_cols_in_sheet,
@@ -1237,10 +1246,14 @@ class excel():
                     # Unlock cells in any optional columns and unlock set
                     # regions beneath/to the right of data
                     if optional_cols_in_sheet:
-                        self.unlock_cols(
-                            sheet=curr_worksheet,
-                            cols=optional_cols_in_sheet,
-                            num_rows=num_rows
+
+                        self.unlock_specified_cells(
+                            ws=curr_worksheet,
+                            cell_to_unlock=self.get_cells_in_columns(
+                                sheet=curr_worksheet,
+                                cols=optional_cols_in_sheet,
+                                num_rows=num_rows
+                            )
                         )
 
                     # Unlock cells beneath variant table
@@ -2248,28 +2261,4 @@ class excel():
                 title=title,
                 sheet=sheet,
                 cells=cells
-        )
-
-    def unlock_cols(
-        self, sheet, cols: list, num_rows: int
-    ) -> None:
-        """
-        Retrieve cell references for cells present in the specfied cols and
-        then unlock them.
-
-        Args:
-            sheet (openpyxl.Writer): writer object for sheet containg the
-                columns (and cells therein) to be unlocked.
-            cols (list): List of column names in
-                sheet, containing cells to be unlocked.
-            num_rows (int): Number of rows (i.e. length of columns) to be
-                unlocked
-        """
-
-        cells_to_unlock = self.get_cells_in_columns(
-            sheet=sheet, cols=cols, num_rows=num_rows
-        )
-
-        self.unlock_specified_cells(
-            sheet, cells_to_unlock
         )
