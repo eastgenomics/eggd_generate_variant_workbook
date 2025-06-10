@@ -63,6 +63,8 @@ This app may be executed as a standalone app.
 
 `--add_reported_column` (`bool`): Determines if to append empty 'Reported' column to end of each sheet of variants.
 
+`--add_mnv_column` (`bool`): Determines if to append empty 'MNV' column to end of each sheet of variants.
+
 `--add_report_text_column` (`bool`): If true, a report text column will be added that contains the key variant annotation in one cell. The key variant annotations are gene name, consequence, exon number, HGVSc, HGVSp, existing variation and allele frequency.
 
 `--sheet_names` (`list`): Names to use for workbook sheets, these MUST be the same number as the number of vcfs passed and in the same order. If not given, not filtering and there is 1 vcf passed, the sheet will be named `variants`. Else, if not given but VCF filtering is applied, sheet will be named `included` containing variants which pass the filter, with the fitlered out variants being passed to a sheet named `excluded` (NB: The `excluded` sheet can retained or removed via the `keep_filtered` input). Else, if multiple vcfs are passed and `merge_vcfs` = `False`, the filename prefix of the vcfs will be used.

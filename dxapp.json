@@ -170,6 +170,15 @@
       "group": "generate_workbook.py"
     },
     {
+      "name": "add_mnv_column",
+      "label": "Add MNV column",
+      "class": "boolean",
+      "optional": true,
+      "default": false,
+      "help": "Add empty MNV column to end of each sheet of variants",
+      "group": "generate_workbook.py"
+    },
+    {
       "name": "add_report_text_column",
       "label": "Add report text column to variant sheets",
       "class": "boolean",

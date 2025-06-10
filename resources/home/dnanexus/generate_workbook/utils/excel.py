@@ -40,7 +40,7 @@ COL_TO_UNLOCK = 200
 # List of optional columns which can be added that need to be unlocked and/or
 # have drop-dwons added
 OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
-                    'Interpreted', 'Reported'}
+                    'Interpreted', 'Reported', 'MNV'}
 
 
 class excel():
@@ -1896,6 +1896,11 @@ class excel():
                 "options": '"Oncogenic,Likely_oncogenic,Uncertain_significance,Likely_benign,Benign"',
                 "prompt": 'Choose variant classification',
                 "title": 'Variant classification?'
+            },
+            "MNV": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant is an MNV?'
             }
         }
 

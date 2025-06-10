@@ -188,6 +188,10 @@ class arguments():
             help='Add empty reported column to end of sheet'
         )
         parser.add_argument(
+            '--add_mnv_column', action='store_true',
+            help='Add empty MNV column to end of sheet'
+        )
+        parser.add_argument(
             '--add_report_text_column', action='store_true',
             help=('Makes a report summary to be appended as the last column'
             )

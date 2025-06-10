@@ -89,6 +89,7 @@ main() {
     if [ "$add_allele_origin_column" == true ]; then args+="--add_allele_origin_column "; fi
     if [ "$add_interpreted_column" == true ]; then args+="--add_interpreted_column "; fi
     if [ "$add_reported_column" == true ]; then args+="--add_reported_column "; fi
+    if [ "$add_mnv_column" == true ]; then args+="--add_mnv_column "; fi
     if [ "$sheet_names" ]; then args+="--sheets ${sheet_names} "; fi
     if [ "$add_report_text_column" == true ]; then args+="--add_report_text_column "; fi
     if [ "$additional_sheet_names" ]; then args+="--additional_sheets ${additional_sheet_names} "; fi
