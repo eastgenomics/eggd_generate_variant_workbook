@@ -1129,12 +1129,6 @@ class excel():
                             )
                         )
 
-                        self.unlock_cols(
-                            sheet=curr_worksheet,
-                            cols=optional_cols_in_sheet,
-                            num_rows=num_variant
-                        )
-
                     # Unlock cells beneath variant table
                     self.unlock_region(
                         ws=curr_worksheet,
