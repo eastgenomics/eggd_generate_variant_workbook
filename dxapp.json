@@ -330,7 +330,7 @@
       "label": "File ID for M-codes file",
       "class": "string",
       "optional" : true,
-      "help": "File ID containing all valid M-codes"
+      "help": "DNAnexus file ID for file containing all valid M-codes. M-codes should be provided one per line in a .txt file."
     },
     {
       "name": "add_auto_filter",
