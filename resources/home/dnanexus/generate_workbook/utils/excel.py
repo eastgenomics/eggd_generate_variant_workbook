@@ -1945,11 +1945,13 @@ class excel():
             # add stregth for BA1
             BA1_options = '"Stand-Alone, Very Strong, Strong, Moderate, \
                             Supporting, NA"'
-            self.str_to_drop_down(dropdown_options=BA1_options,
-                               prompt='Select from the list',
-                               title='Strength',
-                               sheet=report_sheet,
-                               cells=['K9'])
+            self.str_to_drop_down(
+                dropdown_options=BA1_options,
+                prompt='Select from the list',
+                title='Strength',
+                sheet=report_sheet,
+                cells=['K9']
+            )
 
             # adding final classification dropdown
             report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
@@ -1957,11 +1959,13 @@ class excel():
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
-            self.str_to_drop_down(dropdown_options=class_options,
-                               prompt='Select from the list',
-                               title='ACMG classification',
-                               sheet=report_sheet,
-                               cells=['C26'])
+            self.str_to_drop_down(
+                dropdown_options=class_options,
+                prompt='Select from the list',
+                title='ACMG classification',
+                sheet=report_sheet,
+                cells=['C26']
+            )
         wb.save(self.args.output)
 
     def lock_sheet(

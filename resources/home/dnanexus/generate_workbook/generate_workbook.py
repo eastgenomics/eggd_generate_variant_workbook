@@ -193,8 +193,7 @@ class arguments():
         )
         parser.add_argument(
             '--add_report_text_column', action='store_true',
-            help=('Makes a report summary to be appended as the last column'
-            )
+            help='Makes a report summary to be appended as the last column'
         )
         parser.add_argument(
             '--images', nargs='+',
