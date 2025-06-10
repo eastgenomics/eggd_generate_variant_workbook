@@ -2054,8 +2054,10 @@ class excel():
         str
             column letter for specific column name
         """
+        # Loop over all cells in first row and retrieve its contents and
+        # its corresponding letter
         header_row = {
-            cell.value: cell.column_letter for row in worksheet.iter_rows(max_row=1) for cell in row
+            cell.value: cell.column_letter for cell in worksheet[1]
         }
 
         return header_row[col_name] if col_name in header_row.keys() else None
