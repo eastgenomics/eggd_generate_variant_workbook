@@ -2028,17 +2028,17 @@ class excel():
                writer object of current sheet
         col_name: str
                name of column to get col letter
+
         Return
         -------
         str
             column letter for specific column name
         """
-        col_letter = None
-        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
-            if column_cell[0].value == col_name:
-                col_letter = column_cell[0].column_letter
+        header_row = {
+            cell.value: cell.column_letter for row in worksheet.iter_rows(max_row=1) for cell in row
+        }
 
-        return col_letter
+        return header_row[col_name] if col_name in header_row.keys() else None
 
     def protect_rename_sheets(self) -> None:
         """
