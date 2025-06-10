@@ -1107,6 +1107,11 @@ class excel():
                 last_row = num_variant+1
                 last_col = curr_worksheet.max_column
 
+                if self.args.af_format == "percentage":
+                    self.format_col_as_percentage(
+                        curr_worksheet, num_variant, col="AF"
+                    )
+
                 # Lock variant sheet and unlock cells in optional/additional
                 # columns if lock_sheet argument is True, and unlock set number
                 # of rows/cols beneath/to the right of the variant table
@@ -1215,6 +1220,11 @@ class excel():
 
             last_row = num_rows+1
             last_col = curr_worksheet.max_column
+
+            if self.args.af_format == "percentage" and file_name == 'pindel':
+                    self.format_col_as_percentage(
+                        curr_worksheet, num_rows, col="AF"
+                    )
 
             if self.args.lock_sheet:
                 self.lock_sheet(curr_worksheet)
@@ -1370,6 +1380,22 @@ class excel():
             for cell in cells:
                 if is_numeric(cell.value):
                     cell.data_type = 'n'
+
+    def format_col_as_percentage(self, sheet, num_rows: int, col: str):
+        """
+        Find cell references for cells in specified column, then format cell
+        values as percentages.
+
+        Args:
+            sheet (openpyxl.Writer): Sheet containing column to be formatted
+            num_rows (int): Number of rows in column
+            col (str): Column name / header of column to be formatted
+        """
+        cells = self.get_cells_in_columns(
+            sheet=sheet, cols=[col], num_rows=num_rows
+        )
+        for cell in cells:
+            sheet[cell].number_format = '0.00%'
 
     def set_font(self, worksheet) -> None:
         """
