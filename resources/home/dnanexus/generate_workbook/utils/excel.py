@@ -1107,7 +1107,7 @@ class excel():
                 last_row = num_variant+1
                 last_col = curr_worksheet.max_column
 
-                if self.args.af_format == "percentage":
+                if self.args.af_format == "percent":
                     self.format_col_as_percentage(
                         curr_worksheet, num_variant, col="AF"
                     )
@@ -1224,7 +1224,7 @@ class excel():
             last_row = num_rows+1
             last_col = curr_worksheet.max_column
 
-            if self.args.af_format == "percentage" and file_name == 'pindel':
+            if self.args.af_format == "percent" and file_name == 'pindel':
                     self.format_col_as_percentage(
                         curr_worksheet, num_rows, col="AF"
                     )
