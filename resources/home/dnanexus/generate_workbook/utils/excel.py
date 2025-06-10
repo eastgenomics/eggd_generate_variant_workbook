@@ -2127,11 +2127,11 @@ class excel():
         val.showInputMessage = True
         val.showErrorMessage = True
 
-    def get_cells_in_columns(self, sheet, cols, num_rows):
+    def get_cells_in_columns(self, sheet, cols, num_rows) -> list:
         """
         Get list of cell references (e.g. [A1, A2, A3]) of cells in specified
         columns for a specfied number of rows. If the column is not present,
-        then an empty list is returned. This function assumes the first row is
+        then a RuntimeError is raised. This function assumes the first row is
         a header row therefore cells in the first row are skipped.
 
         Args:
@@ -2143,6 +2143,10 @@ class excel():
         Returns:
             list:  list of cell references (e.g. A1) of cells in specified
              columns
+
+        Raises:
+            RuntimeError if specified column name is not present in specified
+            sheet
         """
         cells = []
 
