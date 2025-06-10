@@ -1121,13 +1121,10 @@ class excel():
 
                     if optional_cols_in_sheet:
 
-                        cells_to_unlock = self.get_cells_in_columns(
-                            sheet=curr_worksheet, cols=optional_cols_in_sheet,
+                        self.unlock_cols(
+                            sheet=curr_worksheet,
+                            cols=optional_cols_in_sheet,
                             num_rows=num_variant
-                        )
-
-                        self.unlock_specified_cells(
-                            curr_worksheet, cells_to_unlock
                         )
 
                     # Unlock cells beneath variant table
@@ -1149,7 +1146,7 @@ class excel():
                     )
 
                 if optional_cols_in_sheet:
-                    self.variant_drop_down(
+                    self.optional_cols_drop_down(
                         curr_worksheet, optional_cols_in_sheet, num_variant
                     )
 
@@ -1237,14 +1234,10 @@ class excel():
                     # Unlock cells in any optional columns and unlock set
                     # regions beneath/to the right of data
                     if optional_cols_in_sheet:
-
-                        cells_to_unlock = self.get_cells_in_columns(
-                            sheet=curr_worksheet, cols=optional_cols_in_sheet,
+                        self.unlock_cols(
+                            sheet=curr_worksheet,
+                            cols=optional_cols_in_sheet,
                             num_rows=num_rows
-                        )
-
-                        self.unlock_specified_cells(
-                            curr_worksheet, cells_to_unlock
                         )
 
                     # Unlock cells beneath variant table
@@ -1270,7 +1263,7 @@ class excel():
                         curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
 
             if file_name == 'pindel' and optional_cols_in_sheet:
-                self.variant_drop_down(
+                self.optional_cols_drop_down(
                         curr_worksheet, optional_cols_in_sheet, num_rows
                     )
 
@@ -1863,20 +1856,21 @@ class excel():
             start_row=7, end_row=7, start_column=6, end_column=10)
 
 
-    def variant_drop_down(self, sheet, drop_down_cols, num_variant):
+    def optional_cols_drop_down(self, sheet, drop_down_cols, num_rows):
         """
-        Function to add drop-downs to columns in the specified sheet.
+        Function to add drop-downs to specified number of rows in the
+        optional columns in the specified sheet.
 
         Args:
             sheet (openpyxl.Writer): sheet containing columns which are to have
              drop-downs added
             drop_down_cols (list | set): list or set of column names to have
              drop-downs added to, if the column names are included in the
-             variant drop_down_spec.
-            num_variant (int): number of variants/rows to have drop-downs for
+             optional_cols_drop_down_spec.
+            num_rows (int): number of variants/rows to have drop-downs for
         """
 
-        variant_drop_down_spec = {
+        optional_cols_drop_down_spec = {
             "Allele Origin": {
                 "options": '"Somatic,Unknown"',
                 "prompt": 'Choose Somatic or Unknown',
@@ -1904,10 +1898,10 @@ class excel():
             }
         }
 
-        for col, drop_down_spec in variant_drop_down_spec.items():
+        for col, drop_down_spec in optional_cols_drop_down_spec.items():
             if col in drop_down_cols:
                 cells_for_drop_down = self.get_cells_in_columns(
-                    sheet=sheet, cols=[col], num_rows=num_variant
+                    sheet=sheet, cols=[col], num_rows=num_rows
                 )
 
                 self.str_to_drop_down(
@@ -2116,11 +2110,13 @@ class excel():
         a header row therefore cells in the first row are skipped.
 
         Args:
-            sheet (openpyxl.Writer): writer object for sheet
+            sheet (openpyxl.Writer): writer object for sheet.
+            cols (list): list of column names contaning cells whose references
+                will be returned.
             num_rows(int): number of rows to return.
 
         Returns:
-            list:  list of cell references (e.g. A1) of cells in optional
+            list:  list of cell references (e.g. A1) of cells in specified
              columns
         """
         cells = []
@@ -2131,6 +2127,11 @@ class excel():
                 # Start at row 2 to skip the header
                 for row in range(2, num_rows+2):
                     cells.append(f"{col_letter}{row}")
+            else:
+                raise RuntimeError(
+                    f"The column {col} could not be found in the "
+                    f"{sheet.title} sheet"
+                )
 
         return cells
 
@@ -2237,4 +2238,28 @@ class excel():
                 title=title,
                 sheet=sheet,
                 cells=cells
+        )
+
+    def unlock_cols(
+        self, sheet, cols: list, num_rows: int
+    ) -> None:
+        """
+        Retrieve cell references for cells present in the specfied cols and
+        then unlock them.
+
+        Args:
+            sheet (openpyxl.Writer): writer object for sheet containg the
+                columns (and cells therein) to be unlocked.
+            cols (list): List of column names in
+                sheet, containing cells to be unlocked.
+            num_rows (int): Number of rows (i.e. length of columns) to be
+                unlocked
+        """
+
+        cells_to_unlock = self.get_cells_in_columns(
+            sheet=sheet, cols=cols, num_rows=num_rows
+        )
+
+        self.unlock_specified_cells(
+            sheet, cells_to_unlock
         )
