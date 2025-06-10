@@ -363,7 +363,8 @@ class arguments():
         parser.add_argument(
             '--m_codes', required=False, type=self.dx_file_id,
             help=(
-                'DNAnexus file-ID for file containing all valid Uranus M-codes'
+                'DNAnexus file-ID for file containing a list of valid M-codes.'
+                ' M-codes should be provided one per line in a .txt file.'
             )
         )
         parser.add_argument(

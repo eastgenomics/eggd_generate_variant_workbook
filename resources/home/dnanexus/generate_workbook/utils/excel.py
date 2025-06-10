@@ -298,26 +298,22 @@ class excel():
 
         cell_to_unlock = []
         if self.args.m_codes:
-            # Make M-code dropdown
-            test_codes = open_dxfile(self.args.m_codes, mode="r").read().splitlines()
+            cell_for_drop_down = "B6"
 
-            # Store M-codes in a hidden sheet as storing them in one cell
-            # exceeds excel character limit
-            m_codes = self.workbook.create_sheet('m_codes')
-            m_codes.sheet_state = 'hidden'
+            test_codes = open_dxfile(
+                self.args.m_codes, mode="r").read().splitlines()
 
-            for test_code in test_codes:
-                m_codes.append({'A': test_code})
-
-            self.get_drop_down(
-                dropdown_options=f"='m_codes'!A1:A{len(test_codes)}",
+            self.list_to_drop_down(
+                dropdown_options=test_codes,
+                dropdown_options_sheet_name="m_codes",
+                dropdown_options_col="A",
                 prompt="M-code associated with sample",
                 title="M-code",
                 sheet=self.summary,
-                cells=["B6"]
+                cells=[cell_for_drop_down]
             )
-            cell_to_unlock.append("B6")
-            self.lock_sheet(m_codes)
+
+            cell_to_unlock.append(cell_for_drop_down)
 
         if self.args.lock_sheet:
             self.lock_sheet(self.summary)
@@ -1909,7 +1905,7 @@ class excel():
                     sheet=sheet, cols=[col], num_rows=num_variant
                 )
 
-                self.get_drop_down(
+                self.str_to_drop_down(
                     dropdown_options=drop_down_spec['options'],
                     prompt=drop_down_spec['prompt'],
                     title=drop_down_spec['title'],
@@ -1935,7 +1931,7 @@ class excel():
                                   'K25']
             strength_options = '"Very Strong, Strong, Moderate, \
                                  Supporting, NA"'
-            self.get_drop_down(dropdown_options=strength_options,
+            self.str_to_drop_down(dropdown_options=strength_options,
                                prompt='Select from the list',
                                title='Strength',
                                sheet=report_sheet,
@@ -1944,7 +1940,7 @@ class excel():
             # add stregth for BA1
             BA1_options = '"Stand-Alone, Very Strong, Strong, Moderate, \
                             Supporting, NA"'
-            self.get_drop_down(dropdown_options=BA1_options,
+            self.str_to_drop_down(dropdown_options=BA1_options,
                                prompt='Select from the list',
                                title='Strength',
                                sheet=report_sheet,
@@ -1956,7 +1952,7 @@ class excel():
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
-            self.get_drop_down(dropdown_options=class_options,
+            self.str_to_drop_down(dropdown_options=class_options,
                                prompt='Select from the list',
                                title='ACMG classification',
                                sheet=report_sheet,
@@ -1964,7 +1960,9 @@ class excel():
         wb.save(self.args.output)
 
     def lock_sheet(
-        self, ws, password: str = "sheet_is_protected", lock_formatting: str = False) -> None:
+        self, ws, password: str = "sheet_is_protected",
+        lock_formatting: str = False
+    ) -> None:
         """
         Locks all cells in worksheet using the specified password.
         Args:
@@ -1982,8 +1980,6 @@ class excel():
         ws.protection.formatColumns = lock_formatting
         ws.protection.formatRows = lock_formatting
         ws.protection.formatCells = lock_formatting
-
-
 
     def unlock_specified_cells(self, ws, cell_to_unlock) -> None:
         """
@@ -2050,14 +2046,26 @@ class excel():
         wb.security.workbookPassword = "sheet_name_protected"
         wb.save(self.args.output)
 
-    def get_drop_down(self, dropdown_options, prompt, title, sheet, cells) -> None:
+    def str_to_drop_down(self, dropdown_options: str, prompt, title, sheet, cells) -> None:
         """
-        create the drop-downs items for designated cells
+        Create drop-downs for specified cells, with the drop-down options
+        provided as a string. The drop-down options string should be formatted
+        with drop-down list options separated by a comma and surrounded by
+        quotation marks. For example, if wanting to create a drop-down for
+        numbers 1 to 3, the string should be defined as '"1, 2, 3"' to
+        include the double-quotes as part of the string.
+
+        An error is raised if the drop-down options string is >256 characters
+        long (including the enclosing quotation marks). This is due to
+        a 256 character limit in excel, which will prevent the drop-down from
+        being formatted correctly. In this case, list_to_drop_down() should be
+        used to make the drop-down.
 
         Parameters
         ----------
         dropdown_options: str
-            str containing drop-down items
+            str containing drop-down items formatted with drop-down list
+            options separated by a comma and surrounded by quoation marks.
         prompt: str
             prompt message for drop-down
         title: str
@@ -2065,10 +2073,23 @@ class excel():
         sheet: openpyxl.Writer writer object
             current worksheet
         cells: list
-            list of cells to add drop-down
+            List of cells to have drop-down added, specified by
+            column letter row number referencing e.g. A1
+
+        Raises:
+        -------
+        ValueError: if drop-down options string is > 256 characters long.
+
         """
-        options = dropdown_options
-        val = DataValidation(type='list', formula1=options,
+
+        if len(dropdown_options) > 256:
+            raise ValueError(
+                "Drop-down options string is >256 characters long and will"
+                " not be formatted correctly by excel. Consider using "
+                "list_to_drop_down() to implement this drop-down"
+            )
+
+        val = DataValidation(type='list', formula1=dropdown_options,
                              allow_blank=True)
         val.prompt = prompt
         val.promptTitle = title
@@ -2128,3 +2149,83 @@ class excel():
                         if cell.value is not None:
                             height = (cell.value.count('\n') * 13) + 25
                             curr_worksheet.row_dimensions[cell.row].height = height
+
+    def store_list_in_sheet(self, values: list, sheet_name: str,
+                            col: str = "A") -> None:
+        """
+        Store a list of values in a specified column, in a specified sheet,
+        using the specified sheetname.
+
+        Args:
+            values (list): List of values to be stored in the sheet
+            sheet_name (str): Name of sheet in which the values will be stored
+            col (str, optional): Column letter, specifying the column in which
+                the values will be stored, the default is the first column
+                ("A").
+        """
+
+        if sheet_name not in self.workbook.sheetnames:
+            sheet = self.workbook.create_sheet(sheet_name)
+
+        else:
+            sheet = self.workbook[sheet_name]
+
+        for value in values:
+            sheet.append({col: value})
+
+    def list_to_drop_down(
+        self, dropdown_options: list, dropdown_options_sheet_name: str,
+        dropdown_options_col: str, prompt: str, title: str,
+        sheet, cells: list, hide: bool = True, lock: bool = True
+    ) -> None:
+
+        """
+        Store a list of values in a specified location (specified sheet,
+        specified column) by calling store_list_in_sheet(). Create a drop-down
+        in the specified location(s) (specified sheet, specified cell(s))
+        referencing the stored list values, by calling str_to_drop_down().
+
+        This function can be helpful if trying to create a drop-down with a
+        large number of options, as excel prevents you from generating a
+        drop-down using a string that is > 256 characters long.
+
+        Args:
+            dropdown_options (list): List of values to be included as
+                drop-down options
+            dropdown_options_sheet_name (str): Name of sheet in which to store
+                drop-down option values
+            dropdown_options_col (str): Column letter in which to store
+                drop-down option values (e.g. "A")
+            prompt (str): prompt message for drop-down
+            title (str): title message for drop-down
+            sheet (openpyxl.Writer writer object): Sheet in which drop-down
+                will be added
+            cells (list): List of cells to have drop-down added, specified by
+            column letter row number referencing e.g. A1
+            hide (bool, optional): If true, sheet storing drop-down options
+                values is hidden. Defaults to True.
+            lock (bool, optional): If true, sheet storing drop-down options is
+                locked. Defaults to True.
+        """
+
+        self.store_list_in_sheet(
+            values=dropdown_options,
+            sheet_name=dropdown_options_sheet_name,
+            col=dropdown_options_col
+        )
+
+        dropdown_options_sheet = self.workbook[dropdown_options_sheet_name]
+
+        if hide:
+            dropdown_options_sheet.sheet_state = 'hidden'
+
+        if lock:
+            self.lock_sheet(dropdown_options_sheet)
+
+        self.str_to_drop_down(
+                dropdown_options=f"='{dropdown_options_sheet_name}'!{dropdown_options_col}1:{dropdown_options_col}{len(dropdown_options)}",
+                prompt=prompt,
+                title=title,
+                sheet=sheet,
+                cells=cells
+        )
