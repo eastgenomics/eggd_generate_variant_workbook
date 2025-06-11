@@ -1108,8 +1108,13 @@ class excel():
                 last_col = curr_worksheet.max_column
 
                 if self.args.af_format == "percent":
+
                     self.format_col_as_percentage(
-                        curr_worksheet, num_variant, col="AF"
+                        curr_worksheet,
+                        cells=self.get_cells_in_columns(
+                            sheet=curr_worksheet, cols=["AF"],
+                            num_rows=num_variant
+                        )
                     )
 
                 # Lock variant sheet and unlock cells in optional/additional
@@ -1225,9 +1230,13 @@ class excel():
             last_col = curr_worksheet.max_column
 
             if self.args.af_format == "percent" and file_name == 'pindel':
-                    self.format_col_as_percentage(
-                        curr_worksheet, num_rows, col="AF"
+
+                self.format_col_as_percentage(
+                    sheet=curr_worksheet,
+                    cells=self.get_cells_in_columns(
+                        sheet=curr_worksheet, cols=["AF"], num_rows=num_rows
                     )
+                )
 
             if self.args.lock_sheet:
                 self.lock_sheet(curr_worksheet)
@@ -1388,19 +1397,14 @@ class excel():
                 if is_numeric(cell.value):
                     cell.data_type = 'n'
 
-    def format_col_as_percentage(self, sheet, num_rows: int, col: str):
+    def format_col_as_percentage(self, sheet, cells: list) -> None:
         """
-        Find cell references for cells in specified column, then format cell
-        values as percentages.
-
+        Format specified cells as percentages.
         Args:
-            sheet (openpyxl.Writer): Sheet containing column to be formatted
-            num_rows (int): Number of rows in column
-            col (str): Column name / header of column to be formatted
+            sheet (openpyxl.Writer): Sheet containing cells to be formatted
+            cells (list): List of cell references to be formatted as
+                percentages
         """
-        cells = self.get_cells_in_columns(
-            sheet=sheet, cols=[col], num_rows=num_rows
-        )
         for cell in cells:
             sheet[cell].number_format = '0.00%'
 

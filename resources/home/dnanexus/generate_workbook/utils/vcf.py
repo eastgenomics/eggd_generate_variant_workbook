@@ -174,9 +174,6 @@ class vcf():
         if self.args.additional_columns:
             self.add_additional_columns()
 
-        if self.args.af_format == "percent":
-            self.percent_af(self.vcfs)
-
         if self.args.join_columns:
             self.joining_columns(self.vcfs)
 
@@ -459,8 +456,6 @@ class vcf():
                 if self.args.split_hgvs:
                     file_df = self.split_hgvs([file_df])[0]
 
-                if self.args.af_format == "percent":
-                    file_df = self.percent_af([file_df])[0]
                 if self.args.add_report_text_column:
                     file_df = self.make_report_text([file_df])[0]
 
@@ -987,31 +982,6 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
 
-    def percent_af(self, vcfs) -> list:
-        """
-        Finds the column with "AF" and will convert the number format
-        to percent
-        Parameters
-        ----------
-        vcfs : list
-            list of pd.DataFrames of vcfs to change the AF columns type
-        Returns
-        -------
-        list
-            list of dataframes with AF changed to percent type
-        """
-        # find the sheets and apply to all sheets
-        for idx, vcf in enumerate(vcfs):
-            if 'AF' not in vcf.columns:
-                continue
-            vcf['AF'] = vcf['AF'].astype(np.float16)
-            vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
-
-            vcfs[idx] = vcf
-
-        return vcfs
-
-
     def make_report_text(self, vcfs):
         """
         Makes a report text that follows the has the details per row
@@ -1063,7 +1033,7 @@ class vcf():
         ]
         text = ""
         if row.get('symbol') and row.get('consequence'):
-            text += f"{row.get('symbol', '')} {row.get('consequence')} "
+            text += f"{row.get('symbol')} {row.get('consequence')} "
 
         if row.get('exon', '').replace('.', ''):
             text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
@@ -1072,19 +1042,24 @@ class vcf():
             text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
         if row.get('dna'):
-            text += f"HGVSc: {add_none(row.get('dna', ''))}\n"
+            text += f"HGVSc: {add_none(row.get('dna'))}\n"
         elif row.get('hgvsc'):
-            text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
+            text += f"HGVSc: {add_none(row.get('hgvsc'))}\n"
 
         if row.get('protein'):
-            text += f"HGVSp: {add_none(row.get('protein', ''))}\n"
+            text += f"HGVSp: {add_none(row.get('protein'))}\n"
         elif row.get('hgvsp'):
-            text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
+            text += f"HGVSp: {add_none(row.get('hgvsp'))}\n"
 
         if row.get('existing_variation', '').replace('.', ''):
             text += f"dbSNP: {row.get('existing_variation', '')}\n"
 
-        text += f"Allele Frequency (VAF): {add_none(str(row.get('af', '')))}"
+        if row.get('af') == '.':
+            value = 'None'
+        else:
+            value = f"{float(row.get('af')):.1%}"
+
+        text += f"Allele Frequency (VAF): {value}"
 
         return text
 
