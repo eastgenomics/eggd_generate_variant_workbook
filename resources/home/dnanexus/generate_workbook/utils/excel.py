@@ -1985,15 +1985,16 @@ class excel():
         lock_formatting: str = False
     ) -> None:
         """
-        Locks all cells in worksheet using the specified password.
+        Locks all cells in worksheet using the specified password, if no
+        password is specified, the password defaults to "sheet_is_protected".
         Args:
             ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
              cells to be locked
             password (str, optional): password used to lock cells. Defaults to
              "sheet_is_protected".
-            prevent_formatting (bool, optional): Boolean whether cells, columns
+            lock_formatting (bool, optional): Boolean whether cells, columns
              and rows in locked sheet should be able to be formatted. If True,
-             cells, columns and rows cannot be formatted, if false the can.
+             cells, columns and rows cannot be formatted, if false, they can.
         """
         ws.protection.sheet = True
         ws.protection.autoFilter = False

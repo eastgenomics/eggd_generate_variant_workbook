@@ -346,7 +346,7 @@
       "label": "Add an excel auto filter to variant sheets",
       "class": "boolean",
       "optional" : true,
-      "help": "If true, an auto-filter is added to variant sheets"
+      "help": "If true, an auto-filter is applied to all column headers in variant sheets"
     }
   ],
   "outputSpec": [
