@@ -16,7 +16,7 @@ from openpyxl.cell.text import InlineFont
 from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter as col_idx_to_col_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles.protection import Protection
 import pandas as pd
@@ -164,7 +164,7 @@ class excel():
         # write colouring applied to each field as separate column in summary
         for column, conditions in cols_to_colours.items():
             colour_row = row_count + 1
-            column_letter = get_column_letter(colour_col)
+            column_letter = col_idx_to_col_letter(colour_col)
 
             self.summary.cell(row_count, colour_col).value = column
             to_bold.append(f"{column_letter}{row_count}")
@@ -1158,7 +1158,7 @@ class excel():
                     )
 
                 if self.args.add_auto_filter:
-                    last_col_letter = get_column_letter(last_col)
+                    last_col_letter = col_idx_to_col_letter(last_col)
                     curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
 
                 self.workbook.save(self.args.output)
@@ -1194,7 +1194,7 @@ class excel():
                 length = 13 if length < 13 else length
                 length = 30 if length > 30 else length
 
-                col_letter = get_column_letter(idx)
+                col_letter = col_idx_to_col_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
 
             # set widths of any columns we have specified below in set_width()
@@ -1278,7 +1278,7 @@ class excel():
                     )
 
                     if self.args.add_auto_filter:
-                        last_col_letter = get_column_letter(last_col)
+                        last_col_letter = col_idx_to_col_letter(last_col)
                         curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
 
             if file_name == 'pindel' and optional_cols_in_sheet:
@@ -2030,13 +2030,13 @@ class excel():
             unlock_col_num (int): total number of cols to be unlocked
         """
         for col in range(start_col, start_col+unlock_col_num):
-            col_letter = get_column_letter(col)
+            col_letter = col_idx_to_col_letter(col)
             for row in range(start_row, start_row+unlock_row_num):
                 row_num = row
                 cell = f"{col_letter}{row_num}"
                 ws[cell].protection = Protection(locked=False)
 
-    def get_col_letter(self, worksheet, col_name) -> str:
+    def col_name_to_col_letter(self, worksheet, col_name) -> str:
         """
         Getting the column letter with specific col name
 
@@ -2149,7 +2149,7 @@ class excel():
         cells = []
 
         for col in cols:
-            col_letter = self.get_col_letter(sheet, col)
+            col_letter = self.col_name_to_col_letter(sheet, col)
             if col_letter is not None:
                 # Start at row 2 to skip the header
                 for row in range(2, num_rows+2):
@@ -2176,7 +2176,7 @@ class excel():
             if 'Report text' not in [x.value for x in curr_worksheet[1]]:
                 continue
 
-            report_column = self.get_col_letter(curr_worksheet, 'Report text')
+            report_column = self.col_name_to_col_letter(curr_worksheet, 'Report text')
 
             for row in curr_worksheet.iter_rows():
                 for cell in row:
