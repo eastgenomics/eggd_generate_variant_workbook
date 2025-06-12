@@ -96,14 +96,14 @@ class excel():
         if self.args.add_report_text_column:
             self.set_width_height_report_text()
 
-        self.workbook.save(self.args.output)
-
         if self.args.lock_sheet:
             self.protect_rename_sheets()
 
-        # Add drop-downs for acmg interept sheet(s)
+        # Add drop-downs for acmg interpret sheet(s)
         if self.args.acmg:
             self.acmg_drop_down()
+
+        self.workbook.save(self.args.output)
 
         print('Done!')
 
@@ -1935,7 +1935,7 @@ class excel():
         Function to add drop-downs in the report tab for entering
         ACMG criteria for classification
         """
-        wb = load_workbook(filename=self.args.output)
+        wb = self.workbook
 
         # adding dropdowns in report table
         for sheet_num in range(1, self.args.acmg+1):
@@ -1978,7 +1978,6 @@ class excel():
                 sheet=report_sheet,
                 cells=['C26']
             )
-        wb.save(self.args.output)
 
     def lock_sheet(
         self, ws, password: str = "sheet_is_protected",
@@ -2065,10 +2064,9 @@ class excel():
         """
         prevent renaming sheets in the workbook
         """
-        wb = load_workbook(filename=self.args.output)
+        wb = self.workbook
         wb.security.lockStructure = True
         wb.security.workbookPassword = "sheet_name_protected"
-        wb.save(self.args.output)
 
     def str_to_drop_down(
         self, dropdown_options: str, prompt: str, title: str, sheet,
