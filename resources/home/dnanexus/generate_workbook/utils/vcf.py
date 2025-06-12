@@ -394,7 +394,7 @@ class vcf():
             vcf_df['Reported'] = ''
 
         if self.args.add_mnv_column:
-            # add empty 'Reported' column to end of df
+            # add empty 'MNV' column to end of df
             vcf_df['MNV'] = ''
 
         return vcf_df
