@@ -2175,16 +2175,21 @@ class excel():
             if 'Report text' not in [x.value for x in curr_worksheet[1]]:
                 continue
 
-            report_column = self.col_name_to_col_letter(curr_worksheet, 'Report text')
+            report_column = self.col_name_to_col_letter(
+                curr_worksheet, 'Report text'
+            )
 
-            for row in curr_worksheet.iter_rows():
-                for cell in row:
-                    if cell.column_letter == report_column and cell.row != 1:
-                        # find the cell containing the report text and set
-                        # the row height proportional to no. of lines
-                        if cell.value is not None:
-                            height = (cell.value.count('\n') * 13) + 25
-                            curr_worksheet.row_dimensions[cell.row].height = height
+            # Loop over cells in report text column but skip first row
+            for cell in curr_worksheet[report_column][1:]:
+                if cell.value is not None:
+                    # find the cell containing the report text and set
+                    # the row height proportional to no. of lines
+                    height = (cell.value.count('\n') * 13) + 25
+                    curr_worksheet.row_dimensions[cell.row].height = height
+                    # Wrap text so that new lines are interpreted correctly by
+                    # excel
+                    cell.alignment = Alignment(wrap_text=True)
+
 
     def store_list_in_sheet(self, values: list, sheet_name: str,
                             col: str = "A") -> None:
