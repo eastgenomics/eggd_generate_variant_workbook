@@ -37,8 +37,8 @@ DEFAULT_FONT.name = 'Calibri'
 ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
-# List of optional columns which can be added that need to be unlocked and/or
-# have drop-dwons added
+# List of optional columns which can be added that may need to be unlocked
+# and/or have drop-dwons added
 OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
                     'Interpreted', 'Reported', 'MNV'}
 
@@ -1109,7 +1109,7 @@ class excel():
 
                 if self.args.af_format == "percent":
 
-                    self.format_col_as_percentage(
+                    self.format_cells_as_percentage(
                         curr_worksheet,
                         cells=self.get_cells_in_columns(
                             sheet=curr_worksheet, cols=["AF"],
@@ -1231,7 +1231,7 @@ class excel():
 
             if self.args.af_format == "percent" and file_name == 'pindel':
 
-                self.format_col_as_percentage(
+                self.format_cells_as_percentage(
                     sheet=curr_worksheet,
                     cells=self.get_cells_in_columns(
                         sheet=curr_worksheet, cols=["AF"], num_rows=num_rows
@@ -1397,7 +1397,7 @@ class excel():
                 if is_numeric(cell.value):
                     cell.data_type = 'n'
 
-    def format_col_as_percentage(self, sheet, cells: list) -> None:
+    def format_cells_as_percentage(self, sheet, cells: list) -> None:
         """
         Format specified cells as percentages.
         Args:
@@ -2074,13 +2074,23 @@ class excel():
     ) -> None:
         """
         Create drop-downs for specified cells, with the drop-down options
-        provided as a string. The drop-down options string should be formatted
-        with drop-down list options separated by a comma and surrounded by
-        quotation marks. For example, if wanting to create a drop-down for
-        numbers 1 to 3, the string should be defined as '"1, 2, 3"' to
-        include the double-quotes as part of the string.
+        provided as a string.
 
-        An error is raised if the drop-down options string is >256 characters
+        The drop-down options string can be formatted with drop-down
+        options separated by a comma and surrounded by quotation marks. For
+        example, if wanting to create a drop-down for numbers 1 to 3, the
+        formula should be defined as '"1, 2, 3"' to include the double-quotes
+        as part of the string.
+
+        Alternatively, drop-down options can be inputted across a number of
+        cells, and this range of cells can then be referenced to create the
+        drop-down. For example, if wanting to create a drop-down for numbers
+        1 to 3, and these numbers were inputted into the sheet "Example_sheet"
+        in the cells A1 to A3, respectively, then the drop-down formula would
+        be "='Example_sheet'!A1:A3". This can be done in one step via the
+        list_to_drop_down() function.
+
+        An error is raised if the drop-down options formula is >256 characters
         long (including the enclosing quotation marks). This is due to
         a 256 character limit in excel, which will prevent the drop-down from
         being formatted correctly. In this case, list_to_drop_down() should be
@@ -2189,7 +2199,6 @@ class excel():
                     # Wrap text so that new lines are interpreted correctly by
                     # excel
                     cell.alignment = Alignment(wrap_text=True)
-
 
     def store_list_in_sheet(self, values: list, sheet_name: str,
                             col: str = "A") -> None:
