@@ -209,7 +209,8 @@ class excel():
         self.summary.cell(10, 1).value = "Contamination"
         self.summary.cell(11, 1).value = "Total reads M"
         self.summary.cell(12, 1).value = "Fold 80"
-        self.summary.cell(13, 1).value = "Insert Size"
+        self.summary.cell(13, 1).value = "Insert size"
+        self.summary.cell(14, 1).value = "Sex check"
 
         self.summary.cell(8, 4).value = "Sample QC"
         self.summary.cell(3, 1).value = "Analysed by"
