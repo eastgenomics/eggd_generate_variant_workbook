@@ -299,11 +299,8 @@ class excel():
         if self.args.m_codes:
             cell_for_drop_down = "B6"
 
-            test_codes = open_dxfile(
-                self.args.m_codes, mode="r").read().splitlines()
-
             self.list_to_drop_down(
-                dropdown_options=test_codes,
+                dropdown_options=self.read_m_codes_file(),
                 dropdown_options_sheet_name="m_codes",
                 dropdown_options_col="A",
                 prompt="M-code associated with sample",
@@ -2280,3 +2277,25 @@ class excel():
                 sheet=sheet,
                 cells=cells
         )
+
+    def read_m_codes_file(self):
+        """
+        Reads in M-codes file from DNAnexus and checks that file is formatted
+        correctly.
+
+        Raises:
+            ValueError: if line found in M-codes file which does not contain a
+            single valid M-code.
+        """
+        lines = [
+            line.strip() for line in open_dxfile(
+                self.args.m_codes, mode="r").read().splitlines()
+        ]
+
+        for idx, line in enumerate(lines):
+            if not re.match(r'^M\d+$', line):
+                raise ValueError(
+                    f"M-codes file not formatted correctly. Incorrect value "
+                    f"{repr(line)} found in line {idx}"
+                )
+        return lines
