@@ -1406,7 +1406,7 @@ class excel():
                 percentages
         """
         for cell in cells:
-            sheet[cell].number_format = '0.00%'
+            sheet[cell].number_format = '0.0%'
 
     def set_font(self, worksheet) -> None:
         """
