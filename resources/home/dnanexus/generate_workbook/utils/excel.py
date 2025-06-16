@@ -2278,7 +2278,7 @@ class excel():
                 cells=cells
         )
 
-    def read_m_codes_file(self):
+    def read_m_codes_file(self) -> list:
         """
         Reads in M-codes file from DNAnexus and checks that file is formatted
         correctly.
@@ -2286,6 +2286,10 @@ class excel():
         Raises:
             ValueError: if line found in M-codes file which does not contain a
             single valid M-code.
+
+        Returns:
+            List containing M-codes stripped of any leading/trailing
+            whitespace
         """
         lines = [
             line.strip() for line in open_dxfile(
