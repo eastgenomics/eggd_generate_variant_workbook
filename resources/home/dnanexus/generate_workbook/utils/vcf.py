@@ -386,7 +386,7 @@ class vcf():
             vcf_df['Allele_Origin'] = ''
 
         if self.args.add_interpreted_column:
-            # add empty 'Classification' column to end of df
+            # add empty 'Interpreted' column to end of df
             vcf_df['Interpreted'] = ''
 
         if self.args.add_reported_column:

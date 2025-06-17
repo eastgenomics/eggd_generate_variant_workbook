@@ -2027,12 +2027,13 @@ class excel():
             unlock_row_num (int): total number of rows to be unlocked
             unlock_col_num (int): total number of cols to be unlocked
         """
+        unlocked = Protection(locked=False)
         for col in range(start_col, start_col+unlock_col_num):
             col_letter = col_idx_to_col_letter(col)
             for row in range(start_row, start_row+unlock_row_num):
                 row_num = row
                 cell = f"{col_letter}{row_num}"
-                ws[cell].protection = Protection(locked=False)
+                ws[cell].protection = unlocked
 
     def col_name_to_col_letter(self, worksheet, col_name) -> str:
         """
@@ -2056,7 +2057,7 @@ class excel():
             cell.value: cell.column_letter for cell in worksheet[1]
         }
 
-        return header_row[col_name] if col_name in header_row.keys() else None
+        return header_row[col_name] if col_name in header_row else None
 
     def protect_rename_sheets(self) -> None:
         """
