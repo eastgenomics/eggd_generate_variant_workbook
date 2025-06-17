@@ -2296,7 +2296,7 @@ class excel():
                 self.args.m_codes, mode="r").read().splitlines()
         ]
 
-        for idx, line in enumerate(lines):
+        for idx, line in enumerate(lines, 1):
             if not re.match(r'^M\d+$', line):
                 raise ValueError(
                     f"M-codes file not formatted correctly. Incorrect value "
