@@ -59,6 +59,23 @@ class arguments():
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, ' '.join(values))
 
+    def dx_file_id(self, value: str) -> str:
+        """
+        Validate DNAnexus file ID format: must start with 'file-' followed by
+        a 24 character alphanumerics.
+
+        Returns
+        -------
+        value : str
+            Inputted value is returned if it is a valid DNAnexus file ID.
+        Raises
+        ------
+        argparse.ArgumentTypeError
+            Raised when invalid file ID is passed.
+        """
+        if not re.match(r'^file-[A-Za-z0-9]{24}$', value):
+            raise argparse.ArgumentTypeError(f"Invalid DNAnexus file ID: {value!r}")
+        return value
 
     def parse_args(self) -> argparse.Namespace:
         """
@@ -157,6 +174,26 @@ class arguments():
         parser.add_argument(
             '--add_classification_column', action='store_true',
             help='Add empty classification column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_allele_origin_column', action='store_true',
+            help='Add empty allele origin column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_interpreted_column', action='store_true',
+            help='Add empty interpreted column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_reported_column', action='store_true',
+            help='Add empty reported column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_mnv_column', action='store_true',
+            help='Add empty MNV column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_report_text_column', action='store_true',
+            help='Makes a report summary to be appended as the last column'
         )
         parser.add_argument(
             '--images', nargs='+',
@@ -320,16 +357,22 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--report_text', action='store_true',
-            help=('Makes a report summary to be appended as the last column'
-            )
-        )
-        parser.add_argument(
             '--join_columns', nargs='+',
             help=(
                 'Joins columns together with a separator or attaches string '
                 'before or after a column'
             )
+        )
+        parser.add_argument(
+            '--m_codes', required=False, type=self.dx_file_id,
+            help=(
+                'DNAnexus file-ID for file containing a list of valid M-codes.'
+                ' M-codes should be provided one per line in a .txt file.'
+            )
+        )
+        parser.add_argument(
+            '--add_auto_filter', action='store_true',
+            help='Add an excel auto filter to variant sheets'
         )
         return parser.parse_args()
 
