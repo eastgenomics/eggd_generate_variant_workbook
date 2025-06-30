@@ -30,7 +30,7 @@ class arguments():
         self.verify_additional_columns()
         self.verify_sort_by()
 
-        print(f"Arguments passed: ", ''.join([
+        print("Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
             for x in self.args.__dict__
         ]))
@@ -63,7 +63,7 @@ class arguments():
     def dx_file_id(self, value: str) -> str:
         """
         Validate DNAnexus file ID format: must start with 'file-' followed by
-        a 24 character alphanumerics.
+        a 24 character alphanumeric.
 
         Returns
         -------
@@ -75,7 +75,9 @@ class arguments():
             Raised when invalid file ID is passed.
         """
         if not re.match(r'^file-[A-Za-z0-9]{24}$', value):
-            raise argparse.ArgumentTypeError(f"Invalid DNAnexus file ID: {value!r}")
+            raise argparse.ArgumentTypeError(
+                f"Invalid DNAnexus file ID: {value!r}"
+            )
         return value
 
     def parse_args(self) -> argparse.Namespace:
