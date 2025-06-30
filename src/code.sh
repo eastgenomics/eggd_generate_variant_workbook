@@ -118,6 +118,7 @@ main() {
     if [ "$join_columns" ]; then args+="--join_columns ${join_columns} "; fi
     if [ "$m_codes" ]; then args+="--m_codes ${m_codes} "; fi
     if [ "$add_auto_filter" ]; then args+="--add_auto_filter "; fi
+    if [ "$sort_by" ]; then args+="--sort_by ${sort_by} "; fi
 
     args+="--out_dir /home/dnanexus/out/xlsx_reports "
 

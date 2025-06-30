@@ -189,6 +189,9 @@ class vcf():
         if self.args.reorder:
             self.order_columns(self.vcfs)
 
+        if self.args.sort_by:
+            self.sort_vcfs()
+
         self.vcfs = self.rename_columns(self.vcfs)
 
         print("\nSUCCESS: Finished munging variants from vcf(s)\n")
@@ -1004,6 +1007,18 @@ class vcf():
 
         return vcfs
 
+    def sort_vcfs(self):
+        """
+        Sort VCF dataframes using the specified column headers and their
+        corresponding boolean values for whether to sort in ascending order.
+        """
+        for vcf in self.vcfs:
+            vcf.sort_values(
+                by=list(self.args.sort_by.keys()),
+                ascending=list(self.args.sort_by.values()),
+                ignore_index=True,
+                inplace=True
+            )
 
     @staticmethod
     def format_report_text(row) -> str:
