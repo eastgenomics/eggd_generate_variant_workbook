@@ -64,7 +64,22 @@ def test_unlock_specified_cells(mocked_excel_file, locked_worksheet):
 
 # unlocked_region()
 def test_unlock_region(mocked_excel_file, locked_worksheet):
-    assert True
+    target_cells = [locked_worksheet[cell] for cell in ["A1", "A2", "B1", "B2"]]
+    # ensure cells are currently locked
+    cells_are_locked = [cell.protection.locked for cell in target_cells]
+    assert all(cells_are_locked)
+    # unlock cells and ensure they are unlocked
+    mocked_excel_file.unlock_region(
+            ws=locked_worksheet,
+            start_row=1,
+            start_col=1,
+            unlock_row_num=2,
+            unlock_col_num=2
+            )
+    cells_are_unlocked = [cell.protection.locked is False for cell in target_cells]
+    assert all(cells_are_unlocked)
+    # ensure unrelated cell remains unlocked
+    assert locked_worksheet["B3"].protection.locked
 
 # get_cells_in_columns()
 def test_get_cells_in_columns_returns_cells(mocked_excel_file, unlocked_worksheet):
@@ -85,6 +100,17 @@ def test_get_cells_missing_column_error(mocked_excel_file, unlocked_worksheet):
                 num_rows=1)
 
 # store_list_in_sheet()
+def test_store_list_in_sheet(mocked_excel_file):
+    mocked_excel_file.store_list_in_sheet(
+            values=["Waterloo", "Gimme Gimme Gimme", "Lay All Of Your Love On Me"],
+            sheet_name="sheet1",
+            col="A")
+    wb = mocked_excel_file.workbook
+    ws = wb.active
+    assert ws["A1"].value == "Waterloo"
+    assert ws["A2"].value == "Gimme Gimme Gimme"
+    assert ws["A3"].value == "Lay All Of Your Love On Me"
+
 # read_m_codes_file
 def test_success_upon_compliant_mcodes(mocked_excel_file, monkeypatch):
     class CompliantMFile:
