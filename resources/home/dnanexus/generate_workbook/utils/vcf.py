@@ -190,7 +190,7 @@ class vcf():
             self.order_columns(self.vcfs)
 
         if self.args.sort_by:
-            self.sort_vcfs()
+            self.sort_vcfs(self.vcfs)
 
         self.vcfs = self.rename_columns(self.vcfs)
 
@@ -473,11 +473,15 @@ class vcf():
                 if self.args.reorder:
                     file_df = self.order_columns([file_df])[0]
 
+                if self.args.sort_by:
+                    self.sort_vcfs([file_df])
+
                 file_df = self.rename_columns([file_df])[0]
                 # force header to also be first line of df so it is written
                 # to the Excel sheet
                 file_df = pd.DataFrame(
                     [file_df.columns], columns=file_df.columns).append(file_df)
+
             else:
                 # check what delimiter the data uses
                 # check end of file to avoid potential headers causing issues
@@ -1007,12 +1011,16 @@ class vcf():
 
         return vcfs
 
-    def sort_vcfs(self):
+    def sort_vcfs(self, vcfs: list) -> None:
         """
         Sort VCF dataframes using the specified column headers and their
         corresponding boolean values for whether to sort in ascending order.
+
+        Args:
+            vcfs (list): list of panda dataframes to be sorted.
         """
-        for vcf in self.vcfs:
+
+        for vcf in vcfs:
             vcf.sort_values(
                 by=list(self.args.sort_by.keys()),
                 ascending=list(self.args.sort_by.values()),
