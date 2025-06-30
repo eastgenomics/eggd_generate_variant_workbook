@@ -1,0 +1,99 @@
+import os
+import sys
+import pytest
+from pathlib import Path
+from dxpy.bindings.dxfile_functions import open_dxfile
+import openpyxl
+
+sys.path.append(os.path.abspath(
+    os.path.join(os.path.realpath(__file__), '../../')
+))
+
+from utils.excel import excel
+
+
+# fixtures
+@pytest.fixture
+def mocked_excel_file(mocker):
+    mock_args = mocker.Mock()
+    mock_args.output = Path(os.getcwd() + "tmp.xlsx")
+    mock_args.sheets = ["sheet1", "sheet2", "sheet3"]
+    mock_vcfs = mocker.Mock()
+    mock_additional_files = mocker.Mock()
+    mock_refs = mocker.Mock()
+    return excel(mock_args, mock_vcfs, mock_additional_files, mock_refs)
+
+# lock_sheet()
+def test_attributes_are_set_correctly(mocked_excel_file):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    mocked_excel_file.lock_sheet(ws, password = "sheet_is_protected")
+    expected = {
+            "sheet": "1", 
+            "autoFilter": "0", 
+            "formatColumns": "0", 
+            "formatRows": "0", 
+            "formatCells": "0", 
+            "password": ws.protection.password
+        }
+    actual = dict(ws.protection)
+    assert expected.items() <= actual.items()
+
+
+# unlock_specified_cells()
+def test_
+
+# unlocked_region()
+# get_cells_in_columns()
+# store_list_in_sheet()
+# read_m_codes_file
+def test_success_upon_compliant_mcodes(mocked_excel_file, monkeypatch):
+    class CompliantMFile:
+        def __init__(self):
+            pass
+
+        def read(self):
+            return "M123"
+
+    def return_compliant_file(*args, **kwargs):
+        return CompliantMFile() 
+
+    monkeypatch.setattr("utils.excel.open_dxfile", return_compliant_file)
+    mocked_excel_file.read_m_codes_file()
+
+def test_exception_upon_noncompliant_mcodes(mocked_excel_file, monkeypatch):
+    class NonCompliantMFile:
+        def __init__(self):
+            pass
+
+        def read(self):
+            return "hi\nthis\nshouldnt\nwork"
+
+    def return_noncompliant_file(*args, **kwargs):
+        return NonCompliantMFile() 
+
+    monkeypatch.setattr("utils.excel.open_dxfile", return_noncompliant_file)
+    with pytest.raises(ValueError, match=r".*M-codes file not formatted correctly.*"):
+        mocked_excel_file.read_m_codes_file()
+
+# str_to_dropdown()
+def test_str_to_drop_down_options_too_long(mocked_excel_file):
+    horrid_string = "".join(["A" for i in range(300)])
+    with pytest.raises(ValueError, match=r".*>256 characters long.*"):
+        mocked_excel_file.str_to_drop_down(
+                dropdown_options=horrid_string,
+                prompt="A",
+                title="A",
+                sheet="A",
+                cells=["A1"])
+
+# write_variants()
+
+# format_cells_as_percentage
+def test_cells_formatted_as_perc(mocked_excel_file):
+    wb = openpyxl.Workbook()
+    wb.save(mocked_excel_file.args.output)
+    ws = wb.worksheets[0]
+    ws["A1"] = "41.23"
+    mocked_excel_file.format_cells_as_percentage(ws, cells = ["A1"])
+    assert ws["A1"].number_format == "0.0%"
