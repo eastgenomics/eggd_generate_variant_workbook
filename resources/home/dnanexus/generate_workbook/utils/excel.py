@@ -38,7 +38,7 @@ ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
 # List of optional columns which can be added that may need to be unlocked
-# and/or have drop-dwons added
+# and/or have drop-downs added
 OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
                     'Interpreted', 'Reported', 'MNV'}
 
@@ -1687,7 +1687,9 @@ class excel():
             "comment": 10,
             "classification": 12,
             "spliceai pred ": 18,
-            "report text": 35
+            "report text": 35,
+            "panel": 27,
+            "reported": 17
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ

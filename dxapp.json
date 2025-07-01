@@ -347,6 +347,13 @@
       "class": "boolean",
       "optional" : true,
       "help": "If true, an auto-filter is applied to all column headers in variant sheets"
+    },
+    {
+      "name": "sort_by",
+      "label": "Sort variant sheets by column(s)",
+      "class": "string",
+      "optional" : true,
+      "help": "List of column name:bool pairs, for columns to sort on and bool whether to sort in ascending order"
     }
   ],
   "outputSpec": [

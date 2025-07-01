@@ -116,9 +116,11 @@ This app may be executed as a standalone app.
 
 `--join_columns` (`string`): Allows user to join two columns from VCF into a new column with a seperator of choice (i.e `--join_columns="Prev_Count=CSQ_Prev_Count_AC,/,CSQ_Prev_Count_NS"` ). The header needs to be added to the include or rename if this is used
 
-`--m_codes` (`string`): "DNAnexus file ID for file containing all valid M-codes. M-codes should be provided one per line in a .txt file."
+`--m_codes` (`string`): DNAnexus file ID for file containing all valid M-codes. M-codes should be provided one per line in a .txt file.
 
 `--add_auto_filter` (`bool`): If true, an excel auto-filter is added to variant sheets. This is useful if you are specifying `--lock_sheet`, as an auto-filter cannot be added manually to a locked excel sheet.
+
+`--sort_by` (`string`): Names of VCF columns to sort by, and corresponding boolean for whether to sort in ascending order or not, with the column name and its corresponding boolean joined by a colon (:), and each column name:boolean pair separated by a space. For e.g. `--sort_vars_by="CSQ_SYMBOL:True CHROM:True POS:True"`. Note: sorting occurs before column renaming but after the splitting out of the VCF INFO fields. Therefore you must specify the original column names.
 
 **Example**:
 
