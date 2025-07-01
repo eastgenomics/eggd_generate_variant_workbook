@@ -599,22 +599,23 @@ class arguments():
         sort_by_dict = {}
         for pair in self.args.sort_by:
             if ':' not in pair:
-                raise argparse.ArgumentTypeError(
-                    f"Invalid format: '{pair}'. Expected format "
-                    f"column name:boolean."
+                raise ValueError(
+                    f"Invalid format for --sort_by input: '{pair}'. Expected "
+                    "format column name:boolean."
                 )
 
             column_name, sort_bool = pair.split(':', 1)
             if not column_name or not sort_bool:
-                raise argparse.ArgumentTypeError(
-                    f"Invalid column name or bool in column name:bool pair: "
-                    f"'{pair}'."
+                raise ValueError(
+                    "Invalid format for --sort_by input: no column name or "
+                    f"bool specified in column name:bool pair: {pair}."
                 )
 
             if sort_bool not in ['True', 'False']:
-                raise argparse.ArgumentTypeError(
-                    f"Invalid value '{sort_bool}' for bool. Expected 'True' "
-                    f"or 'False'."
+                raise ValueError(
+                    "Invalid format for --sort_by input: bool in "
+                    f"column name:bool pair is not valid: '{sort_bool}'. "
+                    "Expected 'True' or 'False'."
                 )
 
             # This ensures the strings 'True' or 'False' are stored as booleans
