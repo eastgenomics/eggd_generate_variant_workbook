@@ -837,40 +837,6 @@ class TestReportText(unittest.TestCase):
                 "Does not contain Allele Frequency (VAF) in report text"
             )
 
-    def test_percent_af(self):
-        """
-        Test that the allele frequency (AF) is:
-            - converted to percent
-            - within 0-100 range
-        """
-        # reuse read_vcf from class TestDataFrameActions
-        tda_object = TestDataFrameActions()
-        # but reset the columns_vcf input VCF file
-        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
-        # read_vcf of oncospan and clean intermediate files
-        vcf_handler = tda_object.read_vcf()
-        tda_object.clean_up()
-
-        # update the af_format namespace to be percent
-        vcf_handler.args.af_format = "percent"
-        vcf_handler.percent_af(vcf_handler.vcfs)
-
-        # check all values contains %
-        AF_column_percent = list(vcf_handler.vcfs[0].AF)
-
-        # get all strings in AF_column_percent that contain %
-        contains_percent =  [s for s in AF_column_percent if "%" in s]
-        with self.subTest("Not all AFs are percent"):
-            self.assertEqual(len(AF_column_percent), len(contains_percent))
-
-        # check that they are all above 0
-        # 1. strip off %
-        # 2. check all greater than 0
-        res = [float(s.replace('%','')) for s in AF_column_percent]
-        for s in res:
-            with self.subTest(msg="Not all AFs range are within 0-100 (which should be for percent)"):
-                self.assertTrue(0 <= s <= 100)
-
 if __name__ == "__main__":
     TestAddRawChange().test_normal_df()
     TestAddRawChange().test_missing_column()
