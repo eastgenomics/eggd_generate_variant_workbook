@@ -28,7 +28,10 @@ class arguments():
         self.verify_images()
         self.verify_colours()
         self.verify_additional_columns()
-        self.verify_sort_by()
+        if self.args.sort_by:
+            self.args.sort_by = self.verify_sort_by(
+               sort_by_list=self.args.sort_by
+            )
 
         print("Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
@@ -571,7 +574,7 @@ class arguments():
                 # one vcf (or merged) and NOT filtering => name it variants
                 self.args.sheets = ["variants"]
 
-    def verify_sort_by(self) -> None:
+    def verify_sort_by(self, sort_by_list: list) -> dict:
         """
         Validates and processes the 'sort_by' column:bool argument list.
 
@@ -592,12 +595,8 @@ class arguments():
         Returns:
             dict: Column names mapped to boolean values.
         """
-
-        if not self.args.sort_by:
-            return
-
         sort_by_dict = {}
-        for pair in self.args.sort_by:
+        for pair in sort_by_list:
             if ':' not in pair:
                 raise ValueError(
                     f"Invalid format for --sort_by input: '{pair}'. Expected "
@@ -621,7 +620,7 @@ class arguments():
             # This ensures the strings 'True' or 'False' are stored as booleans
             sort_by_dict[column_name] = sort_bool == 'True'
 
-        self.args.sort_by = sort_by_dict
+        return sort_by_dict
 
 
 def main():
