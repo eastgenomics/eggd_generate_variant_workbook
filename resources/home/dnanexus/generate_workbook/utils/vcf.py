@@ -190,7 +190,11 @@ class vcf():
             self.order_columns(self.vcfs)
 
         if self.args.sort_by:
-            self.sort_vcfs(self.vcfs)
+            self.sort_vcfs(
+                vcfs=self.vcfs,
+                by=list(self.args.sort_by.keys()),
+                ascending=list(self.args.sort_by.values())
+            )
 
         self.vcfs = self.rename_columns(self.vcfs)
 
@@ -474,7 +478,11 @@ class vcf():
                     file_df = self.order_columns([file_df])[0]
 
                 if self.args.sort_by:
-                    self.sort_vcfs([file_df])
+                    self.sort_vcfs(
+                        vcfs=[file_df],
+                        by=list(self.args.sort_by.keys()),
+                        ascending=list(self.args.sort_by.values())
+                    )
 
                 file_df = self.rename_columns([file_df])[0]
                 # force header to also be first line of df so it is written
@@ -1011,19 +1019,27 @@ class vcf():
 
         return vcfs
 
-    def sort_vcfs(self, vcfs: list) -> None:
+    def sort_vcfs(self, vcfs: list, by: Union[str, list],
+                  ascending: Union[bool, list]) -> None:
         """
-        Sort VCF dataframes using the specified column headers and their
-        corresponding boolean values for whether to sort in ascending order.
+        Sort VCF dataframes using the specified column headers and
+        corresponding boolean values for ascending or descending order.
 
         Args:
-            vcfs (list): list of panda dataframes to be sorted.
-        """
+            vcfs (list): List of pandas DataFrames to be sorted.
+            by (str or list of str): Column name or list of column names to
+                sort by.
+            ascending (bool or list of bool): Sort order. True for ascending,
+                False for descending. If a list, must match the length of
+                'by'.
 
+        Returns:
+            None
+        """
         for vcf in vcfs:
             vcf.sort_values(
-                by=list(self.args.sort_by.keys()),
-                ascending=list(self.args.sort_by.values()),
+                by=by,
+                ascending=ascending,
                 ignore_index=True,
                 inplace=True
             )
