@@ -18,6 +18,63 @@ from utils.vcf import vcf
 from utils.columns import splitColumns
 from tests import TEST_DATA_DIR
 
+## fixtures
+@pytest.fixture
+def mocked_vcf(mocker):
+    return vcf(args = mocker.Mock())
+
+@pytest.fixture
+def dataframe_fixture():
+    data = {
+            "A": [3, 3, 3, 2, 2, 2, 1, 1, 1],
+            "B": [3, 2, 1, 1, 2, 3, 2, 3, 1],
+            "C": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            }
+    df = pd.DataFrame.from_dict(data)
+    return df
+
+def test_sort_vcfs_one_column(dataframe_fixture, mocked_vcf):
+    mocked_vcf.vcfs.append(dataframe_fixture)
+    mocked_vcf.sort_vcfs(
+            vcfs = [mocked_vcf.vcfs[0]],
+            by = "A",
+            ascending = True
+            )
+    first_row = mocked_vcf.vcfs[0].iloc[0]
+    fourth_row = mocked_vcf.vcfs[0].iloc[3]
+    last_row = mocked_vcf.vcfs[0].iloc[8]
+    assert list(first_row) == [1, 2, 7]
+    assert list(fourth_row) == [2, 1, 4]
+    assert list(last_row) == [3, 1, 3]
+
+def test_sort_vcfs_two_columns_both_asc(dataframe_fixture, mocked_vcf):
+    mocked_vcf.vcfs.append(dataframe_fixture)
+    mocked_vcf.sort_vcfs(
+            vcfs = [mocked_vcf.vcfs[0]],
+            by = ["A", "B"],
+            ascending = [True, True]
+            )
+    first_row = mocked_vcf.vcfs[0].iloc[0]
+    fourth_row = mocked_vcf.vcfs[0].iloc[3]
+    last_row = mocked_vcf.vcfs[0].iloc[8]
+    assert list(first_row) == [1, 1, 9]
+    assert list(fourth_row) == [2, 1, 4]
+    assert list(last_row) == [3, 3, 1]
+
+def test_sort_vcfs_two_columns_asc_and_desc(dataframe_fixture, mocked_vcf):
+    mocked_vcf.vcfs.append(dataframe_fixture)
+    mocked_vcf.sort_vcfs(
+            vcfs = [mocked_vcf.vcfs[0]],
+            by = ["A", "B"],
+            ascending = [True, False]
+            )
+    first_row = mocked_vcf.vcfs[0].iloc[0]
+    fourth_row = mocked_vcf.vcfs[0].iloc[3]
+    last_row = mocked_vcf.vcfs[0].iloc[8]
+    assert list(first_row) == [1, 3, 8]
+    assert list(fourth_row) == [2, 3, 6]
+    assert list(last_row) == [3, 1, 3]
+
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
 
