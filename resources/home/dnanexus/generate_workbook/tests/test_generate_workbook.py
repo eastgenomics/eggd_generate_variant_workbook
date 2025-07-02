@@ -158,9 +158,8 @@ class TestVerifySortBy():
         Test that a sort_by string without a colon raises a ValueError.
         """
         invalid_sort = "a_column_name 'True'"
-        self.args_obj.args.sort_by = invalid_sort
         with pytest.raises(ValueError, match="Expected format"):
-            self.args_obj.verify_sort_by()
+            self.args_obj.verify_sort_by([invalid_sort])
 
     @pytest.mark.parametrize(
         "sort", [["CHROM:"], [":True"]]
@@ -170,9 +169,8 @@ class TestVerifySortBy():
         Test that sort_by values missing column name or boolean raise a
         ValueError.
         """
-        self.args_obj.args.sort_by = sort
         with pytest.raises(ValueError, match="no column name or bool"):
-            self.args_obj.verify_sort_by()
+            self.args_obj.verify_sort_by(sort)
 
     @pytest.mark.parametrize(
         "sort", [["CHROM:Not_a_bool"], ["CHROM:F"], ["CHROM:0"], ["CHROM:1"]]
@@ -181,9 +179,8 @@ class TestVerifySortBy():
         """
         Test that sort_by values with invalid booleans raise a ValueError.
         """
-        self.args_obj.args.sort_by = sort
         with pytest.raises(ValueError, match="Expected 'True'"):
-            self.args_obj.verify_sort_by()
+            self.args_obj.verify_sort_by(sort)
 
     @pytest.mark.parametrize(
         "sort, expected",
@@ -200,6 +197,4 @@ class TestVerifySortBy():
         """
         Test that valid sort_by input is correctly parsed into a dictionary.
         """
-        self.args_obj.args.sort_by = sort
-        self.args_obj.verify_sort_by()
-        assert self.args_obj.args.sort_by == expected
+        assert self.args_obj.verify_sort_by(sort) == expected
