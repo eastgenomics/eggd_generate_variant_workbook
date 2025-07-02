@@ -2,7 +2,6 @@ import os
 import sys
 import pytest
 from pathlib import Path
-from dxpy.bindings.dxfile_functions import open_dxfile
 import openpyxl
 
 sys.path.append(os.path.abspath(
@@ -12,11 +11,11 @@ sys.path.append(os.path.abspath(
 from utils.excel import excel
 
 
-# fixtures
+# Fixtures
 @pytest.fixture
 def mocked_excel_file(mocker):
     mock_args = mocker.Mock()
-    mock_args.output = Path(os.getcwd() + "tmp.xlsx")
+    mock_args.output = Path(os.getcwd() + "/tmp.xlsx")
     mock_args.sheets = ["sheet1", "sheet2", "sheet3"]
     mock_vcfs = mocker.Mock()
     mock_additional_files = mocker.Mock()
@@ -158,5 +157,5 @@ def test_cells_formatted_as_perc(mocked_excel_file):
     wb.save(mocked_excel_file.args.output)
     ws = wb.worksheets[0]
     ws["A1"] = "41.23"
-    mocked_excel_file.format_cells_as_percentage(ws, cells = ["A1"])
+    mocked_excel_file.format_cells_as_percentage(ws, cells=["A1"])
     assert ws["A1"].number_format == "0.0%"

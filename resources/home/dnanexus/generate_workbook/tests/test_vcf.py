@@ -18,10 +18,10 @@ from utils.vcf import vcf
 from utils.columns import splitColumns
 from tests import TEST_DATA_DIR
 
-## fixtures
+# fixtures
 @pytest.fixture
 def mocked_vcf(mocker):
-    return vcf(args = mocker.Mock())
+    return vcf(args=mocker.Mock())
 
 @pytest.fixture
 def dataframe_fixture():
@@ -38,22 +38,22 @@ def dataframe_fixture():
         "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
         [
             pytest.param(
-                "A",True,[1,2,7],[2,1,4],[3,1,3]
+                "A", True, [1, 2, 7], [2, 1, 4], [3, 1, 3]
                 ),
             pytest.param(
-                ["A","B"],[True,True],[1,1,9],[2,1,4],[3,3,1]
+                ["A", "B"], [True, True], [1, 1, 9], [2, 1, 4], [3, 3, 1]
                 ),
             pytest.param(
-                ["A","B"],[True,False],[1,3,8],[2,3,6],[3,1,3]
+                ["A", "B"], [True, False], [1, 3, 8], [2, 3, 6], [3, 1, 3]
                 )
             ]
 )
 def test_sort_vcfs(dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
     mocked_vcf.vcfs.append(dataframe_fixture)
     mocked_vcf.sort_vcfs(
-            vcfs = [mocked_vcf.vcfs[0]],
-            by = by,
-            ascending = ascending 
+            vcfs=[mocked_vcf.vcfs[0]],
+            by=by,
+            ascending=ascending 
             )
     first_row = mocked_vcf.vcfs[0].iloc[0]
     fourth_row = mocked_vcf.vcfs[0].iloc[3]
