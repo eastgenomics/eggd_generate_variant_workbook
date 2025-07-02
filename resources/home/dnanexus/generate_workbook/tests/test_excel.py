@@ -58,7 +58,7 @@ def test_unlock_specified_cells(mocked_excel_file, locked_worksheet):
     mocked_excel_file.unlock_specified_cells(locked_worksheet, ["A1", "B2", "C3"])
     cells_are_unlocked = [cell.protection.locked is False for cell in target_cells]
     assert all(cells_are_unlocked)
-    # ensure unrelated cell remains unlocked
+    # ensure unrelated cell remains locked
     assert locked_worksheet["D4"].protection.locked
 
 # unlocked_region()
