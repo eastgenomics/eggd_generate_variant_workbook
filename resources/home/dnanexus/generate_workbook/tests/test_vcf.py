@@ -33,47 +33,34 @@ def dataframe_fixture():
     df = pd.DataFrame.from_dict(data)
     return df
 
-def test_sort_vcfs_one_column(dataframe_fixture, mocked_vcf):
-    mocked_vcf.vcfs.append(dataframe_fixture)
-    mocked_vcf.sort_vcfs(
-            vcfs = [mocked_vcf.vcfs[0]],
-            by = "A",
-            ascending = True
-            )
-    first_row = mocked_vcf.vcfs[0].iloc[0]
-    fourth_row = mocked_vcf.vcfs[0].iloc[3]
-    last_row = mocked_vcf.vcfs[0].iloc[8]
-    assert list(first_row) == [1, 2, 7]
-    assert list(fourth_row) == [2, 1, 4]
-    assert list(last_row) == [3, 1, 3]
 
-def test_sort_vcfs_two_columns_both_asc(dataframe_fixture, mocked_vcf):
+@pytest.mark.parametrize(
+        "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
+        [
+            pytest.param(
+                "A",True,[1,2,7],[2,1,4],[3,1,3]
+                ),
+            pytest.param(
+                ["A","B"],[True,True],[1,1,9],[2,1,4],[3,3,1]
+                ),
+            pytest.param(
+                ["A","B"],[True,False],[1,3,8],[2,3,6],[3,1,3]
+                )
+            ]
+)
+def test_sort_vcfs(dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
     mocked_vcf.vcfs.append(dataframe_fixture)
     mocked_vcf.sort_vcfs(
             vcfs = [mocked_vcf.vcfs[0]],
-            by = ["A", "B"],
-            ascending = [True, True]
+            by = by,
+            ascending = ascending 
             )
     first_row = mocked_vcf.vcfs[0].iloc[0]
     fourth_row = mocked_vcf.vcfs[0].iloc[3]
     last_row = mocked_vcf.vcfs[0].iloc[8]
-    assert list(first_row) == [1, 1, 9]
-    assert list(fourth_row) == [2, 1, 4]
-    assert list(last_row) == [3, 3, 1]
-
-def test_sort_vcfs_two_columns_asc_and_desc(dataframe_fixture, mocked_vcf):
-    mocked_vcf.vcfs.append(dataframe_fixture)
-    mocked_vcf.sort_vcfs(
-            vcfs = [mocked_vcf.vcfs[0]],
-            by = ["A", "B"],
-            ascending = [True, False]
-            )
-    first_row = mocked_vcf.vcfs[0].iloc[0]
-    fourth_row = mocked_vcf.vcfs[0].iloc[3]
-    last_row = mocked_vcf.vcfs[0].iloc[8]
-    assert list(first_row) == [1, 3, 8]
-    assert list(fourth_row) == [2, 3, 6]
-    assert list(last_row) == [3, 1, 3]
+    assert list(first_row) == exp_first_row
+    assert list(fourth_row) == exp_fourth_row
+    assert list(last_row) == exp_last_row
 
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
