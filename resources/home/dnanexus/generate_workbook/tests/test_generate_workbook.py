@@ -161,9 +161,7 @@ class TestVerifySortBy():
         with pytest.raises(ValueError, match="Expected format"):
             self.args_obj.verify_sort_by([invalid_sort])
 
-    @pytest.mark.parametrize(
-        "sort", [["CHROM:"], [":True"]]
-    )
+    @pytest.mark.parametrize("sort", [["CHROM:"], [":True"]])
     def test_sort_by_input_without_col_or_bool_raises_error(self, sort):
         """
         Test that sort_by values missing column name or boolean raise a
