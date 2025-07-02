@@ -113,47 +113,34 @@ class TestDxFileID():
     Ensures that a DNAnexus file ID is correctly formatted and parsed.
     """
 
-    # File IDs formatted as raw strings to prevent the hyphen "-" being
-    # interpreted by argsparse as a new argument
+    @pytest.fixture
+    def args_obj(self):
+        """
+        Provides a fresh arguments object for each test.
+        """
+        return object.__new__(arguments)
+
     @pytest.mark.parametrize(
         "dx_id",
-        ["notafileid", r"file-J0527G8487XjKgKJXjYqbgP",
-         r"file-J0527G8487XjKgKJXjYqbgPFX1",
-         r"file-J0527G8487XjKgKJXjYqbgPFfile-J0527G8487XjKgKJXjYqbgPF"]
+        ["notafileid", "file-J0527G8487XjKgKJXjYqbgP",
+         "file-J0527G8487XjKgKJXjYqbgPFX1",
+         "file-J0527G8487XjKgKJXjYqbgPFfile-J0527G8487XjKgKJXjYqbgPF"]
     )
-    def test_invalid_dx_file_id_raises_correct_error(self, dx_id):
+    def test_invalid_dx_file_id_raises_correct_error(self, args_obj, dx_id):
         """
         Tests the correct error is raised when invalid DNAnexus file IDs are
-        passed to the --m_codes input
+        passed to dx_file_id()
         """
-        args_obj = object.__new__(arguments)
         expected = "Invalid DNAnexus file ID:"
+        with pytest.raises(argparse.ArgumentTypeError, match=expected):
+            args_obj.dx_file_id(dx_id)
 
-        args = ['generate_workbook.py', '--m_codes', dx_id]
-        with patch("sys.argv", args):
-            # Complicated to test raising of argparse.ArgumentTypeError, see
-            # https://stackoverflow.com/a/49324489 for explanation
-            with pytest.raises(SystemExit) as e:
-                args_obj.args = args_obj.parse_args()
-
-        assert isinstance(e.value.__context__, argparse.ArgumentError)
-        assert expected in e.value.__context__.message
-
-    def test_valid_dx_file_id_is_returned(self):
+    def test_valid_dx_file_id_is_returned(self, args_obj):
         """
-        Test valid DNAnexus file IDs are able to be parsed by argparse.
+        Test valid DNAnexus file IDs are returned successsfully by dx_file_id()
         """
-        args_obj = object.__new__(arguments)
-
-        # File IDs formatted as raw strings to prevent the hyphen "-" being
-        # interpreted by argparse as a new argument
         valid_dx_id = "file-J0527G8487XjKgKJXjYqbgPF"
-        args = ['generate_workbook.py', '--m_codes', valid_dx_id]
-
-        with patch("sys.argv", args):
-            args_obj.args = args_obj.parse_args()
-
-        assert args_obj.args.m_codes == "file-J0527G8487XjKgKJXjYqbgPF"
+        assert args_obj.dx_file_id(valid_dx_id) == "file-J0527G8487XjKgKJXjYqbgPF"
 
 
 class TestVerifySortBy():
