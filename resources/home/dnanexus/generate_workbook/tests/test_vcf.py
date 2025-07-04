@@ -48,19 +48,20 @@ def dataframe_fixture():
                 )
             ]
 )
-def test_sort_vcfs(dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
-    mocked_vcf.vcfs.append(dataframe_fixture)
-    mocked_vcf.sort_vcfs(
-            vcfs=[mocked_vcf.vcfs[0]],
-            by=by,
-            ascending=ascending 
-            )
-    first_row = mocked_vcf.vcfs[0].iloc[0]
-    fourth_row = mocked_vcf.vcfs[0].iloc[3]
-    last_row = mocked_vcf.vcfs[0].iloc[8]
-    assert list(first_row) == exp_first_row
-    assert list(fourth_row) == exp_fourth_row
-    assert list(last_row) == exp_last_row
+class TestSortVcfs:
+    def test_sort_vcfs(self, dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
+        mocked_vcf.vcfs.append(dataframe_fixture)
+        mocked_vcf.sort_vcfs(
+                vcfs=mocked_vcf.vcfs,
+                by=by,
+                ascending=ascending 
+                )
+        first_row = mocked_vcf.vcfs[0].iloc[0]
+        fourth_row = mocked_vcf.vcfs[0].iloc[3]
+        last_row = mocked_vcf.vcfs[0].iloc[8]
+        assert list(first_row) == exp_first_row
+        assert list(fourth_row) == exp_fourth_row
+        assert list(last_row) == exp_last_row
 
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
