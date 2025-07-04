@@ -21,10 +21,16 @@ from tests import TEST_DATA_DIR
 # fixtures
 @pytest.fixture
 def mocked_vcf(mocker):
+    """
+    Fixture to be used wherever an empty utils.vcf.vcf object is required
+    """
     return vcf(args=mocker.Mock())
 
 @pytest.fixture
 def dataframe_fixture():
+    """
+    Fixture to be used wherever dummy data is required for utils.vcf.vcf.vcfs
+    """
     data = {
             "A": [3, 3, 3, 2, 2, 2, 1, 1, 1],
             "B": [3, 2, 1, 1, 2, 3, 2, 3, 1],
@@ -35,6 +41,9 @@ def dataframe_fixture():
 
 
 class TestSortVcfs:
+    """
+    Collection of tests for utils.vcf.vcf.sort_vcfs
+    """
     @pytest.mark.parametrize(
             "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
             [
@@ -50,6 +59,9 @@ class TestSortVcfs:
                 ]
     )
     def test_sort_vcfs(self, dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
+        """
+        Test that the call to vcf.sort_vcfs sorts the dataframe as required
+        """
         mocked_vcf.vcfs.append(dataframe_fixture)
         mocked_vcf.sort_vcfs(
                 vcfs=mocked_vcf.vcfs,
