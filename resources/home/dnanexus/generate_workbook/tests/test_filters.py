@@ -17,6 +17,8 @@ from utils.columns import splitColumns
 from utils.filters import filter
 from utils.vcf import vcf
 from tests import TEST_DATA_DIR
+from unittest.mock import patch
+from generate_workbook import arguments
 
 # vcf we are using for testing, ~5000 variants with multiple transcript
 # annotation for each
@@ -24,27 +26,9 @@ TEST_VCF = "NA12878_unittest.vcf"
 
 # namespace with all args coming in from parse_args, will be adjusted
 # as required in each test
-VCF_ARGS = argparse.Namespace(
-    additional_files=False,
-    filter=False,
-    print_columns=False,
-    print_header=False,
-    rename=False,
-    vcfs=[],
-    types=None,
-    merge=False,
-    include=False,
-    exclude=False,
-    reorder=False,
-    decipher=False,
-    split_hgvs=False,
-    add_name=False,
-    add_raw_change=False,
-    add_comment_column=False,
-    add_classification_column=None,
-    additional_columns=[]
-)
-
+with patch("sys.argv", []):
+    args_obj = object.__new__(arguments)
+    VCF_ARGS = args_obj.parse_args()
 
 class TestModifyingFieldTypes():
     """

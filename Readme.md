@@ -1,6 +1,6 @@
 <!-- dx-header -->
 
-# egg_generate_workbook (DNAnexus Platform App)
+# eggd_generate_variant_workbook (DNAnexus Platform App)
 
 ![pytest](https://github.com/eastgenomics/eggd_generate_variant_workbook/actions/workflows/pytest.yml/badge.svg)
 
