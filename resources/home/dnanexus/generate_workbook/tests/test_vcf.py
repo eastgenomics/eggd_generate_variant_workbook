@@ -8,6 +8,8 @@ import unittest
 import pandas as pd
 import re
 
+from generate_workbook import arguments
+from unittest.mock import patch
 import pytest
 
 sys.path.append(os.path.abspath(
@@ -68,26 +70,12 @@ vcf_handler = vcf(argparse.Namespace)
 
 # namespace with all args coming in from parse_args, will be adjusted
 # as required in each test
-VCF_ARGS = argparse.Namespace(
-    additional_files=False,
-    filter=False,
-    print_columns=False,
-    rename=False,
-    vcfs=[],
-    merge=False,
-    include=False,
-    exclude=False,
-    reorder=False,
-    decipher=False,
-    split_hgvs=False,
-    add_raw_change=False,
-    add_classification_column=None,
-    additional_columns=[],
-    summary=None,
-    report_text=False,
-    af_format=None,
-    join_columns=False
-)
+with patch("sys.argv", []):
+    args_obj = object.__new__(arguments)
+    args_obj.args = args_obj.parse_args()
+
+args_obj.args.vcfs = []
+VCF_ARGS = args_obj.args
 
 class TestHeader():
     """
@@ -246,18 +234,15 @@ class TestDataFrameActions():
         """
         # initialise vcf class with a valid argparse input to
         # allow calling .read()
-        vcf_handler = vcf(argparse.Namespace(
-            add_name=True, analysis='',
-            filter=None, keep=False, merge=False,
-            reorder=[], exclude=None, include=None,
-            add_comment_column=False,
-            out_dir='', output='',
-            panel='', print_columns=False, print_header=False, reads='',
-            rename=None, sample='', sheets=['variants'], summary=None,
-            vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
-            add_classification_column=None, additional_columns=[],
-            report_text=False, af_format = '',join_columns=''
-        ))
+
+        with patch("sys.argv", []):
+            args_obj = object.__new__(arguments)
+            args_obj.args = args_obj.parse_args()
+
+        args_obj.args.add_name = True
+        args_obj.args.sheets = ['variants']
+        args_obj.args.vcfs = [self.columns_vcf]
+        vcf_handler = vcf(args_obj.args)
 
         # first split multiple transcript annotation to separate VCF
         # records, and separate CSQ fields to separate INFO fields
@@ -795,17 +780,12 @@ class TestAddRawChange():
     """
     # initialise vcf class with a valid argparse input to
     # allow calling .read()
-    vcf_handler = vcf(argparse.Namespace(
-        add_name=True, analysis='',
-        filter=None, keep=False, merge=False,
-        reorder=[], exclude=None, include=None,
-        add_comment_column=False,
-        out_dir='', output='',
-        panel='', print_columns=False, print_header=False, reads='',
-        rename=None, sample='', sheets=['variants'], summary=None,
-        vcfs=[], workflow=('', ''), split_hgvs=None,
-        add_classification_column=None, additional_columns=[], af_format = ''
-    ))
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+    args_obj.args.sheets = ['variants']
+    args_obj.args.add_name = True
 
     def test_normal_df(self):
         """
