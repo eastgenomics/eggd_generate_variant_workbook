@@ -34,21 +34,21 @@ def dataframe_fixture():
     return df
 
 
-@pytest.mark.parametrize(
-        "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
-        [
-            pytest.param(
-                "A", True, [1, 2, 7], [2, 1, 4], [3, 1, 3]
-                ),
-            pytest.param(
-                ["A", "B"], [True, True], [1, 1, 9], [2, 1, 4], [3, 3, 1]
-                ),
-            pytest.param(
-                ["A", "B"], [True, False], [1, 3, 8], [2, 3, 6], [3, 1, 3]
-                )
-            ]
-)
 class TestSortVcfs:
+    @pytest.mark.parametrize(
+            "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
+            [
+                pytest.param(
+                    "C", True, [3, 3, 1], [2, 1, 4], [1, 1, 9]
+                    ),
+                pytest.param(
+                    ["A", "B"], [True, True], [1, 1, 9], [2, 1, 4], [3, 3, 1]
+                    ),
+                pytest.param(
+                    ["A", "B"], [True, False], [1, 3, 8], [2, 3, 6], [3, 1, 3]
+                    )
+                ]
+    )
     def test_sort_vcfs(self, dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
         mocked_vcf.vcfs.append(dataframe_fixture)
         mocked_vcf.sort_vcfs(
