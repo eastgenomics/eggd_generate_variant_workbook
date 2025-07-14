@@ -32,8 +32,8 @@ THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 DEFAULT_FONT.name = 'Calibri'
 
 # row and col counts that are to be unlocked next to
-# populated table in all sheets if it is dias pipeline
-# required for 'lock_sheet' function
+# populated table in all sheets
+# required for 'unlock_region' function
 ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
 
@@ -764,23 +764,26 @@ class excel():
                               ]
             self.unlock_specified_cells(self.summary, cell_to_unlock)
 
+            last_col = 8
+            last_row = self.summary.max_row
+
             # unlock region to the right of the summary info (starting from
             # col 9)
             self.unlock_region(
                 self.summary,
                 start_row=1,
-                start_col=9,
-                unlock_row_num=ROW_TO_UNLOCK,
+                start_col=last_col+1,
+                unlock_row_num=last_row,
                 unlock_col_num=COL_TO_UNLOCK
             )
 
             # unlock region beneath the summary info (starting from max_row+1)
             self.unlock_region(
                 self.summary,
-                start_row=self.summary.max_row+1,
+                start_row=last_row+1,
                 start_col=1,
                 unlock_row_num=ROW_TO_UNLOCK,
-                unlock_col_num=COL_TO_UNLOCK
+                unlock_col_num=COL_TO_UNLOCK+last_col
             )
 
     def write_reporting_template(self, report_sheet_num) -> None:
@@ -992,9 +995,11 @@ class excel():
         if self.args.lock_sheet:
             self.lock_sheet(report)
 
-            last_row = report.max_row
-            last_col = report.max_column
-
+            # For some reason report.max_row and report.max_column are adding
+            # an extra row/col instead of returning the true last row/col,
+            # therefore hardcoding these values
+            last_row = 26
+            last_col = 12
 
             cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
@@ -1010,22 +1015,22 @@ class excel():
                               "L25", "H26"]
             self.unlock_specified_cells(report, cell_to_unlock)
 
-            # unlock region to the right of the table (starting from max_col)
+            # unlock region to the right of the table
             self.unlock_region(
                 ws=report,
                 start_row=1,
                 start_col=last_col+1,
-                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_row_num=last_row,
                 unlock_col_num=COL_TO_UNLOCK
             )
 
-            # unlock region beneath the table (starting from max_row)
+            # unlock region beneath the table
             self.unlock_region(
                 ws=report,
                 start_row=last_row+1,
                 start_col=1,
                 unlock_row_num=ROW_TO_UNLOCK,
-                unlock_col_num=COL_TO_UNLOCK
+                unlock_col_num=COL_TO_UNLOCK+last_col
             )
 
     def write_variants(self) -> None:
@@ -1132,22 +1137,22 @@ class excel():
                             )
                         )
 
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=last_col+1,
+                        unlock_row_num=last_row,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
                     # Unlock cells beneath variant table
                     self.unlock_region(
                         ws=curr_worksheet,
                         start_row=last_row+1,
                         start_col=1,
                         unlock_row_num=ROW_TO_UNLOCK,
-                        unlock_col_num=COL_TO_UNLOCK
-                    )
-
-                    # Unlock cells to the right of variant table
-                    self.unlock_region(
-                        ws=curr_worksheet,
-                        start_row=1,
-                        start_col=last_col+1,
-                        unlock_row_num=ROW_TO_UNLOCK,
-                        unlock_col_num=COL_TO_UNLOCK
+                        unlock_col_num=COL_TO_UNLOCK+last_col
                     )
 
                 if optional_cols_in_sheet:
@@ -1257,22 +1262,22 @@ class excel():
                             )
                         )
 
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=last_col+1,
+                        unlock_row_num=last_row,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
                     # Unlock cells beneath variant table
                     self.unlock_region(
                         ws=curr_worksheet,
                         start_row=last_row+1,
                         start_col=1,
                         unlock_row_num=ROW_TO_UNLOCK,
-                        unlock_col_num=COL_TO_UNLOCK
-                    )
-
-                    # Unlock cells to the right of variant table
-                    self.unlock_region(
-                        ws=curr_worksheet,
-                        start_row=1,
-                        start_col=last_col+1,
-                        unlock_row_num=ROW_TO_UNLOCK,
-                        unlock_col_num=COL_TO_UNLOCK
+                        unlock_col_num=COL_TO_UNLOCK+last_col
                     )
 
                     if self.args.add_auto_filter:
