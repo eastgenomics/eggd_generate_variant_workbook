@@ -763,6 +763,27 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
+            if self.args.add_comment_column:
+                to_drop.remove("Comment")
+
+            if self.args.add_classification_column:
+                to_drop.remove("Classification")
+
+            if self.args.add_allele_origin_column:
+                to_drop.remove("Allele_Origin")
+
+            if self.args.add_interpreted_column:
+                to_drop.remove("Interpreted")
+
+            if self.args.add_reported_column:
+                to_drop.remove("Reported")
+
+            if self.args.add_mnv_column:
+                to_drop.remove("MNV")
+
+            if self.args.add_report_text_column:
+                to_drop.remove("Report_text")
+
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
 
