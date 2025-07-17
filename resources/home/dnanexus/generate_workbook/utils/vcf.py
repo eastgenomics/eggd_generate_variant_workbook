@@ -763,6 +763,9 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
+            if self.args.add_name:
+                to_drop.remove("sampleName")
+
             if self.args.add_comment_column:
                 to_drop.remove("Comment")
 
