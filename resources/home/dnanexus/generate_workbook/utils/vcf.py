@@ -763,29 +763,29 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
+            # Preserve dynamically added columns from being dropped
+            columns_to_preserve = []
             if self.args.add_name:
-                to_drop.remove("sampleName")
-
+                columns_to_preserve.append("sampleName")
             if self.args.add_comment_column:
-                to_drop.remove("Comment")
-
+                columns_to_preserve.append("Comment")
             if self.args.add_classification_column:
-                to_drop.remove("Classification")
-
+                columns_to_preserve.append("Classification")
             if self.args.add_allele_origin_column:
-                to_drop.remove("Allele_Origin")
-
+                columns_to_preserve.append("Allele_Origin")
             if self.args.add_interpreted_column:
-                to_drop.remove("Interpreted")
-
+                columns_to_preserve.append("Interpreted")
             if self.args.add_reported_column:
-                to_drop.remove("Reported")
-
+                columns_to_preserve.append("Reported")
             if self.args.add_mnv_column:
-                to_drop.remove("MNV")
-
+                columns_to_preserve.append("MNV")
             if self.args.add_report_text_column:
-                to_drop.remove("Report_text")
+                columns_to_preserve.append("Report_text")
+
+            # Remove preserved columns from to_drop list
+            to_drop = [
+                col for col in to_drop if col not in columns_to_preserve
+            ]
 
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
