@@ -251,7 +251,6 @@ class TestDataFrameActions():
             args_obj = object.__new__(arguments)
             args_obj.args = args_obj.parse_args()
 
-        args_obj.args.add_name = True
         args_obj.args.sheets = ['variants']
         args_obj.args.vcfs = [self.columns_vcf]
         vcf_handler = vcf(args_obj.args)
