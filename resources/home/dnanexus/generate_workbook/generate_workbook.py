@@ -63,26 +63,6 @@ class arguments():
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, ' '.join(values))
 
-    def dx_file_id(self, value: str) -> str:
-        """
-        Validate DNAnexus file ID format: must start with 'file-' followed by
-        a 24 character alphanumeric.
-
-        Returns
-        -------
-        value : str
-            Inputted value is returned if it is a valid DNAnexus file ID.
-        Raises
-        ------
-        argparse.ArgumentTypeError
-            Raised when invalid file ID is passed.
-        """
-        if not re.match(r'^file-[A-Za-z0-9]{24}$', value):
-            raise argparse.ArgumentTypeError(
-                f"Invalid DNAnexus file ID: {value!r}"
-            )
-        return value
-
     def parse_args(self) -> argparse.Namespace:
         """
         Parse command line arguments
@@ -370,10 +350,10 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--m_codes', required=False, type=self.dx_file_id,
+            '--m_codes', required=False,
             help=(
-                'DNAnexus file-ID for file containing a list of valid M-codes.'
-                ' M-codes should be provided one per line in a .txt file.'
+                'File containing a list of valid M-codes. M-codes should be '
+                'provided one per line in a .txt file.'
             )
         )
         parser.add_argument(

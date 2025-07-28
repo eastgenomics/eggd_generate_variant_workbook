@@ -107,42 +107,6 @@ class TestVerifyColours():
             self.args_obj.verify_colours()
 
 
-class TestDxFileID():
-    """
-    Tests for the generate_workbook.dx_file_id method.
-    Ensures that a DNAnexus file ID is correctly formatted and parsed.
-    """
-
-    @pytest.fixture
-    def args_obj(self):
-        """
-        Provides a fresh arguments object for each test.
-        """
-        return object.__new__(arguments)
-
-    @pytest.mark.parametrize(
-        "dx_id",
-        ["notafileid", "file-J0527G8487XjKgKJXjYqbgP",
-         "file-J0527G8487XjKgKJXjYqbgPFX1",
-         "file-J0527G8487XjKgKJXjYqbgPFfile-J0527G8487XjKgKJXjYqbgPF"]
-    )
-    def test_invalid_dx_file_id_raises_correct_error(self, args_obj, dx_id):
-        """
-        Tests the correct error is raised when invalid DNAnexus file IDs are
-        passed to dx_file_id()
-        """
-        expected = "Invalid DNAnexus file ID:"
-        with pytest.raises(argparse.ArgumentTypeError, match=expected):
-            args_obj.dx_file_id(dx_id)
-
-    def test_valid_dx_file_id_is_returned(self, args_obj):
-        """
-        Test valid DNAnexus file IDs are returned successsfully by dx_file_id()
-        """
-        valid_dx_id = "file-J0527G8487XjKgKJXjYqbgPF"
-        assert args_obj.dx_file_id(valid_dx_id) == "file-J0527G8487XjKgKJXjYqbgPF"
-
-
 class TestVerifySortBy():
     """
     Tests for the generate_workbook.verify_sort_by method.

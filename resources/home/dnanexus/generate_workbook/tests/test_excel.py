@@ -156,46 +156,41 @@ class TestStoreListInSheet:
         assert ws["A2"].value == "Gimme Gimme Gimme"
         assert ws["A3"].value == "Lay All Of Your Love On Me"
 
+
 class TestReadMCodesFile:
     """
     Collection of test cases for utils.excel.excel.read_m_codes_file
     """
-    def test_success_upon_compliant_mcodes(self, mocked_excel_file, monkeypatch):
+
+    def test_success_upon_compliant_mcodes(self, tmp_path):
         """
-        Test that a file containing m-codes that conform to the regex specification
-        are read without throwing an error when read by utils.excel.excel.read_m_codes_file
+        Test that a file containing m-codes that conform to the regex
+        specification are read without throwing an error when read by
+        utils.excel.excel.read_m_codes_file
         """
-        class CompliantMFile:
-            def __init__(self):
-                pass
 
-            def read(self):
-                return "M123"
+        compliant_content = "M1\nM2\nM3\n"
+        file_path = tmp_path / "compliant_mcodes.txt"
+        file_path.write_text(compliant_content, encoding="utf-8")
 
-        def return_compliant_file(*args, **kwargs):
-            return CompliantMFile() 
+        result = excel.read_m_codes_file(file_path)
 
-        monkeypatch.setattr("utils.excel.open_dxfile", return_compliant_file)
-        mocked_excel_file.read_m_codes_file()
+        assert result == ["M1", "M2", "M3"]
 
-    def test_exception_upon_noncompliant_mcodes(self, mocked_excel_file, monkeypatch):
+    def test_exception_upon_noncompliant_mcodes(self, tmp_path):
         """
-        Test that a file containing m-codes that do not conform to the regex specification
-        cause a `ValueError` to be thrown when it is read by utils.excel.excel.read_m_codes_file
+        Test that a file containing m-codes that do not conform to the regex
+        specification cause a `ValueError` to be thrown when it is read by
+        utils.excel.excel.read_m_codes_file
         """
-        class NonCompliantMFile:
-            def __init__(self):
-                pass
+        noncompliant_content = "hi\nthis\nshouldnt\nwork\n"
+        file_path = tmp_path / "noncompliant_mcodes.txt"
+        file_path.write_text(noncompliant_content, encoding="utf-8")
 
-            def read(self):
-                return "hi\nthis\nshouldnt\nwork"
+        with pytest.raises(ValueError,
+                           match=r".*M-codes file not formatted correctly.*"):
+            excel.read_m_codes_file(file_path)
 
-        def return_noncompliant_file(*args, **kwargs):
-            return NonCompliantMFile() 
-
-        monkeypatch.setattr("utils.excel.open_dxfile", return_noncompliant_file)
-        with pytest.raises(ValueError, match=r".*M-codes file not formatted correctly.*"):
-            mocked_excel_file.read_m_codes_file()
 
 class TestStrToDropdown:
     """

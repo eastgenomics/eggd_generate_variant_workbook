@@ -20,7 +20,6 @@ from openpyxl.utils import get_column_letter as col_idx_to_col_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles.protection import Protection
 import pandas as pd
-from dxpy.bindings.dxfile_functions import open_dxfile
 
 from .utils import is_numeric
 
@@ -300,7 +299,7 @@ class excel():
             cell_for_drop_down = "B6"
 
             self.list_to_drop_down(
-                dropdown_options=self.read_m_codes_file(),
+                dropdown_options=self.read_m_codes_file(self.args.m_codes),
                 dropdown_options_sheet_name="m_codes",
                 dropdown_options_col="A",
                 prompt="M-code associated with sample",
@@ -2286,28 +2285,29 @@ class excel():
                 cells=cells
         )
 
-    def read_m_codes_file(self) -> list:
+    @staticmethod
+    def read_m_codes_file(file) -> list:
         """
-        Reads in M-codes file from DNAnexus and checks that file is formatted
+        Reads in M-codes file and checks that file is formatted
         correctly.
 
         Raises:
             ValueError: if line found in M-codes file which does not contain a
-            single valid M-code.
+            singlular valid M-code.
 
         Returns:
             List containing M-codes stripped of any leading/trailing
             whitespace
         """
-        lines = [
-            line.strip() for line in open_dxfile(
-                self.args.m_codes, mode="r").read().splitlines()
-        ]
+        with open(file, 'r', encoding="UTF-8") as f:
+            lines = []
+            for idx, line in enumerate(f, 1):
+                stripped = line.strip()
+                if not re.match(r'^M\d+$', stripped):
+                    raise ValueError(
+                        f"M-codes file not formatted correctly. Incorrect "
+                        f"value {repr(line)} found in line {idx}"
+                    )
+                lines.append(stripped)
 
-        for idx, line in enumerate(lines, 1):
-            if not re.match(r'^M\d+$', line):
-                raise ValueError(
-                    f"M-codes file not formatted correctly. Incorrect value "
-                    f"{repr(line)} found in line {idx}"
-                )
         return lines
