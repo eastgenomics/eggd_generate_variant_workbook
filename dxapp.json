@@ -336,10 +336,10 @@
     },
     {
       "name": "m_codes",
-      "label": "File ID for M-codes file",
+      "label": "M-codes file containing all valid M-codes",
       "class": "file",
       "optional" : true,
-      "help": "DNAnexus file ID for file containing all valid M-codes. M-codes should be provided one per line in a .txt file."
+      "help": "DNAnexus file containing all valid M-codes. M-codes should be provided one per line in a .txt file."
     },
     {
       "name": "add_auto_filter",
