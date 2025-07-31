@@ -1119,9 +1119,11 @@ class excel():
                         )
                     )
 
-                # Lock variant sheet and unlock cells in optional/additional
-                # columns if lock_sheet argument is True, and unlock set number
-                # of rows/cols beneath/to the right of the variant table
+                # If lock_sheet argument is True -
+                # Lock variant sheet, unlock cells in optional/additional cols,
+                # add drop-downs to optional cols that are present,
+                # unlock set number of rows/cols beneath/to the right of the
+                # variant table columns
                 if self.args.lock_sheet:
                     self.lock_sheet(curr_worksheet)
 
@@ -1134,6 +1136,11 @@ class excel():
                                 cols=optional_cols_in_sheet,
                                 num_rows=num_variant
                             )
+                        )
+
+                        # Add drop-downs to optional columns
+                        self.optional_cols_drop_down(
+                            curr_worksheet, optional_cols_in_sheet, num_variant
                         )
 
                     # Unlock cells to the right of variant table
@@ -1152,11 +1159,6 @@ class excel():
                         start_col=1,
                         unlock_row_num=ROW_TO_UNLOCK,
                         unlock_col_num=COL_TO_UNLOCK+last_col
-                    )
-
-                if optional_cols_in_sheet:
-                    self.optional_cols_drop_down(
-                        curr_worksheet, optional_cols_in_sheet, num_variant
                     )
 
                 if self.args.add_auto_filter:
