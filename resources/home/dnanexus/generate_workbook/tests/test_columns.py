@@ -1,14 +1,14 @@
-import argparse
 import os
 import subprocess
 import sys
-
+from unittest.mock import patch
 import pytest
 
 sys.path.append(os.path.abspath(
     os.path.join(os.path.realpath(__file__), '../../')
 ))
 
+from generate_workbook import arguments
 from utils.vcf import vcf
 from utils.columns import splitColumns
 from tests import TEST_DATA_DIR
@@ -19,32 +19,14 @@ def read_test_vcf(vcf_file):
     Read in test vcf to dataframe using methods from vcf()
     """
     # initialise vcf class with a valid argparse input to allow calling .read()
-    vcf_handler = vcf(argparse.Namespace(
-        add_name=False,
-        add_classification_column=False,
-        analysis='',
-        clinical_indication='',
-        exclude=None,
-        filter=None,
-        include=None,
-        keep=False,
-        merge=False,
-        add_comment_column=False,
-        out_dir='',
-        output='',
-        panel='',
-        print_columns=False,
-        print_header=False,
-        reads='',
-        rename=None,
-        reorder=None,
-        sample='',
-        sheets=['variants'],
-        summary=None,
-        usable_reads='',
-        vcfs=[vcf_file],
-        workflow=('', '')
-    ))
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+    args_obj.args.sheets = ['variants']
+    args_obj.args.vcfs = [vcf_file]
+
+    vcf_handler = vcf(args_obj.args)
     vcf_df = vcf_handler.read(vcf_file)
 
     return vcf_df

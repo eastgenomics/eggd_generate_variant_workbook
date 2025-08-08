@@ -71,7 +71,7 @@ class vcf():
             # additional non VCF files given, try read these in to dataframe(s)
             self.read_additional_files()
 
-        # read in the each vcf, optionally filter, and then apply formatting
+        # read in each vcf, optionally filter, and then apply formatting
         for vcf in self.args.vcfs:
             # names for intermediary vcfs
             vcf_stem = Path(vcf).stem.replace('.vcf', '')
@@ -162,11 +162,6 @@ class vcf():
             self.vcfs.append(self.filtered_vcfs[0])
             self.args.sheets.append('excluded')
 
-        if self.args.summary == 'dias':
-            # if it is dias pipeline, add the empty col
-            # named Interpreted in the first variant sheet
-            self.vcfs[0]['Interpreted'] = ''
-
         if self.args.split_hgvs:
             self.split_hgvs(self.vcfs)
 
@@ -179,13 +174,10 @@ class vcf():
         if self.args.additional_columns:
             self.add_additional_columns()
 
-        if self.args.af_format == "percent":
-            self.percent_af(self.vcfs)
-
         if self.args.join_columns:
             self.joining_columns(self.vcfs)
 
-        if self.args.report_text:
+        if self.args.add_report_text_column:
             self.make_report_text(self.vcfs)
 
         self.vcfs = self.format_strings(self.vcfs)
@@ -196,6 +188,13 @@ class vcf():
 
         if self.args.reorder:
             self.order_columns(self.vcfs)
+
+        if self.args.sort_by:
+            self.sort_vcfs(
+                vcfs=self.vcfs,
+                by=list(self.args.sort_by.keys()),
+                ascending=list(self.args.sort_by.values())
+            )
 
         self.vcfs = self.rename_columns(self.vcfs)
 
@@ -389,6 +388,22 @@ class vcf():
             # add empty 'Classification' column to end of df
             vcf_df['Classification'] = ''
 
+        if self.args.add_allele_origin_column:
+            # add empty 'Allele Origin' column to end of df
+            vcf_df['Allele_Origin'] = ''
+
+        if self.args.add_interpreted_column:
+            # add empty 'Interpreted' column to end of df
+            vcf_df['Interpreted'] = ''
+
+        if self.args.add_reported_column:
+            # add empty 'Reported' column to end of df
+            vcf_df['Reported'] = ''
+
+        if self.args.add_mnv_column:
+            # add empty 'MNV' column to end of df
+            vcf_df['MNV'] = ''
+
         return vcf_df
 
 
@@ -429,7 +444,7 @@ class vcf():
 
             if file.endswith('vcf') or file.endswith('vcf.gz'):
                 # vcf passed => process and format nicer for displaying
-                split_additional_vcf=file.replace('.vcf', '_split.vcf')
+                split_additional_vcf = file.replace('.vcf', '_split.vcf')
 
                 if self.check_vep_vcf(file, split_additional_vcf):
                     self.bcftools_pre_process(
@@ -448,9 +463,7 @@ class vcf():
                 if self.args.split_hgvs:
                     file_df = self.split_hgvs([file_df])[0]
 
-                if self.args.af_format == "percent":
-                    file_df = self.percent_af([file_df])[0]
-                if self.args.report_text:
+                if self.args.add_report_text_column:
                     file_df = self.make_report_text([file_df])[0]
 
                 file_df = self.format_strings([file_df])[0]
@@ -464,11 +477,19 @@ class vcf():
                 if self.args.reorder:
                     file_df = self.order_columns([file_df])[0]
 
+                if self.args.sort_by:
+                    self.sort_vcfs(
+                        vcfs=[file_df],
+                        by=list(self.args.sort_by.keys()),
+                        ascending=list(self.args.sort_by.values())
+                    )
+
                 file_df = self.rename_columns([file_df])[0]
                 # force header to also be first line of df so it is written
                 # to the Excel sheet
                 file_df = pd.DataFrame(
                     [file_df.columns], columns=file_df.columns).append(file_df)
+
             else:
                 # check what delimiter the data uses
                 # check end of file to avoid potential headers causing issues
@@ -742,8 +763,29 @@ class vcf():
                     for col in invalid:
                         to_drop.remove(col)
 
-            if self.args.report_text:
-                to_drop.remove("Report_text")
+            # Preserve dynamically added columns from being dropped
+            columns_to_preserve = []
+            if self.args.add_name:
+                columns_to_preserve.append("sampleName")
+            if self.args.add_comment_column:
+                columns_to_preserve.append("Comment")
+            if self.args.add_classification_column:
+                columns_to_preserve.append("Classification")
+            if self.args.add_allele_origin_column:
+                columns_to_preserve.append("Allele_Origin")
+            if self.args.add_interpreted_column:
+                columns_to_preserve.append("Interpreted")
+            if self.args.add_reported_column:
+                columns_to_preserve.append("Reported")
+            if self.args.add_mnv_column:
+                columns_to_preserve.append("MNV")
+            if self.args.add_report_text_column:
+                columns_to_preserve.append("Report_text")
+
+            # Remove preserved columns from to_drop list
+            to_drop = [
+                col for col in to_drop if col not in columns_to_preserve
+            ]
 
             vcfs[idx].drop(to_drop, axis=1, inplace=True, errors='ignore')
 
@@ -979,31 +1021,6 @@ class vcf():
                 '{0[CHROM]}:g.{0[POS]}{0[REF]}>{0[ALT]}'.format, axis=1)
 
 
-    def percent_af(self, vcfs) -> list:
-        """
-        Finds the column with "AF" and will convert the number format
-        to percent
-        Parameters
-        ----------
-        vcfs : list
-            list of pd.DataFrames of vcfs to change the AF columns type
-        Returns
-        -------
-        list
-            list of dataframes with AF changed to percent type
-        """
-        # find the sheets and apply to all sheets
-        for idx, vcf in enumerate(vcfs):
-            if 'AF' not in vcf.columns:
-                continue
-            vcf['AF'] = vcf['AF'].astype(np.float16)
-            vcf['AF'] = vcf['AF'].map(lambda n: '{:,.1%}'.format(n))
-
-            vcfs[idx] = vcf
-
-        return vcfs
-
-
     def make_report_text(self, vcfs):
         """
         Makes a report text that follows the has the details per row
@@ -1026,6 +1043,30 @@ class vcf():
 
         return vcfs
 
+    def sort_vcfs(self, vcfs: list, by: Union[str, list],
+                  ascending: Union[bool, list]) -> None:
+        """
+        Sort VCF dataframes using the specified column headers and
+        corresponding boolean values for ascending or descending order.
+
+        Args:
+            vcfs (list): List of pandas DataFrames to be sorted.
+            by (str or list of str): Column name or list of column names to
+                sort by.
+            ascending (bool or list of bool): Sort order. True for ascending,
+                False for descending. If a list, must match the length of
+                'by'.
+
+        Returns:
+            None
+        """
+        for vcf in vcfs:
+            vcf.sort_values(
+                by=by,
+                ascending=ascending,
+                ignore_index=True,
+                inplace=True
+            )
 
     @staticmethod
     def format_report_text(row) -> str:
@@ -1055,7 +1096,7 @@ class vcf():
         ]
         text = ""
         if row.get('symbol') and row.get('consequence'):
-            text += f"{row.get('symbol', '')} {row.get('consequence')} "
+            text += f"{row.get('symbol')} {row.get('consequence')} "
 
         if row.get('exon', '').replace('.', ''):
             text += f"in exon {str(row.get('exon', '')).split('/')[0]}\n"
@@ -1064,19 +1105,24 @@ class vcf():
             text += f"in intron {str(row.get('intron', '')).split('/')[0]}\n"
 
         if row.get('dna'):
-            text += f"HGVSc: {add_none(row.get('dna', ''))}\n"
+            text += f"HGVSc: {add_none(row.get('dna'))}\n"
         elif row.get('hgvsc'):
-            text += f"HGVSc: {add_none(row.get('hgvsc', ''))}\n"
+            text += f"HGVSc: {add_none(row.get('hgvsc'))}\n"
 
         if row.get('protein'):
-            text += f"HGVSp: {add_none(row.get('protein', ''))}\n"
+            text += f"HGVSp: {add_none(row.get('protein'))}\n"
         elif row.get('hgvsp'):
-            text += f"HGVSp: {add_none(row.get('hgvsp', ''))}\n"
+            text += f"HGVSp: {add_none(row.get('hgvsp'))}\n"
 
         if row.get('existing_variation', '').replace('.', ''):
             text += f"dbSNP: {row.get('existing_variation', '')}\n"
 
-        text += f"Allele Frequency (VAF): {add_none(str(row.get('af', '')))}"
+        if row.get('af') == '.':
+            value = 'None'
+        else:
+            value = f"{float(row.get('af')):.1%}"
+
+        text += f"Allele Frequency (VAF): {value}"
 
         return text
 

@@ -8,6 +8,8 @@ import unittest
 import pandas as pd
 import re
 
+from generate_workbook import arguments
+from unittest.mock import patch
 import pytest
 
 sys.path.append(os.path.abspath(
@@ -18,31 +20,74 @@ from utils.vcf import vcf
 from utils.columns import splitColumns
 from tests import TEST_DATA_DIR
 
+# fixtures
+@pytest.fixture
+def mocked_vcf(mocker):
+    """
+    Fixture to be used wherever an empty utils.vcf.vcf object is required
+    """
+    return vcf(args=mocker.Mock())
+
+@pytest.fixture
+def dataframe_fixture():
+    """
+    Fixture to be used wherever dummy data is required for utils.vcf.vcf.vcfs
+    """
+    data = {
+            "A": [3, 3, 3, 2, 2, 2, 1, 1, 1],
+            "B": [3, 2, 1, 1, 2, 3, 2, 3, 1],
+            "C": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            }
+    df = pd.DataFrame.from_dict(data)
+    return df
+
+
+class TestSortVcfs:
+    """
+    Collection of tests for utils.vcf.vcf.sort_vcfs
+    """
+    @pytest.mark.parametrize(
+            "by,ascending,exp_first_row,exp_fourth_row,exp_last_row",
+            [
+                pytest.param(
+                    "C", True, [3, 3, 1], [2, 1, 4], [1, 1, 9]
+                    ),
+                pytest.param(
+                    ["A", "B"], [True, True], [1, 1, 9], [2, 1, 4], [3, 3, 1]
+                    ),
+                pytest.param(
+                    ["A", "B"], [True, False], [1, 3, 8], [2, 3, 6], [3, 1, 3]
+                    )
+                ]
+    )
+    def test_sort_vcfs(self, dataframe_fixture, mocked_vcf, by, ascending, exp_first_row, exp_fourth_row, exp_last_row):
+        """
+        Test that the call to vcf.sort_vcfs sorts the dataframe as required
+        """
+        mocked_vcf.vcfs.append(dataframe_fixture)
+        mocked_vcf.sort_vcfs(
+                vcfs=mocked_vcf.vcfs,
+                by=by,
+                ascending=ascending 
+                )
+        first_row = mocked_vcf.vcfs[0].iloc[0]
+        fourth_row = mocked_vcf.vcfs[0].iloc[3]
+        last_row = mocked_vcf.vcfs[0].iloc[8]
+        assert list(first_row) == exp_first_row
+        assert list(fourth_row) == exp_fourth_row
+        assert list(last_row) == exp_last_row
+
 # initialise vcf class that contains functions for parsing header
 vcf_handler = vcf(argparse.Namespace)
 
 # namespace with all args coming in from parse_args, will be adjusted
 # as required in each test
-VCF_ARGS = argparse.Namespace(
-    additional_files=False,
-    filter=False,
-    print_columns=False,
-    rename=False,
-    vcfs=[],
-    merge=False,
-    include=False,
-    exclude=False,
-    reorder=False,
-    decipher=False,
-    split_hgvs=False,
-    add_raw_change=False,
-    add_classification_column=None,
-    additional_columns=[],
-    summary=None,
-    report_text=False,
-    af_format=None,
-    join_columns=False
-)
+with patch("sys.argv", []):
+    args_obj = object.__new__(arguments)
+    args_obj.args = args_obj.parse_args()
+
+args_obj.args.vcfs = []
+VCF_ARGS = args_obj.args
 
 class TestHeader():
     """
@@ -201,18 +246,14 @@ class TestDataFrameActions():
         """
         # initialise vcf class with a valid argparse input to
         # allow calling .read()
-        vcf_handler = vcf(argparse.Namespace(
-            add_name=True, analysis='',
-            filter=None, keep=False, merge=False,
-            reorder=[], exclude=None, include=None,
-            add_comment_column=False,
-            out_dir='', output='',
-            panel='', print_columns=False, print_header=False, reads='',
-            rename=None, sample='', sheets=['variants'], summary=None,
-            vcfs=[self.columns_vcf], workflow=('', ''), split_hgvs=None,
-            add_classification_column=None, additional_columns=[],
-            report_text=False, af_format = '',join_columns=''
-        ))
+
+        with patch("sys.argv", []):
+            args_obj = object.__new__(arguments)
+            args_obj.args = args_obj.parse_args()
+
+        args_obj.args.sheets = ['variants']
+        args_obj.args.vcfs = [self.columns_vcf]
+        vcf_handler = vcf(args_obj.args)
 
         # first split multiple transcript annotation to separate VCF
         # records, and separate CSQ fields to separate INFO fields
@@ -750,17 +791,12 @@ class TestAddRawChange():
     """
     # initialise vcf class with a valid argparse input to
     # allow calling .read()
-    vcf_handler = vcf(argparse.Namespace(
-        add_name=True, analysis='',
-        filter=None, keep=False, merge=False,
-        reorder=[], exclude=None, include=None,
-        add_comment_column=False,
-        out_dir='', output='',
-        panel='', print_columns=False, print_header=False, reads='',
-        rename=None, sample='', sheets=['variants'], summary=None,
-        vcfs=[], workflow=('', ''), split_hgvs=None,
-        add_classification_column=None, additional_columns=[], af_format = ''
-    ))
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+    args_obj.args.sheets = ['variants']
+    args_obj.args.add_name = True
 
     def test_normal_df(self):
         """
@@ -836,40 +872,6 @@ class TestReportText(unittest.TestCase):
             assert text.split(":")[0] == "Allele Frequency (VAF)", (
                 "Does not contain Allele Frequency (VAF) in report text"
             )
-
-    def test_percent_af(self):
-        """
-        Test that the allele frequency (AF) is:
-            - converted to percent
-            - within 0-100 range
-        """
-        # reuse read_vcf from class TestDataFrameActions
-        tda_object = TestDataFrameActions()
-        # but reset the columns_vcf input VCF file
-        tda_object.columns_vcf = os.path.join(TEST_DATA_DIR, "oncospan_annotated.vcf.gz")
-        # read_vcf of oncospan and clean intermediate files
-        vcf_handler = tda_object.read_vcf()
-        tda_object.clean_up()
-
-        # update the af_format namespace to be percent
-        vcf_handler.args.af_format = "percent"
-        vcf_handler.percent_af(vcf_handler.vcfs)
-
-        # check all values contains %
-        AF_column_percent = list(vcf_handler.vcfs[0].AF)
-
-        # get all strings in AF_column_percent that contain %
-        contains_percent =  [s for s in AF_column_percent if "%" in s]
-        with self.subTest("Not all AFs are percent"):
-            self.assertEqual(len(AF_column_percent), len(contains_percent))
-
-        # check that they are all above 0
-        # 1. strip off %
-        # 2. check all greater than 0
-        res = [float(s.replace('%','')) for s in AF_column_percent]
-        for s in res:
-            with self.subTest(msg="Not all AFs range are within 0-100 (which should be for percent)"):
-                self.assertTrue(0 <= s <= 100)
 
 if __name__ == "__main__":
     TestAddRawChange().test_normal_df()

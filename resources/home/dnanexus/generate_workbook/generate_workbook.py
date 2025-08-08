@@ -28,8 +28,12 @@ class arguments():
         self.verify_images()
         self.verify_colours()
         self.verify_additional_columns()
+        if self.args.sort_by:
+            self.args.sort_by = self.verify_sort_by(
+               sort_by_list=self.args.sort_by
+            )
 
-        print(f"Arguments passed: ", ''.join([
+        print("Arguments passed: ", ''.join([
             f"\n\t\t{' : '.join((str(x), str(self.args.__dict__[x])))}"
             for x in self.args.__dict__
         ]))
@@ -58,7 +62,6 @@ class arguments():
         """
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, ' '.join(values))
-
 
     def parse_args(self) -> argparse.Namespace:
         """
@@ -157,6 +160,26 @@ class arguments():
         parser.add_argument(
             '--add_classification_column', action='store_true',
             help='Add empty classification column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_allele_origin_column', action='store_true',
+            help='Add empty allele origin column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_interpreted_column', action='store_true',
+            help='Add empty interpreted column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_reported_column', action='store_true',
+            help='Add empty reported column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_mnv_column', action='store_true',
+            help='Add empty MNV column to end of sheet'
+        )
+        parser.add_argument(
+            '--add_report_text_column', action='store_true',
+            help='Makes a report summary to be appended as the last column'
         )
         parser.add_argument(
             '--images', nargs='+',
@@ -320,15 +343,34 @@ class arguments():
             )
         )
         parser.add_argument(
-            '--report_text', action='store_true',
-            help=('Makes a report summary to be appended as the last column'
-            )
-        )
-        parser.add_argument(
             '--join_columns', nargs='+',
             help=(
                 'Joins columns together with a separator or attaches string '
                 'before or after a column'
+            )
+        )
+        parser.add_argument(
+            '--m_codes', required=False,
+            help=(
+                'File containing a list of valid M-codes. M-codes should be '
+                'provided one per line in a .txt file.'
+            )
+        )
+        parser.add_argument(
+            '--add_auto_filter', action='store_true',
+            help='Add an excel auto filter to variant sheets'
+        )
+        parser.add_argument(
+            '--sort_by', required=False, nargs="+", type=str,
+            help=(
+                """
+                Column names to sort variant sheets by and corresponding bool
+                for whether to sort specified column in ascending order
+                or not. Column name:boolean pairs should
+                be joined by a colon. A list of column name:bool pairs can
+                be sepcfied, if wanting to sort by multiple columns, and should
+                be separated by a space. For e.g. "CHROM:True POS:False"
+                """
             )
         )
         return parser.parse_args()
@@ -511,6 +553,54 @@ class arguments():
             else:
                 # one vcf (or merged) and NOT filtering => name it variants
                 self.args.sheets = ["variants"]
+
+    def verify_sort_by(self, sort_by_list: list) -> dict:
+        """
+        Validates and processes the 'sort_by' column:bool argument list.
+
+        Expects a list of strings in the format 'COLUMN:BOOL', where COLUMN is
+        the name of a column and BOOL is either 'True' or 'False', for whether
+        the column should be sorted in ascending order or not.
+
+        Converts valid entries into a dictionary mapping each column to a
+        boolean.
+
+        Args:
+            sort_by_list (list): List of 'COLUMN:BOOL' strings.
+
+        Raises:
+            argparse.ArgumentTypeError: If a pair is improperly formatted or
+            contains a non-boolean value.
+
+        Returns:
+            dict: Column names mapped to boolean values.
+        """
+        sort_by_dict = {}
+        for pair in sort_by_list:
+            if ':' not in pair:
+                raise ValueError(
+                    f"Invalid format for --sort_by input: '{pair}'. Expected "
+                    "format column name:boolean."
+                )
+
+            column_name, sort_bool = pair.split(':', 1)
+            if not column_name or not sort_bool:
+                raise ValueError(
+                    "Invalid format for --sort_by input: no column name or "
+                    f"bool specified in column name:bool pair: {pair}."
+                )
+
+            if sort_bool not in ['True', 'False']:
+                raise ValueError(
+                    "Invalid format for --sort_by input: bool in "
+                    f"column name:bool pair is not valid: '{sort_bool}'. "
+                    "Expected 'True' or 'False'."
+                )
+
+            # This ensures the strings 'True' or 'False' are stored as booleans
+            sort_by_dict[column_name] = sort_bool == 'True'
+
+        return sort_by_dict
 
 
 def main():

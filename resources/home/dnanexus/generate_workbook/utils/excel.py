@@ -16,7 +16,7 @@ from openpyxl.cell.text import InlineFont
 from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter as col_idx_to_col_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles.protection import Protection
 import pandas as pd
@@ -31,10 +31,15 @@ THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 DEFAULT_FONT.name = 'Calibri'
 
 # row and col counts that are to be unlocked next to
-# populated table in all sheets if it is dias pipeline
-# required for 'lock_sheet' function
+# populated table in all sheets
+# required for 'unlock_region' function
 ROW_TO_UNLOCK = 500
 COL_TO_UNLOCK = 200
+
+# List of optional columns which can be added that may need to be unlocked
+# and/or have drop-downs added
+OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
+                    'Interpreted', 'Reported', 'MNV'}
 
 
 class excel():
@@ -75,7 +80,6 @@ class excel():
         self.workbook = self.writer.book
         self.summary = None
 
-
     def generate(self) -> None:
         """
         Calls all methods in excel() to generate output file
@@ -88,17 +92,19 @@ class excel():
         self.write_additional_files()
         self.write_images()
 
-        if self.args.report_text:
+        if self.args.add_report_text_column:
             self.set_width_height_report_text()
 
-        self.workbook.save(self.args.output)
-        if self.args.acmg and self.args.lock_sheet:
+        if self.args.lock_sheet:
             self.protect_rename_sheets()
+
+        # Add drop-downs for acmg interpret sheet(s)
         if self.args.acmg:
-            self.drop_down()
+            self.acmg_drop_down()
+
+        self.workbook.save(self.args.output)
 
         print('Done!')
-
 
     def write_summary(self) -> None:
         """
@@ -118,8 +124,9 @@ class excel():
             # generate summary sheet in format for HaemOnc/Uranus
             self.uranus_summary()
 
-
-    def summary_sheet_cell_colour_key(self, row_count, to_bold) -> Union[int, list]:
+    def summary_sheet_cell_colour_key(
+        self, row_count, to_bold
+    ) -> Union[int, list]:
         """
         Write conditions and colours of colouring applied to cells to
         the summary sheet if --colour specified
@@ -156,7 +163,7 @@ class excel():
         # write colouring applied to each field as separate column in summary
         for column, conditions in cols_to_colours.items():
             colour_row = row_count + 1
-            column_letter = get_column_letter(colour_col)
+            column_letter = col_idx_to_col_letter(colour_col)
 
             self.summary.cell(row_count, colour_col).value = column
             to_bold.append(f"{column_letter}{row_count}")
@@ -186,108 +193,152 @@ class excel():
 
         return max_colour_rows_written, to_bold
 
-
     def uranus_summary(self) -> None:
-            """
-            Writes summary sheet for uranus pipeline same header as the
-            variant sheet, headers for the QC  and three cells for scientist
-            to write on
-            """
-            # track what cells to make bold
-            to_bold = []
+        """
+        Writes summary sheet for uranus pipeline same header as the
+        variant sheet, headers for the QC  and three cells for scientist
+        to write on
+        """
+        # track what cells to make bold
+        to_bold = []
 
-            # copy the headers from the variants sheet
-            header = self.vcfs[0].columns.to_list()
-            # start from B1 (second row) as we want do not want to
-            # iterate over A1 (samplename header)
-            for idx, row in enumerate(header, 1):
-                self.summary.cell(1, idx).value = row
-                to_bold.append(self.summary.cell(1, idx).coordinate)
-            self.set_widths(self.summary, header)
+        # write QC summary template
+        self.summary.cell(8, 1).value = "Run QC"
+        self.summary.cell(9, 1).value = "250x"
+        self.summary.cell(10, 1).value = "Contamination"
+        self.summary.cell(11, 1).value = "Total reads M"
+        self.summary.cell(12, 1).value = "Fold 80"
+        self.summary.cell(13, 1).value = "Insert size"
+        self.summary.cell(14, 1).value = "Sex check"
 
-            # write QC summary template
-            self.summary.cell(14, 1).value = "Run QC"
-            self.summary.cell(15, 1).value = "250x"
-            self.summary.cell(16, 1).value = "Contamination"
-            self.summary.cell(17, 1).value = "Total reads M"
-            self.summary.cell(18, 1).value = "Fold 80"
-            self.summary.cell(19, 1).value = "Insert Size"
+        self.summary.cell(8, 4).value = "Sample QC"
+        self.summary.cell(3, 1).value = "Analysed by"
+        self.summary.cell(4, 1).value = "Date"
+        self.summary.cell(5, 1).value = "Subpanel analysed"
+        self.summary.cell(6, 1).value = "M-code"
+        self.summary.cell(1, 1).value = "Sample ID"
 
-            self.summary.cell(14, 4).value = "Sample QC"
-            self.summary.cell(10, 6).value = "Analysed by"
-            self.summary.cell(11, 6).value = "Date"
-            self.summary.cell(12, 6).value = "Subpanel analysed"
-            self.summary.cell(8, 1).value = "Sample ID"
+        to_bold.extend(["A8", "A1", "D8", "A3", "A4", "A5", "A6"])
 
-            to_bold.extend(["A14", "A8", "D14", "F10", "F11", "F12"])
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+        self.summary.cell(1, 2).value = sample
 
-            # get sample name from vcf, should only be one but handle everything
-            # list-wise just in case
-            sample = [
-                Path(x).name.replace('.vcf', '').replace('.gz', '')
-                for x in self.args.vcfs
-            ]
-            sample = [x.split('_')[0] if '_' in x else x for x in sample]
-            sample = str(sample).strip('[]').strip("'")
-            self.summary.cell(8, 2).value = sample
+        # Not uranus centric but good for record keeping,
+        # include info on reference, filter command and workflow
+        # and report job IDs
+        row_count = 20
 
-            # increase width
-            self.summary.column_dimensions['A'].width = 18
-
-            # Not uranus centric but good for record keeping,
-            # include info on reference, filter command and workflow
-            # and report job IDs
-            row_count = 22
-
-            # write genome reference(s) parsed from vcf header
-            if self.refs:
-                self.summary.cell(row_count, 1).value = "Reference:"
-                self.summary[f"A{row_count}"].font = Font(
-                    bold=True, name=DEFAULT_FONT.name
-                )
-                for ref in list(set(self.refs)):
-                    self.summary.cell(row_count, 2).value = ref
-                    row_count += 1
-
-                row_count += 2
-
-            if self.args.human_filter:
-                self.summary.cell(row_count, 1).value = "Filters applied:"
-                self.summary[f"A{row_count}"].font = Font(
-                    bold=True, name=DEFAULT_FONT.name)
-                self.summary.cell(row_count, 2).value = self.args.human_filter
-
-                row_count += 2
-
-            # write args passed to script to generate report
-            self.summary.cell(row_count, 1).value = "Filter command:"
-            self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
-            if self.args.filter:
-                self.summary.cell(row_count, 2).value = self.args.filter
-            else:
-                self.summary.cell(row_count, 2).value = "None"
+        # write genome reference(s) parsed from vcf header
+        if self.refs:
+            self.summary.cell(row_count, 1).value = "Reference:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in list(set(self.refs)):
+                self.summary.cell(row_count, 2).value = ref
+                row_count += 1
 
             row_count += 2
 
-            # write in the colouring of any columns if done
-            if self.args.colour:
-                row_count, to_bold = self.summary_sheet_cell_colour_key(
-                    row_count, to_bold)
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
 
-            # write more text with DNAnexus IDs etc
             row_count += 2
-            self.summary.cell(row_count, 1).value = "Workflow:"
-            self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
-            self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
-            to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
 
-            self.summary.cell(row_count, 2).value = self.args.workflow[0]
-            self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
-            self.summary.cell(row_count + 2, 2).value = self.args.job_id
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
 
-            for cell in to_bold:
-                self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
+        row_count += 2
 
+        # write in the colouring of any columns if done
+        if self.args.colour:
+            row_count, to_bold = self.summary_sheet_cell_colour_key(
+                row_count, to_bold)
+
+        # write more text with DNAnexus IDs etc
+        row_count += 2
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
+
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
+
+        row_count += 4
+
+        # copy the headers from the variants sheet
+        header = self.vcfs[0].columns.to_list()
+        for idx, row in enumerate(header, 1):
+            self.summary.cell(row_count, idx).value = row
+            to_bold.append(self.summary.cell(row_count, idx).coordinate)
+
+        self.set_widths(self.summary, header)
+
+        # increase width
+        self.summary.column_dimensions['A'].width = 18
+
+        cell_to_unlock = []
+        if self.args.m_codes:
+            cell_for_drop_down = "B6"
+
+            self.list_to_drop_down(
+                dropdown_options=self.read_m_codes_file(self.args.m_codes),
+                dropdown_options_sheet_name="m_codes",
+                dropdown_options_col="A",
+                prompt="M-code associated with sample",
+                title="M-code",
+                sheet=self.summary,
+                cells=[cell_for_drop_down]
+            )
+
+            cell_to_unlock.append(cell_for_drop_down)
+
+        if self.args.lock_sheet:
+            self.lock_sheet(self.summary)
+
+            cell_to_unlock += ["B3", "B4", "B5"]
+            self.unlock_specified_cells(self.summary, cell_to_unlock)
+
+            # Unlock region above variant table to provide some free space for
+            # scientists
+            self.unlock_region(
+                ws=self.summary,
+                start_row=9,
+                start_col=2,
+                unlock_row_num=11,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # Unlock region beneath variant table to provide space for variants
+            # to be copied over into summary sheet
+            row_count += 1
+            self.unlock_region(
+                ws=self.summary,
+                start_row=row_count,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+        for cell in to_bold:
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
 
     def helios_summary(self) -> None:
         """
@@ -416,7 +467,7 @@ class excel():
                                 start_color='008100'
                             )
                         elif colour == 'amber':
-                             self.summary[f"D{idx}"].fill = PatternFill(
+                            self.summary[f"D{idx}"].fill = PatternFill(
                                 patternType="solid",
                                 start_color='ff9f00'
                             )
@@ -491,7 +542,6 @@ class excel():
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
-
 
     def dias_summary(self) -> None:
         """
@@ -697,6 +747,7 @@ class excel():
                 for cell in cells:
                     cell.border = THIN_BORDER
         if self.args.lock_sheet:
+            self.lock_sheet(self.summary)
             cell_to_unlock = ["A3", "B3", "B4", "B5", "B6", "B7", "B8", "B9",
                               "B10", "B11", "C3", "C4", "C5", "C6", "C7", "C8",
                               "C9", "C10", "C11", "D3", "D4", "D5", "D6", "D7",
@@ -710,13 +761,29 @@ class excel():
                               "E34", "F34", "G34", "H34", "B35", "C35", "D35",
                               "E35", "F35", "G35", "H35"
                               ]
-            self.lock_sheet(ws=self.summary,
-                            cell_to_unlock=cell_to_unlock,
-                            start_row=self.summary.max_row+1,
-                            start_col=9,
-                            unlock_row_num=ROW_TO_UNLOCK,
-                            unlock_col_num=COL_TO_UNLOCK)
+            self.unlock_specified_cells(self.summary, cell_to_unlock)
 
+            last_col = 8
+            last_row = self.summary.max_row
+
+            # unlock region to the right of the summary info (starting from
+            # col 9)
+            self.unlock_region(
+                self.summary,
+                start_row=1,
+                start_col=last_col+1,
+                unlock_row_num=last_row,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # unlock region beneath the summary info (starting from max_row+1)
+            self.unlock_region(
+                self.summary,
+                start_row=last_row+1,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK+last_col
+            )
 
     def write_reporting_template(self, report_sheet_num) -> None:
         """
@@ -925,6 +992,14 @@ class excel():
                             cell_border.left = MEDIUM
                         cell.border = cell_border
         if self.args.lock_sheet:
+            self.lock_sheet(report)
+
+            # For some reason report.max_row and report.max_column are adding
+            # an extra row/col instead of returning the true last row/col,
+            # therefore hardcoding these values
+            last_row = 26
+            last_col = 12
+
             cell_to_unlock = ["B3", "C3", "D3", "C4", "C5", "C6",
                               "C9", "C10", "C11", "C12", "C13", "C14", "C15",
                               "C16", "C17", "C18", "C19", "C20", "C21", "C22",
@@ -937,13 +1012,25 @@ class excel():
                               "K22", "K23", "K24", "K25", "L9", "L12", "L13",
                               "L16", "L17", "L18", "L21", "L22", "L23", "L24",
                               "L25", "H26"]
-            self.lock_sheet(ws=report,
-                            cell_to_unlock=cell_to_unlock,
-                            start_row=report.max_row,
-                            start_col=report.max_column,
-                            unlock_row_num=ROW_TO_UNLOCK,
-                            unlock_col_num=COL_TO_UNLOCK)
+            self.unlock_specified_cells(report, cell_to_unlock)
 
+            # unlock region to the right of the table
+            self.unlock_region(
+                ws=report,
+                start_row=1,
+                start_col=last_col+1,
+                unlock_row_num=last_row,
+                unlock_col_num=COL_TO_UNLOCK
+            )
+
+            # unlock region beneath the table
+            self.unlock_region(
+                ws=report,
+                start_row=last_row+1,
+                start_col=1,
+                unlock_row_num=ROW_TO_UNLOCK,
+                unlock_col_num=COL_TO_UNLOCK+last_col
+            )
 
     def write_variants(self) -> None:
         """
@@ -1011,30 +1098,78 @@ class excel():
 
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
-                if self.args.acmg and self.args.lock_sheet:
-                    num_variant = vcf.shape[0]
-                    cell_to_unlock = []
-                    comment_col = self.get_col_letter(curr_worksheet,
-                                                      "Comment")
-                    interpreted_col = self.get_col_letter(curr_worksheet,
-                                                          "Interpreted")
-                    for row in range(2, num_variant+2):
-                        if comment_col is not None:
-                            cell_to_unlock.append(f"{comment_col}{row}")
-                        if curr_worksheet.title == self.args.sheets[0]:
-                            cell_to_unlock.append(f"{interpreted_col}{row}")
-                    self.lock_sheet(ws=curr_worksheet,
-                                    cell_to_unlock=cell_to_unlock,
-                                    start_row=num_variant+2,
-                                    start_col=curr_worksheet.max_column+1,
-                                    unlock_row_num=ROW_TO_UNLOCK,
-                                    unlock_col_num=COL_TO_UNLOCK)
+
+                # check what optional columns are present
+                vcf_cols = set(vcf.columns.to_list())
+                optional_cols_in_sheet = vcf_cols.intersection(
+                    OPTIONAL_COLUMNS)
+                num_variant = len(vcf)
+
+                # Add one row to num_variants to include the header row
+                last_row = num_variant+1
+                last_col = curr_worksheet.max_column
+
+                if self.args.af_format == "percent":
+
+                    self.format_cells_as_percentage(
+                        curr_worksheet,
+                        cells=self.get_cells_in_columns(
+                            sheet=curr_worksheet, cols=["AF"],
+                            num_rows=num_variant
+                        )
+                    )
+
+                # If lock_sheet argument is True -
+                # Lock variant sheet, unlock cells in optional/additional cols,
+                # add drop-downs to optional cols that are present,
+                # unlock set number of rows/cols beneath/to the right of the
+                # variant table columns
+                if self.args.lock_sheet:
+                    self.lock_sheet(curr_worksheet)
+
+                    if optional_cols_in_sheet:
+
+                        self.unlock_specified_cells(
+                            ws=curr_worksheet,
+                            cell_to_unlock=self.get_cells_in_columns(
+                                sheet=curr_worksheet,
+                                cols=optional_cols_in_sheet,
+                                num_rows=num_variant
+                            )
+                        )
+
+                        # Add drop-downs to optional columns
+                        self.optional_cols_drop_down(
+                            curr_worksheet, optional_cols_in_sheet, num_variant
+                        )
+
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=last_col+1,
+                        unlock_row_num=last_row,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+                    # Unlock cells beneath variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=last_row+1,
+                        start_col=1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK+last_col
+                    )
+
+                if self.args.add_auto_filter:
+                    last_col_letter = col_idx_to_col_letter(last_col)
+                    curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
+
                 self.workbook.save(self.args.output)
 
         # Write out dict to file
         with open('details.json', 'w', encoding='utf8') as details_json:
             json.dump(details_dict, details_json)
-
 
     def write_additional_files(self) -> None:
         """
@@ -1063,7 +1198,7 @@ class excel():
                 length = 13 if length < 13 else length
                 length = 30 if length > 30 else length
 
-                col_letter = get_column_letter(idx)
+                col_letter = col_idx_to_col_letter(idx)
                 curr_worksheet.column_dimensions[col_letter].width = length
 
             # set widths of any columns we have specified below in set_width()
@@ -1089,6 +1224,71 @@ class excel():
                             f"\n\t{err}\nContinuing without colouring."
                         )
 
+            sheet_cols = set(file_df.columns.tolist())
+            optional_cols_in_sheet = sheet_cols.intersection(OPTIONAL_COLUMNS)
+            # Column headers included as first row, therefore minus 1 to get
+            # number of actual rows
+            num_rows = len(file_df)-1
+
+            last_row = num_rows+1
+            last_col = curr_worksheet.max_column
+
+            if self.args.af_format == "percent" and file_name == 'pindel':
+
+                self.format_cells_as_percentage(
+                    sheet=curr_worksheet,
+                    cells=self.get_cells_in_columns(
+                        sheet=curr_worksheet, cols=["AF"], num_rows=num_rows
+                    )
+                )
+
+            if self.args.lock_sheet:
+                self.lock_sheet(curr_worksheet)
+
+                if file_name == 'pindel':
+
+                    # freeze header so scrolling keeps it in view
+                    curr_worksheet.freeze_panes = self.args.freeze_column
+
+                    # Unlock cells in any optional columns and unlock set
+                    # regions beneath/to the right of data
+                    if optional_cols_in_sheet:
+
+                        self.unlock_specified_cells(
+                            ws=curr_worksheet,
+                            cell_to_unlock=self.get_cells_in_columns(
+                                sheet=curr_worksheet,
+                                cols=optional_cols_in_sheet,
+                                num_rows=num_rows
+                            )
+                        )
+
+                    # Unlock cells to the right of variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=1,
+                        start_col=last_col+1,
+                        unlock_row_num=last_row,
+                        unlock_col_num=COL_TO_UNLOCK
+                    )
+
+                    # Unlock cells beneath variant table
+                    self.unlock_region(
+                        ws=curr_worksheet,
+                        start_row=last_row+1,
+                        start_col=1,
+                        unlock_row_num=ROW_TO_UNLOCK,
+                        unlock_col_num=COL_TO_UNLOCK+last_col
+                    )
+
+                    if self.args.add_auto_filter:
+                        last_col_letter = col_idx_to_col_letter(last_col)
+                        curr_worksheet.auto_filter.ref = f"A1:{last_col_letter}{last_row}"
+
+            if file_name == 'pindel' and optional_cols_in_sheet:
+                self.optional_cols_drop_down(
+                        curr_worksheet, optional_cols_in_sheet, num_rows
+                    )
 
     def write_images(self) -> None:
         """
@@ -1135,7 +1335,6 @@ class excel():
                 img.width = width
 
             sheet.add_image(img)
-
 
     def check_written_sheets(self, vcf, sheet) -> None:
         """"
@@ -1186,7 +1385,6 @@ class excel():
             "dataframe to be written"
         )
 
-
     def set_types(self, worksheet) -> None:
         """
         Iterate over all worksheet cells and test if cell value can be numeric,
@@ -1203,6 +1401,16 @@ class excel():
                 if is_numeric(cell.value):
                     cell.data_type = 'n'
 
+    def format_cells_as_percentage(self, sheet, cells: list) -> None:
+        """
+        Format specified cells as percentages.
+        Args:
+            sheet (openpyxl.Writer): Sheet containing cells to be formatted
+            cells (list): List of cell references to be formatted as
+                percentages
+        """
+        for cell in cells:
+            sheet[cell].number_format = '0.0%'
 
     def set_font(self, worksheet) -> None:
         """
@@ -1218,7 +1426,6 @@ class excel():
         for cells in worksheet.rows:
             for cell in cells:
                 cell.font = Font(name=DEFAULT_FONT.name)
-
 
     def set_dp(self, worksheet) -> None:
         """
@@ -1249,7 +1456,6 @@ class excel():
                     for row in ws_column:
                         row.number_format = f'#,##0.{dp}'
 
-
     def convert_colour(self, colour) -> str:
         """
         Converts string of colour to aRGB value that openpyxl will accept.
@@ -1278,7 +1484,6 @@ class excel():
 
         return colour
 
-
     def colour_hyperlinks(self, worksheet) -> None:
         """
         Set text colour to blue if text contains hyperlink
@@ -1292,7 +1497,6 @@ class excel():
             for cell in cells:
                 if 'HYPERLINK' in str(cell.value):
                     cell.font = Font(color='00007f', name=DEFAULT_FONT.name)
-
 
     def colour_cells(self, worksheet) -> None:
         """
@@ -1434,7 +1638,6 @@ class excel():
 
             raise RuntimeError(error_message)
 
-
     def set_widths(self, worksheet, sheet_columns) -> None:
         """
         Set widths for variant sheets off common names to be more readable,
@@ -1449,7 +1652,7 @@ class excel():
             column names for sheet from DataFrame.columns
         """
         widths = {
-            "chrom": 7,
+            "chrom": 8,
             "pos": 12,
             "ref": 10,
             "alt": 10,
@@ -1486,11 +1689,13 @@ class excel():
             "Metric (UOM)": 52,  # TSO500 MetricsOutput.tsv
             "[TMB]": 32,  # TSO500 CombinedVariantOutput.tsv
             "rawchange": 20,
-            "vf":6,
+            "vf": 6,
             "comment": 10,
             "classification": 12,
             "spliceai pred ": 18,
-            "report text" : 35
+            "report text": 35,
+            "panel": 27,
+            "reported": 17
         }
 
         # generate list of 286 potential xlsx columns from A,B,C...JX,JY,JZ
@@ -1508,7 +1713,6 @@ class excel():
                 worksheet, column_list[idx], column.lower(), widths
             )
             worksheet.column_dimensions[column_list[idx]].width = width
-
 
     def get_closest_match(self, worksheet, col_letter, col, widths) -> int:
         """
@@ -1540,15 +1744,21 @@ class excel():
             # close enough match to probably be correct
             width = widths[closest_match]
         else:
-            # no close matches to name, use title multipled by factor
+            # no close matches to name, use title (if present) multipled by
+            # factor, else use the length of the column name multiplied by
+            # factor
             title = worksheet[f"{col_letter}1"].value
-            width = len(title) * 1.15
+            if title:
+                width = len(title) * 1.15
+
+            else:
+                width = len(col) * 1.15
+
             if width < 13:
                 # make minimum of 13
                 width = 13
 
         return width
-
 
     def colour_metrics_output(self, file_df, worksheet) -> None:
         """
@@ -1670,15 +1880,68 @@ class excel():
         worksheet.merge_cells(
             start_row=7, end_row=7, start_column=6, end_column=10)
 
+    def optional_cols_drop_down(self, sheet, drop_down_cols, num_rows):
+        """
+        Function to add drop-downs to specified number of rows in the
+        optional columns in the specified sheet.
 
-    def drop_down(self) -> None:
+        Args:
+            sheet (openpyxl.Writer): sheet containing columns which are to have
+             drop-downs added
+            drop_down_cols (list | set): list or set of column names to have
+             drop-downs added to, if the column names are included in the
+             optional_cols_drop_down_spec.
+            num_rows (int): number of variants/rows to have drop-downs for
+        """
+
+        optional_cols_drop_down_spec = {
+            "Allele Origin": {
+                "options": '"Somatic,Unknown"',
+                "prompt": 'Choose Somatic or Unknown',
+                "title": 'Variant allele origin?'
+            },
+            "Interpreted": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant interpreted or not?'
+            },
+            "Reported": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant reported or not?'
+            },
+            "Classification": {
+                "options": '"Oncogenic,Likely_oncogenic,Uncertain_significance,Likely_benign,Benign"',
+                "prompt": 'Choose variant classification',
+                "title": 'Variant classification?'
+            },
+            "MNV": {
+                "options": '"YES,NO"',
+                "prompt": 'Choose YES or NO',
+                "title": 'Variant is an MNV?'
+            }
+        }
+
+        for col, drop_down_spec in optional_cols_drop_down_spec.items():
+            if col in drop_down_cols:
+                cells_for_drop_down = self.get_cells_in_columns(
+                    sheet=sheet, cols=[col], num_rows=num_rows
+                )
+
+                self.str_to_drop_down(
+                    dropdown_options=drop_down_spec['options'],
+                    prompt=drop_down_spec['prompt'],
+                    title=drop_down_spec['title'],
+                    sheet=sheet,
+                    cells=cells_for_drop_down
+                )
+
+    def acmg_drop_down(self) -> None:
         """
         Function to add drop-downs in the report tab for entering
-        ACMG criteria for classification, as well as a boolean
-        drop down into the additional 'Interpreted' column of
-        the variant sheet(s).
+        ACMG criteria for classification
         """
-        wb = load_workbook(filename=self.args.output)
+        wb = self.workbook
 
         # adding dropdowns in report table
         for sheet_num in range(1, self.args.acmg+1):
@@ -1691,7 +1954,7 @@ class excel():
                                   'K25']
             strength_options = '"Very Strong, Strong, Moderate, \
                                  Supporting, NA"'
-            self.get_drop_down(dropdown_options=strength_options,
+            self.str_to_drop_down(dropdown_options=strength_options,
                                prompt='Select from the list',
                                title='Strength',
                                sheet=report_sheet,
@@ -1700,11 +1963,13 @@ class excel():
             # add stregth for BA1
             BA1_options = '"Stand-Alone, Very Strong, Strong, Moderate, \
                             Supporting, NA"'
-            self.get_drop_down(dropdown_options=BA1_options,
-                               prompt='Select from the list',
-                               title='Strength',
-                               sheet=report_sheet,
-                               cells=['K9'])
+            self.str_to_drop_down(
+                dropdown_options=BA1_options,
+                prompt='Select from the list',
+                title='Strength',
+                sheet=report_sheet,
+                cells=['K9']
+            )
 
             # adding final classification dropdown
             report_sheet['B26'] = 'FINAL ACMG CLASSIFICATION'
@@ -1712,77 +1977,73 @@ class excel():
             class_options = '"Pathogenic,Likely Pathogenic, \
                               Uncertain Significance, \
                               Likely Benign, Benign"'
-            self.get_drop_down(dropdown_options=class_options,
-                               prompt='Select from the list',
-                               title='ACMG classification',
-                               sheet=report_sheet,
-                               cells=['C26'])
+            self.str_to_drop_down(
+                dropdown_options=class_options,
+                prompt='Select from the list',
+                title='ACMG classification',
+                sheet=report_sheet,
+                cells=['C26']
+            )
 
-        # adding Interpreted column dropdown in the first variant sheet tab
-        first_variant_sheet = wb[self.args.sheets[0]]
-        interpreted_options = '"YES,NO"'
-        col_letter = self.get_col_letter(first_variant_sheet, "Interpreted")
-        num_variant = self.vcfs[0].shape[0]
-        if num_variant > 0:
-            cells_for_variant = []
-            for i in range(num_variant):
-                cells_for_variant.append(f"{col_letter}{i+2}")
-            self.get_drop_down(dropdown_options=interpreted_options,
-                               prompt='Choose YES or NO',
-                               title='Variant interpreted or not?',
-                               sheet=first_variant_sheet,
-                               cells=cells_for_variant)
-        wb.save(self.args.output)
-
-
-    def lock_sheet(self, ws, cell_to_unlock, start_row, start_col,
-                   unlock_row_num, unlock_col_num) -> None:
+    def lock_sheet(
+        self, ws, password: str = "sheet_is_protected",
+        lock_formatting: str = False
+    ) -> None:
         """
-        locking the workbooksheet (password protected) and unlocking
-        specific cells inside the table and regions outside table
-
-        Parameters:
-        -----------
-        ws: str
-            current worksheet
-        cell_to_unlock: list
-            list containing cells to unlock
-        start_row: int
-            integer indicating row starting to unlock
-        start_col: int
-            integer indicating col starting to unlock
-        unlock_row_num: int
-            integer indication number of row(s) to unlock
-        unlock_col_num: int
-            integer indication number of col(s) to unlock
+        Locks all cells in worksheet using the specified password, if no
+        password is specified, the password defaults to "sheet_is_protected".
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be locked
+            password (str, optional): password used to lock cells. Defaults to
+             "sheet_is_protected".
+            lock_formatting (bool, optional): Boolean whether cells, columns
+             and rows in locked sheet should be able to be formatted. If True,
+             cells, columns and rows cannot be formatted, if false, they can.
         """
         ws.protection.sheet = True
-        ws.protection.password = "sheet_is_protected"
+        ws.protection.autoFilter = False
+        ws.protection.password = password
+        ws.protection.formatColumns = lock_formatting
+        ws.protection.formatRows = lock_formatting
+        ws.protection.formatCells = lock_formatting
 
-        # unlocking specific cells inside the table
+    def unlock_specified_cells(self, ws, cell_to_unlock) -> None:
+        """
+        Unlock specified cells in a locked worksheet.
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be unlocked
+            cell_to_unlock (list): list of cells to be unlocked provided via
+             their <column letter><row number> reference e.g. [A1, B2]
+        """
         for cell in cell_to_unlock:
             ws[cell].protection = Protection(locked=False)
 
-        # unlocking regions outside table
-        for col in range(1, start_col+unlock_col_num):
-            col_letter = get_column_letter(col)
+    def unlock_region(self, ws, start_row: int, start_col: int,
+                      unlock_row_num: int, unlock_col_num: int) -> None:
+        """
+        Unlock specified region of cells in a worksheet.
+
+        Args:
+            ws (openpyxl.worksheet.worksheet.Worksheet): worksheet containing
+             cells to be unlocked
+            start_row (int): row number (1-based) specifying start row of
+             region to be unlocked (inclusive)
+            start_col (int): col number (1-based) specifying start col of
+             region to be unlocked (inclusive)
+            unlock_row_num (int): total number of rows to be unlocked
+            unlock_col_num (int): total number of cols to be unlocked
+        """
+        unlocked = Protection(locked=False)
+        for col in range(start_col, start_col+unlock_col_num):
+            col_letter = col_idx_to_col_letter(col)
             for row in range(start_row, start_row+unlock_row_num):
                 row_num = row
                 cell = f"{col_letter}{row_num}"
-                ws[cell].protection = Protection(locked=False)
-        for col in range(start_col, start_col+unlock_col_num):
-            col_letter = get_column_letter(col)
-            for row in range(1, start_row):
-                row_num = row
-                cell = f"{col_letter}{row_num}"
-                ws[cell].protection = Protection(locked=False)
-        prot = ws.protection
-        prot.formatColumns = False
-        prot.formatRows = False
-        prot.formatCells = False
+                ws[cell].protection = unlocked
 
-
-    def get_col_letter(self, worksheet, col_name) -> str:
+    def col_name_to_col_letter(self, worksheet, col_name) -> str:
         """
         Getting the column letter with specific col name
 
@@ -1792,37 +2053,61 @@ class excel():
                writer object of current sheet
         col_name: str
                name of column to get col letter
+
         Return
         -------
         str
             column letter for specific column name
         """
-        col_letter = None
-        for column_cell in worksheet.iter_cols(1, worksheet.max_column):
-            if column_cell[0].value == col_name:
-                col_letter = column_cell[0].column_letter
+        # Loop over all cells in first row and retrieve its contents and
+        # its corresponding letter
+        header_row = {
+            cell.value: cell.column_letter for cell in worksheet[1]
+        }
 
-        return col_letter
-
+        return header_row[col_name] if col_name in header_row else None
 
     def protect_rename_sheets(self) -> None:
         """
         prevent renaming sheets in the workbook
         """
-        wb = load_workbook(filename=self.args.output)
+        wb = self.workbook
         wb.security.lockStructure = True
         wb.security.workbookPassword = "sheet_name_protected"
-        wb.save(self.args.output)
 
-
-    def get_drop_down(self, dropdown_options, prompt, title, sheet, cells) -> None:
+    def str_to_drop_down(
+        self, dropdown_options: str, prompt: str, title: str, sheet,
+        cells: list
+    ) -> None:
         """
-        create the drop-downs items for designated cells
+        Create drop-downs for specified cells, with the drop-down options
+        provided as a string.
+
+        The drop-down options string can be formatted with drop-down
+        options separated by a comma and surrounded by quotation marks. For
+        example, if wanting to create a drop-down for numbers 1 to 3, the
+        formula should be defined as '"1, 2, 3"' to include the double-quotes
+        as part of the string.
+
+        Alternatively, drop-down options can be inputted across a number of
+        cells, and this range of cells can then be referenced to create the
+        drop-down. For example, if wanting to create a drop-down for numbers
+        1 to 3, and these numbers were inputted into the sheet "Example_sheet"
+        in the cells A1 to A3, respectively, then the drop-down formula would
+        be "='Example_sheet'!A1:A3". This can be done in one step via the
+        list_to_drop_down() function.
+
+        An error is raised if the drop-down options formula is >256 characters
+        long (including the enclosing quotation marks). This is due to
+        a 256 character limit in excel, which will prevent the drop-down from
+        being formatted correctly. In this case, list_to_drop_down() should be
+        used to make the drop-down.
 
         Parameters
         ----------
         dropdown_options: str
-            str containing drop-down items
+            str containing drop-down items formatted with drop-down list
+            options separated by a comma and surrounded by quoation marks.
         prompt: str
             prompt message for drop-down
         title: str
@@ -1830,10 +2115,23 @@ class excel():
         sheet: openpyxl.Writer writer object
             current worksheet
         cells: list
-            list of cells to add drop-down
+            List of cells to have drop-down added, specified by
+            column letter row number referencing e.g. A1
+
+        Raises:
+        -------
+        ValueError: if drop-down options string is > 256 characters long.
+
         """
-        options = dropdown_options
-        val = DataValidation(type='list', formula1=options,
+
+        if len(dropdown_options) > 256:
+            raise ValueError(
+                "Drop-down options string is >256 characters long and will"
+                " not be formatted correctly by excel. Consider using "
+                "list_to_drop_down() to implement this drop-down"
+            )
+
+        val = DataValidation(type='list', formula1=dropdown_options,
                              allow_blank=True)
         val.prompt = prompt
         val.promptTitle = title
@@ -1843,6 +2141,42 @@ class excel():
         val.showInputMessage = True
         val.showErrorMessage = True
 
+    def get_cells_in_columns(self, sheet, cols, num_rows) -> list:
+        """
+        Get list of cell references (e.g. [A1, A2, A3]) of cells in specified
+        columns for a specfied number of rows. If the column is not present,
+        then a RuntimeError is raised. This function assumes the first row is
+        a header row therefore cells in the first row are skipped.
+
+        Args:
+            sheet (openpyxl.Writer): writer object for sheet.
+            cols (list): list of column names contaning cells whose references
+                will be returned.
+            num_rows(int): number of rows to return.
+
+        Returns:
+            list:  list of cell references (e.g. A1) of cells in specified
+             columns
+
+        Raises:
+            RuntimeError if specified column name is not present in specified
+            sheet
+        """
+        cells = []
+
+        for col in cols:
+            col_letter = self.col_name_to_col_letter(sheet, col)
+            if col_letter is not None:
+                # Start at row 2 to skip the header
+                for row in range(2, num_rows+2):
+                    cells.append(f"{col_letter}{row}")
+            else:
+                raise RuntimeError(
+                    f"The column {col} could not be found in the "
+                    f"{sheet.title} sheet"
+                )
+
+        return cells
 
     def set_width_height_report_text(self) -> None:
         """
@@ -1858,13 +2192,124 @@ class excel():
             if 'Report text' not in [x.value for x in curr_worksheet[1]]:
                 continue
 
-            report_column = self.get_col_letter(curr_worksheet, 'Report text')
+            report_column = self.col_name_to_col_letter(
+                curr_worksheet, 'Report text'
+            )
 
-            for row in curr_worksheet.iter_rows():
-                for cell in row:
-                    if cell.column_letter == report_column and cell.row != 1:
-                        # find the cell containing the report text and set
-                        # the row height proportional to no. of lines
-                        height = (cell.value.count('\n') * 13) + 25
+            # Loop over cells in report text column but skip first row
+            for cell in curr_worksheet[report_column][1:]:
+                if cell.value is not None:
+                    # find the cell containing the report text and set
+                    # the row height proportional to no. of lines
+                    height = (cell.value.count('\n') * 13) + 25
+                    curr_worksheet.row_dimensions[cell.row].height = height
+                    # Wrap text so that new lines are interpreted correctly by
+                    # excel
+                    cell.alignment = Alignment(wrap_text=True)
 
-                        curr_worksheet.row_dimensions[cell.row].height = height
+    def store_list_in_sheet(self, values: list, sheet_name: str,
+                            col: str = "A") -> None:
+        """
+        Store a list of values in a specified column, in a specified sheet,
+        using the specified sheetname.
+
+        Args:
+            values (list): List of values to be stored in the sheet
+            sheet_name (str): Name of sheet in which the values will be stored
+            col (str, optional): Column letter, specifying the column in which
+                the values will be stored, the default is the first column
+                ("A").
+        """
+
+        if sheet_name not in self.workbook.sheetnames:
+            sheet = self.workbook.create_sheet(sheet_name)
+
+        else:
+            sheet = self.workbook[sheet_name]
+
+        for value in values:
+            sheet.append({col: value})
+
+    def list_to_drop_down(
+        self, dropdown_options: list, dropdown_options_sheet_name: str,
+        dropdown_options_col: str, prompt: str, title: str,
+        sheet, cells: list, hide: bool = True, lock: bool = True
+    ) -> None:
+
+        """
+        Store a list of values in a specified location (specified sheet,
+        specified column) by calling store_list_in_sheet(). Create a drop-down
+        in the specified location(s) (specified sheet, specified cell(s))
+        referencing the stored list values, by calling str_to_drop_down().
+
+        This function can be helpful if trying to create a drop-down with a
+        large number of options, as excel prevents you from generating a
+        drop-down using a string that is > 256 characters long.
+
+        Args:
+            dropdown_options (list): List of values to be included as
+                drop-down options
+            dropdown_options_sheet_name (str): Name of sheet in which to store
+                drop-down option values
+            dropdown_options_col (str): Column letter in which to store
+                drop-down option values (e.g. "A")
+            prompt (str): prompt message for drop-down
+            title (str): title message for drop-down
+            sheet (openpyxl.Writer writer object): Sheet in which drop-down
+                will be added
+            cells (list): List of cells to have drop-down added, specified by
+            column letter row number referencing e.g. A1
+            hide (bool, optional): If true, sheet storing drop-down options
+                values is hidden. Defaults to True.
+            lock (bool, optional): If true, sheet storing drop-down options is
+                locked. Defaults to True.
+        """
+
+        self.store_list_in_sheet(
+            values=dropdown_options,
+            sheet_name=dropdown_options_sheet_name,
+            col=dropdown_options_col
+        )
+
+        dropdown_options_sheet = self.workbook[dropdown_options_sheet_name]
+
+        if hide:
+            dropdown_options_sheet.sheet_state = 'hidden'
+
+        if lock:
+            self.lock_sheet(dropdown_options_sheet)
+
+        self.str_to_drop_down(
+                dropdown_options=f"='{dropdown_options_sheet_name}'!{dropdown_options_col}1:{dropdown_options_col}{len(dropdown_options)}",
+                prompt=prompt,
+                title=title,
+                sheet=sheet,
+                cells=cells
+        )
+
+    @staticmethod
+    def read_m_codes_file(file) -> list:
+        """
+        Reads in M-codes file and checks that file is formatted
+        correctly.
+
+        Raises:
+            ValueError: if line found in M-codes file which does not contain a
+            singlular valid M-code.
+
+        Returns:
+            List containing M-codes stripped of any leading/trailing
+            whitespace
+        """
+        with open(file, 'r', encoding="UTF-8") as f:
+            lines = []
+            for idx, line in enumerate(f, 1):
+                stripped = line.strip()
+                if not re.match(r'^M\d+$', stripped):
+                    raise ValueError(
+                        f"M-codes file not formatted correctly. Incorrect "
+                        f"value {repr(line)} found in line {idx}"
+                    )
+                lines.append(stripped)
+
+        return lines

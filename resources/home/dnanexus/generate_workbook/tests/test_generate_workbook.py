@@ -1,9 +1,8 @@
 from pathlib import Path
 import pytest
+import argparse
 from unittest.mock import patch
-
 from generate_workbook import arguments
-
 
 class TestVerifyImages():
     """
@@ -106,3 +105,58 @@ class TestVerifyColours():
 
         with pytest.raises(AssertionError):
             self.args_obj.verify_colours()
+
+
+class TestVerifySortBy():
+    """
+    Tests for the generate_workbook.verify_sort_by method.
+    Ensures that --sort_by input is correctly validated and parsed.
+    """
+
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+    def test_sort_by_input_without_colon_raises_error(self):
+        """
+        Test that a sort_by string without a colon raises a ValueError.
+        """
+        invalid_sort = "a_column_name 'True'"
+        with pytest.raises(ValueError, match="Expected format"):
+            self.args_obj.verify_sort_by([invalid_sort])
+
+    @pytest.mark.parametrize("sort", [["CHROM:"], [":True"]])
+    def test_sort_by_input_without_col_or_bool_raises_error(self, sort):
+        """
+        Test that sort_by values missing column name or boolean raise a
+        ValueError.
+        """
+        with pytest.raises(ValueError, match="no column name or bool"):
+            self.args_obj.verify_sort_by(sort)
+
+    @pytest.mark.parametrize(
+        "sort", [["CHROM:Not_a_bool"], ["CHROM:F"], ["CHROM:0"], ["CHROM:1"]]
+    )
+    def test_sort_by_input_with_invalid_bool_raises_error(self, sort):
+        """
+        Test that sort_by values with invalid booleans raise a ValueError.
+        """
+        with pytest.raises(ValueError, match="Expected 'True'"):
+            self.args_obj.verify_sort_by(sort)
+
+    @pytest.mark.parametrize(
+        "sort, expected",
+        [
+            (["CHROM:True"], {"CHROM": True}),
+            (["POS:False"], {"POS": False}),
+            (
+                ["REF:True", "POS:True", "CHROM:False"],
+                {"REF": True, "POS": True, "CHROM": False}
+            )
+        ]
+    )
+    def test_valid_sort_by_input_is_returned_correctly(self, sort, expected):
+        """
+        Test that valid sort_by input is correctly parsed into a dictionary.
+        """
+        assert self.args_obj.verify_sort_by(sort) == expected
