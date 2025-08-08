@@ -234,7 +234,7 @@ class buildHyperlink():
         if build == 37:
             url = f"{self.urls['gnomad_base_url']}?dataset=gnomad_r2_1"
         elif build == 38:
-            url = f"{self.urls['gnomad_base_url']}?dataset=gnomad_r3"
+            url = f"{self.urls['gnomad_base_url']}?dataset=gnomad_r4"
         else:
             return value[column]
 
