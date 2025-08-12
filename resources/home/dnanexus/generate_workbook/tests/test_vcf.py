@@ -748,7 +748,7 @@ class TestHyperlinks():
 
         valid_string = (
             '=HYPERLINK("https://gnomad.broadinstitute.org/variant/1-64883298'
-            '-T-C?dataset=gnomad_r3", 0.0004271)'
+            '-T-C?dataset=gnomad_r4", 0.0004271)'
         )
 
         # Assert the output is as expected
