@@ -110,6 +110,8 @@ This app may be executed as a standalone app.
 
 `--split_hgvs` (`bool`): If true, the c. and p. changes in HGVSc and HGVSp will be split out into DNA and Protein columns respectively, without the transcript
 
+`--add_raw_change` (`bool`): If true, will add a column named 'rawChange' with a concatenation of columns formatted as {CHROM}:g.{POS}{REF}>{ALT}
+
 `--lock_sheet` (`bool`): If true, the additional file sheet(s), variant sheet(s), and the summary sheet for uranus and dias are locked, except specific cells
 
 `--af_format` (`string`): Presents the allele frequency (AF) as a decimal (0-1) or as a percent (0-100). Default is decimal. Options are `decimal` or `percent`
