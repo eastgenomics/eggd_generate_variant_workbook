@@ -157,7 +157,7 @@ bcftools view -h resources/home/dnanexus/generate_workbook/tests/test_data/NA128
 ##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: Allele|SYMBOL|HGNC_ID|VARIANT_CLASS|Consequence|IMPACT|EXON|INTRON|Feature|HGVSc|HGVSp|HGVS_OFFSET|Existing_variation|STRAND|ClinVar|ClinVar_CLNSIG|ClinVar_CLNSIGCONF|ClinVar_CLNDN|gnomADg_AC|gnomADg_AN|gnomADg_AF|gnomADe_AC|gnomADe_AN|gnomADe_AF|gnomADe_Hom|TWE_AF|TWE_AC_Hom|TWE_AC_Het|TWE_AN|HGMD|HGMD_PHEN|HGMD_CLASS|HGMD_RANKSCORE|SpliceAI_pred_DS_AG|SpliceAI_pred_DS_AL|SpliceAI_pred_DS_DG|SpliceAI_pred_DS_DL|SpliceAI_pred_DP_AG|SpliceAI_pred_DP_AL|SpliceAI_pred_DP_DG|SpliceAI_pred_DP_DL|REVEL|Mastermind_MMID3|CADD_PHRED">
 ```
 
-The `##VEP` line records the VEP version and databases used at annotation time. The `##INFO=<ID=CSQ,...>` line defines the pipe-delimited sub-fields packed into each variant's `CSQ` field. In the example above, 42 annotation fields are present — from transcript consequences (`SYMBOL`, `HGVSc`, `HGVSp`) through population frequencies (`gnomADe_AF`, `TWE_AF`) and pathogenicity predictors (`CADD_PHRED`, `REVEL`, `SpliceAI_pred_*`).
+The `##VEP` line records the VEP version and databases used at annotation time. The `##INFO=<ID=CSQ,...>` line defines the pipe-delimited sub-fields packed into each variant's `CSQ` field. In the example above, 44 annotation fields are present — from transcript consequences (`SYMBOL`, `HGVSc`, `HGVSp`) through population frequencies (`gnomADe_AF`, `TWE_AF`) and pathogenicity predictors (`CADD_PHRED`, `REVEL`, `SpliceAI_pred_*`).
 
 ## Step 2 — CSQ Field Splitting with bcftools +split-vep
 
@@ -211,7 +211,7 @@ Fields are converted to clickable Excel hyperlinks based on the reference build 
 
 | Database | Build | Field used |
 |----------|-------|-----------|
-| gnomAD | GRCh38 → v4, GRCh37 → v3 | CHROM, POS, REF, ALT |
+| gnomAD | GRCh38 → v4, GRCh37 → v2 | CHROM, POS, REF, ALT |
 | ClinVar | either | ClinVar accession |
 | COSMIC | either | COSMIC ID |
 | HGMD | either | HGMD accession |
@@ -264,7 +264,10 @@ Three `--summary` modes generate a pre-populated first sheet tailored to each as
 
 ## DNAnexus Integration (dxapp.json and src/code.sh)
 
-The app runs on DNAnexus using a `mem2_ssd1_v2_x2` instance (2 vCPUs, memory-optimised SSD). The manifest below shows the declared inputs and outputs.
+The app runs on DNAnexus using a `mem1_ssd1_v2_x4` instance (4 vCPUs, SSD storage). The manifest below shows the declared inputs and outputs.
+
+<details>
+<summary><code>dxapp.json</code> — full manifest</summary>
 
 ```bash
 cat dxapp.json
@@ -686,6 +689,8 @@ cat dxapp.json
 }
 ```
 
+</details>
+
 Key DNAnexus configuration points from the manifest:
 
 - **Version**: 2.11.1 (authorised to `org-emee_1`)
@@ -719,6 +724,9 @@ Wheels are installed offline from the bundled `packages/` directory by `code.sh`
 ## Tests
 
 The test suite lives at `resources/home/dnanexus/generate_workbook/tests/` and is run with **pytest**. Tests are organised by module:
+
+<details>
+<summary>Full test function listing</summary>
 
 ```bash
 grep -h 'def test_' resources/home/dnanexus/generate_workbook/tests/test_vcf.py resources/home/dnanexus/generate_workbook/tests/test_filters.py resources/home/dnanexus/generate_workbook/tests/test_excel.py resources/home/dnanexus/generate_workbook/tests/test_columns.py resources/home/dnanexus/generate_workbook/tests/test_generate_workbook.py resources/home/dnanexus/generate_workbook/tests/test_utils.py | sed 's/    def //' | sed 's/(self.*//' | grep -v '__'
@@ -808,6 +816,8 @@ test_tsv_suffix():
 test_csv_suffix():
 ```
 
+</details>
+
 The test suite covers:
 
 | Test file | What it covers |
@@ -845,7 +855,7 @@ The `colour` Python library is used to validate and convert colour names to hex.
 
 ### Reference build detection
 `vcf.parse_reference()` scans the VCF header for `GRCh38` or `GRCh37` patterns. The detected build drives:
-- gnomAD hyperlink version (v4 for GRCh38, v3 for GRCh37)
+- gnomAD hyperlink version (v4 for GRCh38, v2 for GRCh37)
 - DECIPHER column availability (GRCh38 only)
 - MasterMind NC chromosome mapping
 
