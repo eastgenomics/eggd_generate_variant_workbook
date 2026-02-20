@@ -231,9 +231,11 @@ The app will also add `details` metadata, in terms of variant counts, to the out
 ```
 Note: if `-isummary` not Dias, if `-ikeep_filtered=False`, and if `-iclinical_indication` not provided then the only details added to the file would be `"included": 10`. In this case, if no filtering is performed either then only `"variants": 265` would be added as details.
 
-#### This app was made by EMEE GLH
-
 [bcftools]: https://samtools.github.io/bcftools/bcftools.html#filter
 [bcftools-expressions]: https://samtools.github.io/bcftools/bcftools.html#expressions
 [set-docs]: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
+
+## Further details
+
+For a detailed technical walkthrough of the codebase — including the processing pipeline, module descriptions, and usage examples — see [technical_walkthrough.md](technical_walkthrough.md).
 
