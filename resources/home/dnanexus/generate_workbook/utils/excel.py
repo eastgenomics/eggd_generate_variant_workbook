@@ -570,7 +570,6 @@ class excel():
         self.summary.cell(15, 1).value = "Total reads M"
         self.summary.cell(16, 1).value = "Fold 80"
         self.summary.cell(17, 1).value = "Insert size"
-        self.summary.cell(18, 1).value = "Sex check"
 
         to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A7", "A9", "A12", "B12"])
 
