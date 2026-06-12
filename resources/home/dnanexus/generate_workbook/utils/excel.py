@@ -563,7 +563,7 @@ class excel():
 
         self.summary.cell(9, 1).value = "Variant totals"
 
-        self.summary.cell(12, 2).value = "Sample QC"
+        self.summary.cell(12, 3).value = "Sample QC"
         self.summary.cell(12, 1).value = "Run QC"
         self.summary.cell(13, 1).value = "250x"
         self.summary.cell(14, 1).value = "Contamination"
@@ -606,7 +606,7 @@ class excel():
             to_bold.append(f"B{row_count}")
             row_count += 1
 
-        row_count += 0
+        row_count += 9
 
         # write genome reference(s) parsed from vcf header
         if self.refs:
