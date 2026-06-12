@@ -92,7 +92,7 @@ This app may be executed as a standalone app.
 
 `--merge_vcfs` (`bool`): Determines if to merge multiple VCFs to one sheet (default: `False`).
 
-`--summary` (`string`): If to include summary sheet, specify key of assay. Currently supports `dias`, `helios` and `uranus`.
+`--summary` (`string`): If to include summary sheet, specify key of assay. Currently supports `dias`, `helios`, `uranus`, and ``.
 
 `--human_filter` (`string`): String to add to summary sheet with humanly readable form of the given filter string. No checking is done of this matching the actual filter(s) used.
 
