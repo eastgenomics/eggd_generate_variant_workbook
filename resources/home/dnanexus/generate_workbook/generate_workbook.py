@@ -241,7 +241,7 @@ class arguments():
         )
         parser.add_argument(
             '--summary', required=False,
-            help='summary sheet to include, must be one of: dias, helios or uranus'
+            help='summary sheet to include, must be one of: dias, helios, uranus or atlas'
         )
         parser.add_argument(
             '--human_filter', nargs='+', action=self.joinList,

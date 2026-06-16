@@ -123,6 +123,9 @@ class excel():
         if self.args.summary == 'uranus':
             # generate summary sheet in format for HaemOnc/Uranus
             self.uranus_summary()
+        if self.args.summary == 'atlas':
+            # generate summary sheet in format for CGP/Atlas
+            self.atlas_summary()
 
     def summary_sheet_cell_colour_key(
         self, row_count, to_bold
@@ -493,6 +496,116 @@ class excel():
                     row_count += 1
 
         row_count += 1
+
+        # write genome reference(s) parsed from vcf header
+        if self.refs:
+            self.summary.cell(row_count, 1).value = "Reference:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name
+            )
+            for ref in list(set(self.refs)):
+                self.summary.cell(row_count, 2).value = ref
+                row_count += 1
+
+            row_count += 2
+
+        if self.args.human_filter:
+            self.summary.cell(row_count, 1).value = "Filters applied:"
+            self.summary[f"A{row_count}"].font = Font(
+                bold=True, name=DEFAULT_FONT.name)
+            self.summary.cell(row_count, 2).value = self.args.human_filter
+
+            row_count += 2
+
+        # write args passed to script to generate report
+        self.summary.cell(row_count, 1).value = "Filter command:"
+        self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
+        if self.args.filter:
+            self.summary.cell(row_count, 2).value = self.args.filter
+        else:
+            self.summary.cell(row_count, 2).value = "None"
+
+        row_count += 2
+
+        # write in the colouring of any columns if done
+        if self.args.colour:
+            row_count, to_bold = self.summary_sheet_cell_colour_key(
+                row_count, to_bold)
+
+        # write more text with DNAnexus IDs etc
+        row_count += 2
+        self.summary.cell(row_count, 1).value = "Workflow:"
+        self.summary.cell(row_count + 1, 1).value = "Workflow ID:"
+        self.summary.cell(row_count + 2, 1).value = "Report Job ID:"
+        to_bold.extend([f"A{row_count + x}" for x in range(0, 3)])
+
+        self.summary.cell(row_count, 2).value = self.args.workflow[0]
+        self.summary.cell(row_count + 1, 2).value = self.args.workflow[1]
+        self.summary.cell(row_count + 2, 2).value = self.args.job_id
+
+        for cell in to_bold:
+            self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
+
+    def atlas_summary(self) -> None:
+        """
+        Writes summary sheet for atlas pipeline with metrics such as
+        variant records per sheet, dx file IDs and parameters specified
+        """
+        # track what cells to make bold
+        to_bold = []
+
+        # write titles for summary values
+        self.summary.cell(1, 1).value = "Sample ID:"
+        self.summary.cell(4, 1).value = "Name"
+        self.summary.cell(5, 1).value = "Clinical indication"
+        self.summary.cell(6, 1).value = "Tumour %"
+        self.summary.cell(7, 1).value = "Adjusted Tumour %"
+
+        self.summary.cell(9, 1).value = "Variant totals"
+
+        self.summary.cell(12, 3).value = "Sample QC"
+        self.summary.cell(12, 1).value = "Run QC"
+        self.summary.cell(13, 1).value = "250x"
+        self.summary.cell(14, 1).value = "Contamination"
+        self.summary.cell(15, 1).value = "Total reads M"
+        self.summary.cell(16, 1).value = "Fold 80"
+        self.summary.cell(17, 1).value = "Insert size"
+
+        to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A7", "A9", "A12", "B12"])
+
+        # get sample name from vcf, should only be one but handle everything
+        # list-wise just in case
+        sample = [
+            Path(x).name.replace('.vcf', '').replace('.gz', '')
+            for x in self.args.vcfs
+        ]
+        sample = [x.split('_')[0] if '_' in x else x for x in sample]
+        sample = str(sample).strip('[]').strip("'")
+        self.summary.cell(1, 2).value = sample
+
+        # split sample name into constituent parts on '-' and write to
+        # separate cells for ease of them copying
+        for idx, part in enumerate(sample.split('-')):
+            self.summary.cell(2, idx+2).value = part
+
+        self.summary.column_dimensions['A'].width = 36
+        self.summary.column_dimensions['B'].width = 16
+        self.summary.column_dimensions['C'].width = 16
+        self.summary.column_dimensions['D'].width = 16
+
+        self.summary.merge_cells(
+            start_row=1, end_row=1, start_column=2, end_column=6)
+
+        row_count = 9
+
+        # write counts of variants
+        for sheet, vcf in zip(self.args.sheets, self.vcfs, strict=True):
+            self.summary.cell(row_count, 2).value = sheet
+            self.summary.cell(row_count, 3).value = len(vcf.index)
+            to_bold.append(f"B{row_count}")
+            row_count += 1
+
+        row_count += 9
 
         # write genome reference(s) parsed from vcf header
         if self.refs:
