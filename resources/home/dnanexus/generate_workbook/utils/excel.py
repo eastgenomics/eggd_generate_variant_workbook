@@ -599,7 +599,7 @@ class excel():
         row_count = 9
 
         # write counts of variants
-        for sheet, vcf in zip(self.args.sheets, self.vcfs):
+        for sheet, vcf in zip(self.args.sheets, self.vcfs, strict=True):
             self.summary.cell(row_count, 2).value = sheet
             self.summary.cell(row_count, 3).value = len(vcf.index)
             to_bold.append(f"B{row_count}")
