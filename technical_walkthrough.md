@@ -11,6 +11,9 @@
 
 ## Repository Structure
 
+<details>
+<summary>Repository file tree</summary>
+
 ```bash
 find . -not -path '*/__pycache__/*' -not -name '__pycache__' -not -path '*/.git*' -not -name '*.pyc' | sed 's|^\./||' | grep -v '^\.$' | sort | head -80
 ```
@@ -68,6 +71,8 @@ src
 src/code.sh
 technical_walkthrough.md
 ```
+
+</details>
 
 The repo follows the DNAnexus applet layout convention:
 
@@ -247,20 +252,20 @@ Fields are converted to clickable Excel hyperlinks based on the reference build 
 
 Three `--summary` modes generate a pre-populated first sheet tailored to each assay:
 
-### DIAS (diagnostic sequencing)
+### DIAS (rare disease)
 - Patient ID box, referral/clinical indication, panel name
 - Workflow name and DNAnexus job IDs
 - Human-readable filter description
 - Interpretation table with pass/fail variant counts
 - Links to relevant ACMG classification templates
 
-### HELIOS (haemato-oncology)
-- Similar structure to DIAS but with haemato-oncology-specific layout
+### HELIOS (solid cancer)
+- Similar structure to DIAS but with solid cancer-specific layout
 - Optimised for reporting somatic and germline variants together
 
-### URANUS (myeloid/MDS)
+### URANUS (haemonc)
 - MYE workbook layout compatible with ClinVar submission format
-- Additional metadata fields for myelodysplastic syndromes reporting
+- Additional metadata fields for haemonc reporting
 
 ## DNAnexus Integration (dxapp.json and src/code.sh)
 
