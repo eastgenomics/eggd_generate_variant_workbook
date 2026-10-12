@@ -17,6 +17,7 @@ from openpyxl import drawing, load_workbook
 from openpyxl.styles import Alignment, Border, DEFAULT_FONT, Font, Side
 from openpyxl.styles.fills import PatternFill
 from openpyxl.utils import get_column_letter as col_idx_to_col_letter
+from openpyxl.utils.cell import absolute_coordinate
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.styles.protection import Protection
 import pandas as pd
@@ -40,6 +41,13 @@ COL_TO_UNLOCK = 200
 # and/or have drop-downs added
 OPTIONAL_COLUMNS = {'Comment', 'Classification', 'Allele Origin',
                     'Interpreted', 'Reported', 'MNV'}
+
+# Cell on atlas summary sheet holding the cancer type drop-down, and the
+# hidden sheets storing the cancer type -> gene panels and drop-down options
+CANCER_TYPE_CELL = "B8"
+CANCER_PANELS_SHEET = "cancer_panels"
+CANCER_TYPES_SHEET = "cancer_types"
+IN_PANEL_COLUMN = "In panel"
 
 
 class excel():
@@ -573,6 +581,11 @@ class excel():
 
         to_bold.extend(["A1", "A2", "A4", "A5", "A6", "A7", "A9", "A12", "B12"])
 
+        if self.args.cancer_panels:
+            # add cancer type drop-down in B8 for 'In panel' column
+            self.atlas_cancer_panel_drop_down()
+            to_bold.append("A8")
+
         # get sample name from vcf, should only be one but handle everything
         # list-wise just in case
         sample = [
@@ -627,6 +640,15 @@ class excel():
 
             row_count += 2
 
+        # write name of cancer panels file used to populate drop-down
+        if self.args.cancer_panels:
+            self.summary.cell(row_count, 1).value = "Cancer panels file:"
+            to_bold.append(f"A{row_count}")
+            self.summary.cell(row_count, 2).value = Path(
+                self.args.cancer_panels).name
+
+            row_count += 2
+
         # write args passed to script to generate report
         self.summary.cell(row_count, 1).value = "Filter command:"
         self.summary[f"A{row_count}"].font = Font(bold=True, name=DEFAULT_FONT.name)
@@ -655,6 +677,35 @@ class excel():
 
         for cell in to_bold:
             self.summary[cell].font = Font(bold=True, name=DEFAULT_FONT.name)
+
+    def atlas_cancer_panel_drop_down(self) -> None:
+        """
+        Write the cancer type -> gene panels to a hidden sheet and add a
+        drop-down of cancer types to the atlas summary sheet. The 'In panel'
+        column added to variant sheets by add_in_panel_column() references
+        both of these to show if each variant's gene is in the selected panel
+        """
+        panels = self.read_cancer_panels_file(self.args.cancer_panels)
+
+        # store full panel table as cancer type (col A), gene (col B)
+        panels_sheet = self.workbook.create_sheet(CANCER_PANELS_SHEET)
+        for cancer_type, gene in panels.itertuples(index=False):
+            panels_sheet.append([cancer_type, gene])
+
+        panels_sheet.sheet_state = 'hidden'
+        self.lock_sheet(panels_sheet)
+
+        self.summary["A8"].value = "Cancer type panel"
+
+        self.list_to_drop_down(
+            dropdown_options=panels['cancer_type'].unique().tolist(),
+            dropdown_options_sheet_name=CANCER_TYPES_SHEET,
+            dropdown_options_col="A",
+            prompt="Select cancer type to populate In panel column",
+            title="Cancer type panel",
+            sheet=self.summary,
+            cells=[CANCER_TYPE_CELL]
+        )
 
     def dias_summary(self) -> None:
         """
@@ -1212,6 +1263,12 @@ class excel():
                 # set Excel types for numeric cells to suppress Excel warnings
                 self.set_types(curr_worksheet)
 
+                # add formula column linked to summary cancer type drop-down,
+                # must be before last_col is set so it is included in the
+                # auto-filter and unlocked regions
+                if self.args.cancer_panels:
+                    self.add_in_panel_column(curr_worksheet, len(vcf))
+
                 # check what optional columns are present
                 vcf_cols = set(vcf.columns.to_list())
                 optional_cols_in_sheet = vcf_cols.intersection(
@@ -1497,6 +1554,53 @@ class excel():
             f"Written data for sheet: {sheet} does not seem to match the "
             "dataframe to be written"
         )
+
+    def add_in_panel_column(self, worksheet, num_variant) -> None:
+        """
+        Add an 'In panel' column to the end of a variant sheet, with a formula
+        per row showing 'Yes' / 'No' for if the gene of the variant is in the
+        panel for the cancer type selected in the summary sheet drop-down, or
+        blank if no cancer type is selected
+
+        Parameters
+        ----------
+        worksheet : openpyxl.Writer
+            writer object for current sheet
+        num_variant : int
+            number of variant rows in the sheet (excluding header)
+        """
+        gene_col = self.col_name_to_col_letter(
+            worksheet, self.args.panel_gene_column)
+
+        if gene_col is None:
+            print(
+                f"WARNING: gene column '{self.args.panel_gene_column}' not "
+                f"found in {worksheet.title} sheet, '{IN_PANEL_COLUMN}' "
+                "column will not be added"
+            )
+            return
+
+        in_panel_idx = worksheet.max_column + 1
+        in_panel_col = col_idx_to_col_letter(in_panel_idx)
+
+        header = worksheet.cell(1, in_panel_idx)
+        header.value = IN_PANEL_COLUMN
+        header.font = Font(name=DEFAULT_FONT.name)
+
+        cancer_type = f"'summary'!{absolute_coordinate(CANCER_TYPE_CELL)}"
+        panel_types = f"'{CANCER_PANELS_SHEET}'!$A:$A"
+        panel_genes = f"'{CANCER_PANELS_SHEET}'!$B:$B"
+
+        for row in range(2, num_variant + 2):
+            cell = worksheet.cell(row, in_panel_idx)
+            cell.value = (
+                f'=IF({cancer_type}="","",IF(COUNTIFS({panel_types},'
+                f'{cancer_type},{panel_genes},{gene_col}{row})>0,'
+                '"Yes","No"))'
+            )
+            cell.font = Font(name=DEFAULT_FONT.name)
+
+        worksheet.column_dimensions[in_panel_col].width = 10
 
     def set_types(self, worksheet) -> None:
         """
@@ -2426,3 +2530,49 @@ class excel():
                 lines.append(stripped)
 
         return lines
+
+    @staticmethod
+    def read_cancer_panels_file(file) -> pd.DataFrame:
+        """
+        Reads in tab separated cancer panels file with a header of
+        cancer_type and gene, and one cancer type and gene per line.
+
+        Raises:
+            ValueError: if the header is incorrect, or a line does not have
+            exactly two non-empty tab separated values
+
+        Returns:
+            pd.DataFrame with columns cancer_type and gene, with whitespace
+            stripped and duplicate rows removed, in the order given in the
+            file
+        """
+        expected_header = ['cancer_type', 'gene']
+
+        with open(file, 'r', encoding="UTF-8") as f:
+            header = [x.strip().lower() for x in f.readline().split('\t')]
+            if header != expected_header:
+                raise ValueError(
+                    "Cancer panels file not formatted correctly. Expected "
+                    f"header {expected_header}, found {header}"
+                )
+
+            rows = []
+            for idx, line in enumerate(f, 2):
+                if not line.strip():
+                    continue
+
+                values = [x.strip() for x in line.rstrip('\r\n').split('\t')]
+                if len(values) != 2 or not all(values):
+                    raise ValueError(
+                        "Cancer panels file not formatted correctly. "
+                        f"Incorrect value {repr(line)} found in line {idx}"
+                    )
+                rows.append(values)
+
+        if not rows:
+            raise ValueError("No cancer types and genes found in cancer "
+                             "panels file")
+
+        return pd.DataFrame(
+            rows, columns=expected_header
+        ).drop_duplicates().reset_index(drop=True)

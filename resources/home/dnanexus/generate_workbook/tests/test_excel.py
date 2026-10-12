@@ -225,3 +225,147 @@ class TestCellsFormattedAsPerc:
         ws["A1"] = "41.23"
         mocked_excel_file.format_cells_as_percentage(ws, cells=["A1"])
         assert ws["A1"].number_format == "0.0%"
+
+
+class TestReadCancerPanelsFile:
+    """
+    Collection of test cases for utils.excel.excel.read_cancer_panels_file
+    """
+    def test_valid_file_read_and_deduplicated(self, tmp_path):
+        """
+        Test that a valid file is read with whitespace stripped, blank lines
+        skipped and duplicate cancer type / gene pairs removed
+        """
+        content = (
+            "cancer_type\tgene\n"
+            "Colorectal\tKRAS\n"
+            " Colorectal \t NRAS \n"
+            "\n"
+            "Colorectal\tKRAS\n"
+            "Lung\tEGFR\n"
+        )
+        file_path = tmp_path / "panels.tsv"
+        file_path.write_text(content, encoding="utf-8")
+
+        result = excel.read_cancer_panels_file(file_path)
+
+        assert result.values.tolist() == [
+            ["Colorectal", "KRAS"],
+            ["Colorectal", "NRAS"],
+            ["Lung", "EGFR"]
+        ]
+
+    def test_incorrect_header_raises_error(self, tmp_path):
+        """
+        Test that a file without the expected header raises a ValueError
+        """
+        file_path = tmp_path / "panels.tsv"
+        file_path.write_text("Colorectal\tKRAS\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match=r".*Expected header.*"):
+            excel.read_cancer_panels_file(file_path)
+
+    @pytest.mark.parametrize(
+        "line", ["Colorectal\t\n", "\tKRAS\n", "Colorectal\n",
+                 "Colorectal\tKRAS\textra\n"]
+    )
+    def test_malformed_line_raises_error(self, tmp_path, line):
+        """
+        Test that a line with an empty value or wrong number of columns
+        raises a ValueError
+        """
+        file_path = tmp_path / "panels.tsv"
+        file_path.write_text(f"cancer_type\tgene\n{line}", encoding="utf-8")
+
+        with pytest.raises(ValueError, match=r".*found in line 2.*"):
+            excel.read_cancer_panels_file(file_path)
+
+    def test_header_only_raises_error(self, tmp_path):
+        """
+        Test that a file with no cancer types / genes raises a ValueError
+        """
+        file_path = tmp_path / "panels.tsv"
+        file_path.write_text("cancer_type\tgene\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match=r".*No cancer types.*"):
+            excel.read_cancer_panels_file(file_path)
+
+
+class TestAtlasCancerPanelDropDown:
+    """
+    Collection of test cases for
+    utils.excel.excel.atlas_cancer_panel_drop_down
+    """
+    def test_panel_sheets_and_drop_down_added(self, mocked_excel_file, tmp_path):
+        """
+        Test that hidden sheets are created holding the panels and cancer
+        types, and the summary sheet has a drop-down referencing the
+        cancer types
+        """
+        file_path = tmp_path / "panels.tsv"
+        file_path.write_text(
+            "cancer_type\tgene\nColorectal\tKRAS\nColorectal\tNRAS\n"
+            "Lung\tEGFR\n",
+            encoding="utf-8"
+        )
+        mocked_excel_file.args.cancer_panels = file_path
+        mocked_excel_file.summary = mocked_excel_file.workbook.create_sheet(
+            'summary')
+
+        mocked_excel_file.atlas_cancer_panel_drop_down()
+
+        wb = mocked_excel_file.workbook
+        panels = wb['cancer_panels']
+        types = wb['cancer_types']
+
+        assert panels.sheet_state == 'hidden'
+        assert types.sheet_state == 'hidden'
+        assert [list(x) for x in panels.values] == [
+            ["Colorectal", "KRAS"], ["Colorectal", "NRAS"], ["Lung", "EGFR"]
+        ]
+        assert [x[0] for x in types.values] == ["Colorectal", "Lung"]
+
+        assert mocked_excel_file.summary["A8"].value == "Cancer type panel"
+        validations = mocked_excel_file.summary.data_validations.dataValidation
+        assert len(validations) == 1
+        assert validations[0].formula1 == "='cancer_types'!A1:A2"
+        assert str(validations[0].sqref) == "B8"
+
+
+class TestAddInPanelColumn:
+    """
+    Collection of test cases for utils.excel.excel.add_in_panel_column
+    """
+    def test_in_panel_column_added(self, mocked_excel_file, unlocked_worksheet):
+        """
+        Test that the In panel column is added after the last column with a
+        formula per row referencing that row's gene cell
+        """
+        mocked_excel_file.args.panel_gene_column = "SYMBOL"
+        unlocked_worksheet.append(["CHROM", "SYMBOL", "VF"])
+        unlocked_worksheet.append(["1", "KRAS", 0.5])
+        unlocked_worksheet.append(["2", "EGFR", 0.4])
+
+        mocked_excel_file.add_in_panel_column(unlocked_worksheet, 2)
+
+        assert unlocked_worksheet["D1"].value == "In panel"
+        assert unlocked_worksheet["D2"].value == (
+            "=IF('summary'!$B$8=\"\",\"\",IF(COUNTIFS('cancer_panels'!$A:$A,"
+            "'summary'!$B$8,'cancer_panels'!$B:$B,B2)>0,\"Yes\",\"No\"))"
+        )
+        assert "B3)" in unlocked_worksheet["D3"].value
+        assert unlocked_worksheet["D4"].value is None
+
+    def test_missing_gene_column_skipped(
+        self, mocked_excel_file, unlocked_worksheet
+    ):
+        """
+        Test that no column is added when the gene column is not present
+        """
+        mocked_excel_file.args.panel_gene_column = "SYMBOL"
+        unlocked_worksheet.append(["CHROM", "POS"])
+        unlocked_worksheet.append(["1", 100])
+
+        mocked_excel_file.add_in_panel_column(unlocked_worksheet, 1)
+
+        assert unlocked_worksheet.max_column == 2
