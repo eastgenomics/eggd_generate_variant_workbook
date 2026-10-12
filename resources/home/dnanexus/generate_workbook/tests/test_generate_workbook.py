@@ -160,3 +160,52 @@ class TestVerifySortBy():
         Test that valid sort_by input is correctly parsed into a dictionary.
         """
         assert self.args_obj.verify_sort_by(sort) == expected
+
+
+class TestVerifyCancerPanels():
+    """
+    Tests for generate_workbook.verify_cancer_panels to check cancer panels
+    are only passed with an atlas summary sheet
+    """
+    with patch("sys.argv", []):
+        args_obj = object.__new__(arguments)
+        args_obj.args = args_obj.parse_args()
+
+    def test_cancer_panels_with_atlas_summary_passes(self):
+        """
+        Test that no error is raised when --cancer_panels is passed with
+        --summary atlas
+        """
+        self.args_obj.args.cancer_panels = 'panels.tsv'
+        self.args_obj.args.summary = 'atlas'
+
+        self.args_obj.verify_cancer_panels()
+
+        self.args_obj.args.cancer_panels = None
+        self.args_obj.args.summary = None
+
+    @pytest.mark.parametrize("summary", [None, 'dias', 'helios', 'uranus'])
+    def test_cancer_panels_without_atlas_summary_raises_error(self, summary):
+        """
+        Test that an AssertionError is raised when --cancer_panels is passed
+        without --summary atlas
+        """
+        self.args_obj.args.cancer_panels = 'panels.tsv'
+        self.args_obj.args.summary = summary
+
+        with pytest.raises(AssertionError, match="--summary atlas"):
+            self.args_obj.verify_cancer_panels()
+
+        self.args_obj.args.cancer_panels = None
+        self.args_obj.args.summary = None
+
+    def test_no_cancer_panels_passes(self):
+        """
+        Test that no error is raised when --cancer_panels is not passed
+        """
+        self.args_obj.args.cancer_panels = None
+        self.args_obj.args.summary = 'dias'
+
+        self.args_obj.verify_cancer_panels()
+
+        self.args_obj.args.summary = None

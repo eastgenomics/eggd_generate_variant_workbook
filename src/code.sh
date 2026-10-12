@@ -117,6 +117,8 @@ main() {
     if [ "$af_format" ]; then args+="--af_format ${af_format} "; fi
     if [ "$join_columns" ]; then args+="--join_columns ${join_columns} "; fi
     if [ "$m_codes" ]; then args+="--m_codes in/m_codes/* "; fi
+    if [ "$cancer_panels" ]; then args+="--cancer_panels in/cancer_panels/* "; fi
+    if [ "$panel_gene_column" ]; then args+="--panel_gene_column ${panel_gene_column} "; fi
     if [ "$add_auto_filter" ]; then args+="--add_auto_filter "; fi
     if [ "$sort_by" ]; then args+="--sort_by ${sort_by} "; fi
 

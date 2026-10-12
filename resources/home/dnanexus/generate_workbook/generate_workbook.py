@@ -28,6 +28,7 @@ class arguments():
         self.verify_images()
         self.verify_colours()
         self.verify_additional_columns()
+        self.verify_cancer_panels()
         if self.args.sort_by:
             self.args.sort_by = self.verify_sort_by(
                sort_by_list=self.args.sort_by
@@ -357,6 +358,23 @@ class arguments():
             )
         )
         parser.add_argument(
+            '--cancer_panels', required=False,
+            help=(
+                'Tab separated file with header "cancer_type<TAB>gene" mapping '
+                'cancer types to panel genes. Only valid with --summary '
+                'atlas. Adds a cancer type drop-down to the summary sheet and '
+                'an "In panel" column to each variant sheet.'
+            )
+        )
+        parser.add_argument(
+            '--panel_gene_column', required=False, default='SYMBOL',
+            help=(
+                'Name of the gene symbol column in the variant sheets (after '
+                'renaming) used to populate the "In panel" column. '
+                'Default: SYMBOL'
+            )
+        )
+        parser.add_argument(
             '--add_auto_filter', action='store_true',
             help='Add an excel auto filter to variant sheets'
         )
@@ -533,6 +551,26 @@ class arguments():
         assert not invalid_names, (
             f"Invalid names passed to --additional_columns: {invalid_names}.\n"
             f"Currently valid names for additional columns: {valid_columns}."
+        )
+
+
+    def verify_cancer_panels(self) -> None:
+        """
+        Checks that --cancer_panels is only passed with an atlas summary
+        sheet, as the 'In panel' formulae reference the summary sheet
+        drop-down
+
+        Raises
+        ------
+        AssertionError
+            Raised when --cancer_panels passed without --summary atlas
+        """
+        if not self.args.cancer_panels:
+            return
+
+        assert self.args.summary == 'atlas', (
+            "--cancer_panels can only be used with --summary atlas. "
+            f"Summary specified: {self.args.summary}"
         )
 
 
