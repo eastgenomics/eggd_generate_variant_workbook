@@ -118,6 +118,10 @@ This app may be executed as a standalone app.
 
 `--m_codes` (`string`): DNAnexus file ID for file containing all valid M-codes. M-codes should be provided one per line in a .txt file.
 
+`--cancer_panels` (`file`): Tab separated file mapping cancer types to panel genes, only valid with `--summary atlas`. See [Cancer type panels (Atlas)](#cancer-type-panels-atlas) below.
+
+`--panel_gene_column` (`string`): Name of the gene symbol column in the variant sheets (as it appears in the output, after any renaming) used to populate the `In panel` column. Default: `SYMBOL`.
+
 `--add_auto_filter` (`bool`): If true, an excel auto-filter is added to variant sheets. This is useful if you are specifying `--lock_sheet`, as an auto-filter cannot be added manually to a locked excel sheet.
 
 `--sort_by` (`string`): Names of VCF columns to sort by, and corresponding boolean for whether to sort in ascending order or not, with the column name and its corresponding boolean joined by a colon (:), and each column name:boolean pair separated by a space. For e.g. `--sort_by="CSQ_SYMBOL:True CHROM:True POS:True"`. Note: sorting occurs before column renaming but after the splitting out of the VCF INFO fields. Therefore you must specify the original column names.
@@ -186,6 +190,28 @@ If running the filtering with any operator containing `!` (i.e. `CSQ_ClinVar_CLN
 Useful resources:
 
 - [bcftools expressions][bcftools-expressions]
+
+
+## Cancer type panels (Atlas)
+
+When `-icancer_panels` is passed with `-isummary=atlas`, scientists can filter the variant sheets to genes on the panel for a chosen cancer type. The file must be tab separated with the header `cancer_type	gene` and one cancer type and gene per line:
+
+```
+cancer_type	gene
+Colorectal	KRAS
+Colorectal	NRAS
+Lung	EGFR
+```
+
+Whitespace is stripped, blank lines are skipped and duplicate rows are removed. The app errors if the header is wrong or a line does not have exactly two non-empty values.
+
+In the output workbook:
+
+- the summary sheet has a `Cancer type panel` drop-down in cell B8, listing every cancer type in the file, and records the name of the panels file used
+- each variant sheet with a gene column (`SYMBOL` by default, see `--panel_gene_column`) has an `In panel` column at the end, showing `Yes` / `No` for whether the variant's gene is in the selected cancer type's panel, or blank if no cancer type is selected
+- the panels are stored in hidden, locked `cancer_panels` and `cancer_types` sheets
+
+To filter, select a cancer type in the summary sheet, then filter the `In panel` column on `Yes` (use with `-iadd_auto_filter=true`, which is required if the sheets are locked). If the cancer type is changed while a filter is active, re-apply the filter (Data → Reapply) to refresh it.
 
 
 ## Hyperlinks in output Excel file
